@@ -127,7 +127,7 @@ describe("Spending pace action", () => {
       currentMonth: {
         key: "2026-08",
         label: "agosto de 2026",
-        total: 300,
+        total: 250,
         daysInMonth: 31,
         elapsedDays: 29,
       },
@@ -184,6 +184,88 @@ describe("Spending pace action", () => {
     });
   });
 
+  it("ignores investments and same-person transfers without ignoring regular transfers", async () => {
+    mocks.getConnectedAccounts.mockResolvedValue({
+      itemCount: 1,
+      error: null,
+      accounts: [
+        {
+          id: "account-a",
+          itemId: "item-a",
+          type: "BANK",
+          subtype: "CHECKING_ACCOUNT",
+          number: "0001",
+          balance: 1000,
+          name: "Conta A",
+          marketingName: "Conta principal",
+          currencyCode: "BRL",
+        },
+      ],
+    });
+    mocks.fetchAllTransactions.mockResolvedValue([
+      {
+        id: "regular-expense",
+        accountId: "account-a",
+        date: new Date("2026-08-10T12:00:00.000Z"),
+        type: "DEBIT",
+        amount: 100,
+        category: "Groceries",
+        categoryId: "11000000",
+        operationType: null,
+      },
+      {
+        id: "regular-transfer",
+        accountId: "account-a",
+        date: new Date("2026-08-10T12:00:00.000Z"),
+        type: "DEBIT",
+        amount: 75,
+        category: "Transfers",
+        categoryId: "05000000",
+        operationType: "PIX",
+      },
+      {
+        id: "investment",
+        accountId: "account-a",
+        date: new Date("2026-08-10T12:00:00.000Z"),
+        type: "DEBIT",
+        amount: 500,
+        category: "Investments",
+        categoryId: "03000000",
+        operationType: "APLIC_FINANCEIRA",
+      },
+      {
+        id: "same-person-pix",
+        accountId: "account-a",
+        date: new Date("2026-08-10T12:00:00.000Z"),
+        type: "DEBIT",
+        amount: 300,
+        category: "Same person transfer - PIX",
+        categoryId: "04010000",
+        operationType: "PIX",
+      },
+      {
+        id: "uncategorized-investment",
+        accountId: "account-a",
+        date: new Date("2026-08-10T12:00:00.000Z"),
+        type: "DEBIT",
+        amount: 200,
+        category: null,
+        categoryId: null,
+        operationType: "APLIC_FINANCEIRA",
+      },
+    ]);
+
+    const result = await getSpendingPace();
+
+    expect(result.currentMonth.total).toBe(175);
+    expect(result.previousMonth.total).toBe(0);
+    expect(result.points[9]).toEqual({
+      day: 10,
+      current: 175,
+      previous: 0,
+    });
+  });
+
   it("returns an empty result without calling Pluggy when there are no accounts", async () => {
     mocks.getConnectedAccounts.mockResolvedValue({
       itemCount: 0,
@@ -209,5 +291,46 @@ describe("Spending pace action", () => {
     });
 
     expect(mocks.fetchAllTransactions).not.toHaveBeenCalled();
+  });
+
+  it("normalizes the previous month when the current month is January", async () => {
+    vi.setSystemTime(new Date("2026-01-15T15:00:00-03:00"));
+    mocks.getConnectedAccounts.mockResolvedValue({
+      itemCount: 1,
+      error: null,
+      accounts: [
+        {
+          id: "account-a",
+          itemId: "item-a",
+          type: "BANK",
+          subtype: "CHECKING_ACCOUNT",
+          number: "0001",
+          balance: 1000,
+          name: "Conta A",
+          marketingName: "Conta principal",
+          currencyCode: "BRL",
+        },
+      ],
+    });
+    mocks.fetchAllTransactions.mockResolvedValue([]);
+
+    await expect(getSpendingPace()).resolves.toMatchObject({
+      currentMonth: {
+        key: "2026-01",
+        label: "janeiro de 2026",
+        daysInMonth: 31,
+        elapsedDays: 15,
+      },
+      previousMonth: {
+        key: "2025-12",
+        label: "dezembro de 2025",
+        daysInMonth: 31,
+      },
+    });
+
+    expect(mocks.fetchAllTransactions).toHaveBeenCalledWith("account-a", {
+      dateFrom: "2025-12-01",
+      dateTo: "2026-02-01",
+    });
   });
 });
