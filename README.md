@@ -16,6 +16,15 @@ const pluggy = getPluggyClient();
 
 These credentials are sensitive and must never be exposed through client-side code or variables prefixed with `NEXT_PUBLIC_`.
 
+## Prisma
+
+The project uses Prisma with a local SQLite database during development.
+
+1. Add the `DATABASE_URL` from `.env.example` to your local environment.
+2. Generate the Prisma Client with `npm run db:generate`.
+3. Create and apply the initial migration with `npm run db:migrate -- --name init`.
+4. Use `npm run db:studio` to inspect the local database.
+
 ## Getting Started
 
 First, run the development server:

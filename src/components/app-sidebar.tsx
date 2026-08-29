@@ -3,7 +3,6 @@
 import * as React from "react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
@@ -17,16 +16,15 @@ import {
 } from "@/components/ui/sidebar";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  ComputerTerminalIcon,
-  RoboticIcon,
-  BookOpen02Icon,
-  Settings05Icon,
   ChartRingIcon,
   SentIcon,
-  CropIcon,
-  PieChartIcon,
-  MapsIcon,
+  ChartBarIncreasingIcon,
   CommandIcon,
+  BriefcaseDollarIcon,
+  ArrowLeftRightIcon,
+  CreditCardIcon,
+  CreditCardChangeIcon,
+  TagsIcon,
 } from "@hugeicons/core-free-icons";
 
 const data = {
@@ -38,28 +36,33 @@ const data = {
   navMain: [
     {
       title: "Visão Geral",
-      url: "/dashboard",
-      icon: <HugeiconsIcon icon={CropIcon} strokeWidth={2} />,
+      url: "/",
+      icon: <HugeiconsIcon icon={ChartBarIncreasingIcon} strokeWidth={2} />,
+    },
+    {
+      title: "Investimentos",
+      url: "/investments",
+      icon: <HugeiconsIcon icon={BriefcaseDollarIcon} strokeWidth={2} />,
     },
     {
       title: "Transações",
       url: "/transactions",
-      icon: <HugeiconsIcon icon={PieChartIcon} strokeWidth={2} />,
+      icon: <HugeiconsIcon icon={ArrowLeftRightIcon} strokeWidth={2} />,
     },
     {
       title: "Parcelamentos",
       url: "/installments",
-      icon: <HugeiconsIcon icon={MapsIcon} strokeWidth={2} />,
+      icon: <HugeiconsIcon icon={CreditCardIcon} strokeWidth={2} />,
     },
     {
       title: "Assinaturas",
       url: "/subscriptions",
-      icon: <HugeiconsIcon icon={MapsIcon} strokeWidth={2} />,
+      icon: <HugeiconsIcon icon={CreditCardChangeIcon} strokeWidth={2} />,
     },
     {
       title: "Categorias",
       url: "/categories",
-      icon: <HugeiconsIcon icon={MapsIcon} strokeWidth={2} />,
+      icon: <HugeiconsIcon icon={TagsIcon} strokeWidth={2} />,
     },
   ],
   navSecondary: [
