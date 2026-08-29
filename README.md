@@ -16,6 +16,12 @@ const pluggy = getPluggyClient();
 
 These credentials are sensitive and must never be exposed through client-side code or variables prefixed with `NEXT_PUBLIC_`.
 
+### Meu Pluggy
+
+This project uses the existing connections from Meu Pluggy. In the Pluggy Dashboard, enable the MeuPluggy connector for the application and use the Demo application to authorize each bank connected to your Meu Pluggy account. After authorization, copy the resulting `itemId` and add it at `/accounts`.
+
+Each bank connection has its own `itemId`. The application stores these identifiers in SQLite and uses the server-side SDK to retrieve the associated accounts. Pluggy Connect is not needed for this flow.
+
 ## Prisma
 
 The project uses Prisma with a local SQLite database during development.

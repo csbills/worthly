@@ -21,6 +21,7 @@ import {
   ChartBarIncreasingIcon,
   CommandIcon,
   BriefcaseDollarIcon,
+  BankIcon,
   ArrowLeftRightIcon,
   CreditCardIcon,
   CreditCardChangeIcon,
@@ -43,6 +44,11 @@ const data = {
       title: "Investimentos",
       url: "/investments",
       icon: <HugeiconsIcon icon={BriefcaseDollarIcon} strokeWidth={2} />,
+    },
+    {
+      title: "Contas",
+      url: "/accounts",
+      icon: <HugeiconsIcon icon={BankIcon} strokeWidth={2} />,
     },
     {
       title: "Transações",
