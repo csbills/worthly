@@ -1,5 +1,21 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Pluggy
+
+The server-side Pluggy SDK is available through `src/lib/pluggy.ts`.
+
+1. Copy `.env.example` to `.env.local`.
+2. Fill in `PLUGGY_CLIENT_ID` and `PLUGGY_CLIENT_SECRET` with the credentials from your Pluggy application.
+3. Use `getPluggyClient()` from Server Actions or other server-only code:
+
+```ts
+import { getPluggyClient } from "@/lib/pluggy";
+
+const pluggy = getPluggyClient();
+```
+
+These credentials are sensitive and must never be exposed through client-side code or variables prefixed with `NEXT_PUBLIC_`.
+
 ## Getting Started
 
 First, run the development server:
