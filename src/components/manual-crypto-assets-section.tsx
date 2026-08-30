@@ -7,7 +7,9 @@ import {
   type ManualCryptoCurrency,
   saveManualCryptoAsset,
 } from "@/actions/manual-crypto-assets";
+import { CryptoPerformanceChart } from "@/components/crypto-performance-chart";
 import { Button } from "@/components/ui/button";
+import { supportedCryptoAssets } from "@/lib/crypto-assets";
 
 const timeZone = "America/Sao_Paulo";
 
@@ -17,6 +19,13 @@ function formatCurrency(value: number, currencyCode: CurrencyCode) {
     currency: currencyCode,
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+function formatNullableCurrency(
+  value: number | null,
+  currencyCode: CurrencyCode,
+) {
+  return value === null ? "Indisponível" : formatCurrency(value, currencyCode);
 }
 
 function formatQuantity(value: number) {
@@ -55,6 +64,33 @@ function formatSignedCurrency(
   return amount;
 }
 
+function formatPercentage(value: number | null) {
+  if (value === null) {
+    return null;
+  }
+
+  const formatted = new Intl.NumberFormat("pt-BR", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  }).format(Math.abs(value));
+
+  return `${value >= 0 ? "+" : "-"}${formatted}%`;
+}
+
+function formatResult(asset: ManualCryptoAsset) {
+  if (asset.currentPrice === null) {
+    return "Preço indisponível";
+  }
+
+  if (asset.amountProfit === null) {
+    return "Sem base de custo";
+  }
+
+  const percentage = formatPercentage(asset.amountProfitPercentage);
+
+  return `${formatSignedCurrency(asset.amountProfit, asset.currencyCode)}${percentage ? ` (${percentage})` : ""}`;
+}
+
 function getProfitClassName(value: number | null) {
   if (value === null) {
     return "text-muted-foreground";
@@ -67,14 +103,14 @@ function getStatusMessage(status: string | undefined) {
   if (status === "saved") {
     return {
       className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-800",
-      text: "Criptoativo salvo. Envie o mesmo símbolo novamente para atualizar quantidade ou preços.",
+      text: "Criptoativo salvo. Quantidade e preço médio foram calculados; preço e histórico serão atualizados pela CoinGecko.",
     };
   }
 
   if (status === "invalid") {
     return {
       className: "border-amber-500/30 bg-amber-500/10 text-amber-800",
-      text: "Confira o símbolo, a moeda e informe valores positivos para quantidade e preço atual.",
+      text: "Selecione um ativo e informe valores válidos para total da compra, taxa e preço por unidade.",
     };
   }
 
@@ -117,7 +153,7 @@ export function ManualCryptoAssetsSection({
             <h2 className="text-lg font-semibold">Criptoativos manuais</h2>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
               Cadastre posições que não foram disponibilizadas pela Pluggy e
-              atualize os preços quando quiser.
+              acompanhe o preço de mercado automaticamente.
             </p>
           </div>
         </div>
@@ -130,61 +166,42 @@ export function ManualCryptoAssetsSection({
 
       <div className="border-b bg-muted/20 p-5 md:p-6">
         <form action={saveManualCryptoAsset} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
-              <label htmlFor="crypto-symbol" className="text-sm font-medium">
-                Símbolo
-              </label>
-              <input
-                id="crypto-symbol"
-                name="symbol"
-                type="text"
-                required
-                maxLength={12}
-                placeholder="BTC"
-                autoCapitalize="characters"
-                className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm uppercase outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="crypto-name" className="text-sm font-medium">
-                Nome
-              </label>
-              <input
-                id="crypto-name"
-                name="name"
-                type="text"
-                maxLength={100}
-                placeholder="Bitcoin"
-                className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="crypto-currency" className="text-sm font-medium">
-                Moeda dos valores
+              <label htmlFor="crypto-asset" className="text-sm font-medium">
+                Ativo
               </label>
               <select
-                id="crypto-currency"
-                name="currencyCode"
-                defaultValue="BRL"
+                id="crypto-asset"
+                name="assetId"
+                required
+                defaultValue="bitcoin"
                 className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
-                <option value="BRL">Real (BRL)</option>
-                <option value="USD">Dólar (USD)</option>
-                <option value="EUR">Euro (EUR)</option>
+                {supportedCryptoAssets.map((asset) => (
+                  <option key={asset.coingeckoId} value={asset.coingeckoId}>
+                    {asset.symbol} · {asset.name}
+                  </option>
+                ))}
               </select>
+              <p className="text-xs text-muted-foreground">
+                Símbolo, nome e ID CoinGecko vêm do catálogo.
+              </p>
             </div>
             <div className="space-y-2">
-              <label htmlFor="crypto-quantity" className="text-sm font-medium">
-                Quantidade
+              <label
+                htmlFor="crypto-purchase-total"
+                className="text-sm font-medium"
+              >
+                Total da compra (BRL, com taxa)
               </label>
               <input
-                id="crypto-quantity"
-                name="quantity"
+                id="crypto-purchase-total"
+                name="purchaseTotal"
                 type="number"
                 required
-                min="0"
-                step="any"
+                min="0.01"
+                step="0.01"
                 inputMode="decimal"
                 placeholder="0,00"
                 className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
@@ -192,38 +209,37 @@ export function ManualCryptoAssetsSection({
             </div>
             <div className="space-y-2">
               <label
-                htmlFor="crypto-current-price"
+                htmlFor="crypto-broker-fee"
                 className="text-sm font-medium"
               >
-                Preço atual
+                Taxa da corretora (BRL)
               </label>
               <input
-                id="crypto-current-price"
-                name="currentPrice"
+                id="crypto-broker-fee"
+                name="brokerFee"
                 type="number"
                 required
                 min="0"
-                step="any"
+                step="0.01"
                 inputMode="decimal"
+                defaultValue="0"
                 placeholder="0,00"
                 className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               />
             </div>
             <div className="space-y-2">
               <label
-                htmlFor="crypto-average-price"
+                htmlFor="crypto-purchase-price"
                 className="text-sm font-medium"
               >
-                Preço médio de compra
-                <span className="ml-1 font-normal text-muted-foreground">
-                  (opcional)
-                </span>
+                Preço de compra por unidade (BRL)
               </label>
               <input
-                id="crypto-average-price"
-                name="averagePrice"
+                id="crypto-purchase-price"
+                name="purchasePrice"
                 type="number"
-                min="0"
+                required
+                min="0.00000001"
                 step="any"
                 inputMode="decimal"
                 placeholder="0,00"
@@ -233,8 +249,8 @@ export function ManualCryptoAssetsSection({
           </div>
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <p className="text-xs text-muted-foreground">
-              O preço atual é manual e precisa ser atualizado por você. O valor
-              da posição será calculado como quantidade × preço atual.
+              A quantidade será (total da compra − taxa) dividido pelo preço. O
+              total informado será a base do custo da posição.
             </p>
             <Button type="submit" className="sm:min-w-32">
               Salvar ativo
@@ -260,7 +276,7 @@ export function ManualCryptoAssetsSection({
 
       {assets.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="min-w-[760px] w-full border-collapse text-left">
+          <table className="min-w-[900px] w-full border-collapse text-left">
             <thead>
               <tr className="border-b text-xs tracking-wide text-muted-foreground uppercase">
                 <th scope="col" className="px-4 py-3 font-medium md:px-6">
@@ -279,7 +295,7 @@ export function ManualCryptoAssetsSection({
                   Resultado
                 </th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">
-                  Atualizado
+                  Cadastro
                 </th>
               </tr>
             </thead>
@@ -294,23 +310,49 @@ export function ManualCryptoAssetsSection({
                     <p className="mt-1 text-sm text-muted-foreground">
                       {asset.name}
                     </p>
+                    {asset.purchaseTotal !== null ? (
+                      <p className="mt-2 text-xs text-muted-foreground tabular-nums">
+                        Compra{" "}
+                        {formatCurrency(
+                          asset.purchaseTotal,
+                          asset.currencyCode,
+                        )}
+                        {asset.brokerFee !== null
+                          ? ` · taxa ${formatCurrency(asset.brokerFee, asset.currencyCode)}`
+                          : ""}
+                      </p>
+                    ) : null}
                   </td>
                   <td className="px-4 py-4 text-right align-top tabular-nums whitespace-nowrap">
-                    {formatQuantity(asset.quantity)}
+                    <p>{formatQuantity(asset.quantity)}</p>
+                    {asset.averagePrice !== null ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {formatCurrency(asset.averagePrice, asset.currencyCode)}{" "}
+                        / un.
+                      </p>
+                    ) : null}
                   </td>
                   <td className="px-4 py-4 text-right align-top tabular-nums whitespace-nowrap">
-                    {formatCurrency(asset.currentPrice, asset.currencyCode)}
+                    <p>
+                      {formatNullableCurrency(
+                        asset.currentPrice,
+                        asset.currencyCode,
+                      )}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {asset.priceSource ?? "Fonte não configurada"}
+                      {asset.priceUpdatedAt
+                        ? ` · ${formatDate(asset.priceUpdatedAt)}`
+                        : ""}
+                    </p>
                   </td>
                   <td className="px-4 py-4 text-right align-top font-semibold tabular-nums whitespace-nowrap">
-                    {formatCurrency(asset.balance, asset.currencyCode)}
+                    {formatNullableCurrency(asset.balance, asset.currencyCode)}
                   </td>
                   <td
                     className={`px-4 py-4 text-right align-top font-medium tabular-nums whitespace-nowrap ${getProfitClassName(asset.amountProfit)}`}
                   >
-                    {formatSignedCurrency(
-                      asset.amountProfit,
-                      asset.currencyCode,
-                    )}
+                    {formatResult(asset)}
                   </td>
                   <td className="px-4 py-4 text-right align-top text-sm text-muted-foreground whitespace-nowrap">
                     {formatDate(asset.updatedAt)}
@@ -324,11 +366,51 @@ export function ManualCryptoAssetsSection({
         <div className="p-8 text-center">
           <p className="font-medium">Nenhum criptoativo manual cadastrado</p>
           <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-            Preencha o formulário acima para acompanhar uma posição de Bitcoin,
-            Ethereum ou qualquer outro ativo que não venha pela Pluggy.
+            Preencha o formulário acima para acompanhar uma posição do catálogo
+            que não venha pela Pluggy.
           </p>
         </div>
       )}
+
+      {assets.some((asset) => asset.history.length > 0) ? (
+        <div className="border-t p-5 md:p-6">
+          <div>
+            <h3 className="font-semibold">Evolução das posições</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Valor estimado dos últimos 30 dias usando o preço de mercado e a
+              quantidade calculada a partir da compra.
+            </p>
+          </div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            {assets
+              .filter((asset) => asset.history.length > 0)
+              .map((asset) => (
+                <article
+                  key={asset.id}
+                  className="rounded-xl border bg-background p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">{asset.symbol}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {asset.name}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {asset.history.length} pontos
+                    </p>
+                  </div>
+                  <div className="mt-4">
+                    <CryptoPerformanceChart
+                      history={asset.history}
+                      currencyCode={asset.currencyCode}
+                    />
+                  </div>
+                </article>
+              ))}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

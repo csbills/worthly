@@ -20,11 +20,44 @@ model ManualCryptoAsset {
   name          String
   quantity      Float
   averagePrice  Float?
-  currentPrice  Float
+  currentPrice  Float?
+  purchaseTotal Float?
+  brokerFee     Float    @default(0)
+  purchasePrice Float?
   currencyCode  String   @default("BRL")
+  coingeckoId   String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@unique([symbol, currencyCode])
+  @@index([coingeckoId])
   @@index([currencyCode])
+}
+
+model PortfolioSnapshot {
+  id              String                    @id @default(cuid())
+  snapshotDate    String
+  capturedAt      DateTime                  @default(now())
+  currencyCode    String
+  balance         Float
+  amountOriginal  Float?
+  amountProfit    Float?
+  categories      PortfolioSnapshotCategory[]
+
+  @@unique([snapshotDate, currencyCode])
+  @@index([currencyCode, snapshotDate])
+}
+
+model PortfolioSnapshotCategory {
+  id              String           @id @default(cuid())
+  snapshotId      String
+  categoryKey     String
+  balance         Float
+  amountOriginal  Float?
+  amountProfit    Float?
+  assetCount      Int              @default(0)
+  snapshot        PortfolioSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@unique([snapshotId, categoryKey])
+  @@index([snapshotId])
 }

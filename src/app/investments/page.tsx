@@ -1,15 +1,14 @@
+import Image from "next/image";
 import type { CurrencyCode } from "pluggy-sdk";
 
 import {
-  getInvestments,
-  type InvestmentCategorySummary,
-  type InvestmentCurrencySummary,
-  type SerializedInvestment,
-} from "@/actions/investments";
-import { getManualCryptoAssets } from "@/actions/manual-crypto-assets";
+  getPortfolio,
+  type PortfolioCurrencyResult,
+} from "@/actions/portfolio";
 import { AppSidebar } from "@/components/app-sidebar";
-import { InvestmentsAllocationChart } from "@/components/investments-allocation-chart";
-import { ManualCryptoAssetsSection } from "@/components/manual-crypto-assets-section";
+import { ManualCryptoAssetsModal } from "@/components/manual-crypto-assets-modal";
+import { PortfolioAllocationChart } from "@/components/portfolio-allocation-chart";
+import { PortfolioEvolutionChart } from "@/components/portfolio-evolution-chart";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -22,7 +21,12 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { investmentCategoryColors } from "@/lib/investment-category-colors";
+import { supportedCryptoAssets } from "@/lib/crypto-assets";
+import {
+  type PortfolioAssetSummary,
+  type PortfolioCategorySummary,
+  portfolioCategoryColors,
+} from "@/lib/portfolio";
 
 export const dynamic = "force-dynamic";
 
@@ -85,22 +89,43 @@ function formatSignedCurrency(
     return "Sem dados";
   }
 
-  const absoluteValue = formatCurrency(Math.abs(value), currencyCode);
+  const amount = formatCurrency(Math.abs(value), currencyCode);
 
   if (value > 0) {
-    return `+${absoluteValue}`;
+    return `+${amount}`;
   }
 
   if (value < 0) {
-    return `-${absoluteValue}`;
+    return `-${amount}`;
   }
 
-  return absoluteValue;
+  return amount;
+}
+
+function formatPercentage(value: number | null) {
+  if (value === null) {
+    return "—";
+  }
+
+  return `${new Intl.NumberFormat("pt-BR", {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  }).format(value)}%`;
+}
+
+function formatQuantity(value: number | null) {
+  if (value === null) {
+    return "—";
+  }
+
+  return new Intl.NumberFormat("pt-BR", {
+    maximumFractionDigits: 8,
+  }).format(value);
 }
 
 function formatDate(date: string | null) {
   if (!date) {
-    return "—";
+    return null;
   }
 
   return new Intl.DateTimeFormat("pt-BR", {
@@ -111,32 +136,9 @@ function formatDate(date: string | null) {
   }).format(new Date(date));
 }
 
-function formatRate(investment: SerializedInvestment) {
-  if (investment.hasMultipleRates) {
-    return "Taxas variadas";
-  }
-
-  const rate = [
-    { label: "12m", value: investment.lastTwelveMonthsRate },
-    { label: "ano", value: investment.annualRate },
-    { label: "a.a.", value: investment.fixedAnnualRate },
-  ].find((entry) => entry.value !== null);
-
-  if (!rate) {
-    return "—";
-  }
-
-  const formattedRate = new Intl.NumberFormat("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(rate.value as number);
-
-  return `${rate.label} ${rate.value && rate.value > 0 ? "+" : ""}${formattedRate}%`;
-}
-
 function formatSubtype(subtype: string | null) {
   if (!subtype) {
-    return "Categoria geral";
+    return "Posição consolidada";
   }
 
   return (
@@ -152,152 +154,223 @@ function formatCount(count: number, singular: string, plural: string) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-function formatConsolidatedCount(count: number, lots: number) {
-  const consolidatedCount = formatCount(
-    count,
-    "ativo consolidado",
-    "ativos consolidados",
-  );
-
-  if (lots === count) {
-    return consolidatedCount;
+function getProfitClassName(value: number | null) {
+  if (value === null) {
+    return "text-muted-foreground";
   }
 
-  return `${consolidatedCount} · ${formatCount(lots, "lote", "lotes")}`;
+  return value >= 0
+    ? "text-emerald-700 dark:text-emerald-400"
+    : "text-destructive";
 }
 
-function formatPercentage(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 1,
-  }).format(value);
+function getStatusMessage(status: string | undefined) {
+  if (status === "saved") {
+    return {
+      className:
+        "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
+      text: "Criptoativo salvo. A quantidade e o custo foram calculados; o preço de mercado será atualizado pela CoinGecko.",
+    };
+  }
+
+  if (status === "invalid") {
+    return {
+      className:
+        "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
+      text: "Selecione um ativo e informe valores válidos para total, taxa e preço de compra.",
+    };
+  }
+
+  if (status === "error") {
+    return {
+      className: "border-destructive/30 bg-destructive/10 text-destructive",
+      text: "Não foi possível salvar o criptoativo. Tente novamente.",
+    };
+  }
+
+  return null;
 }
 
-function InvestmentCategorySection({
-  category,
-  investments,
-  currencyCode,
+function PortfolioMetric({
+  label,
+  value,
+  supportingText,
+  valueClassName = "",
 }: {
-  category: InvestmentCategorySummary;
-  investments: SerializedInvestment[];
-  currencyCode: CurrencyCode;
+  label: string;
+  value: string;
+  supportingText?: string;
+  valueClassName?: string;
 }) {
-  const categoryInvestments = investments.filter(
-    (investment) => investment.type === category.key,
+  return (
+    <div className="bg-card p-5">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p
+        className={`mt-2 text-xl font-semibold tabular-nums ${valueClassName}`}
+      >
+        {value}
+      </p>
+      {supportingText ? (
+        <p className="mt-1 text-xs text-muted-foreground">{supportingText}</p>
+      ) : null}
+    </div>
   );
+}
+
+function AssetAvatar({ asset }: { asset: PortfolioAssetSummary }) {
+  if (asset.logoPath) {
+    return (
+      <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-background">
+        <Image
+          src={asset.logoPath}
+          alt={`${asset.name} logo`}
+          width={32}
+          height={32}
+          className="size-7"
+        />
+      </span>
+    );
+  }
+
+  const initials = asset.symbol.slice(0, 2).toLocaleUpperCase("pt-BR");
 
   return (
-    <section className="overflow-hidden rounded-2xl border bg-card shadow-xs">
-      <div className="flex flex-col justify-between gap-2 border-b p-5 md:flex-row md:items-center md:p-6">
-        <div className="flex items-center gap-3">
+    <span
+      className="flex size-10 shrink-0 items-center justify-center rounded-xl text-xs font-semibold text-white"
+      style={{ backgroundColor: portfolioCategoryColors[asset.categoryKey] }}
+      aria-hidden="true"
+    >
+      {initials}
+    </span>
+  );
+}
+
+function AssetDetails({ asset }: { asset: PortfolioAssetSummary }) {
+  const metadata =
+    asset.source === "manual"
+      ? `Manual · ${asset.priceSource ?? "Preço indisponível"}`
+      : [
+          formatSubtype(asset.subtype),
+          asset.institutionName || asset.issuer || "Instituição não informada",
+        ].join(" · ");
+  const quantityDetails =
+    asset.source === "manual"
+      ? `${formatQuantity(asset.quantity)} ${asset.symbol} · preço ${formatCurrency(asset.unitPrice, asset.currencyCode)}`
+      : asset.quantity !== null
+        ? `Quantidade ${formatQuantity(asset.quantity)}`
+        : null;
+  const dueDate = formatDate(asset.dueDate);
+
+  return (
+    <div className="min-w-0">
+      <div className="flex items-center gap-2">
+        <p className="truncate font-semibold">{asset.name}</p>
+        {asset.source === "manual" ? (
+          <span className="shrink-0 rounded-full bg-amber-500/12 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+            Manual
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-1 truncate text-sm text-muted-foreground">{metadata}</p>
+      {quantityDetails || dueDate ? (
+        <p className="mt-1 truncate text-xs text-muted-foreground">
+          {[quantityDetails, dueDate ? `Vencimento ${dueDate}` : null]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function PortfolioAssetRow({ asset }: { asset: PortfolioAssetSummary }) {
+  return (
+    <div className="grid gap-4 px-5 py-4 transition-colors hover:bg-muted/20 sm:grid-cols-[minmax(0,1.5fr)_minmax(13rem,1fr)] sm:items-center md:px-6">
+      <div className="flex min-w-0 items-center gap-3">
+        <AssetAvatar asset={asset} />
+        <AssetDetails asset={asset} />
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 text-sm sm:gap-5">
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">Saldo atual</p>
+          <p className="mt-1 truncate font-semibold tabular-nums">
+            {formatCurrency(asset.balance, asset.currencyCode)}
+          </p>
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">Na categoria</p>
+          <p className="mt-1 truncate font-medium tabular-nums">
+            {formatPercentage(asset.percentageOfCategory)}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground tabular-nums">
+            {formatPercentage(asset.percentageOfPortfolio)} da carteira
+          </p>
+        </div>
+        <div className="min-w-0 text-right">
+          <p className="text-xs text-muted-foreground">Resultado</p>
+          <p
+            className={`mt-1 truncate font-medium tabular-nums ${getProfitClassName(asset.amountProfit)}`}
+          >
+            {formatSignedCurrency(asset.amountProfit, asset.currencyCode)}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground tabular-nums">
+            {formatPercentage(asset.amountProfitPercentage)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PortfolioCategory({
+  category,
+  currencyCode,
+}: {
+  category: PortfolioCategorySummary;
+  currencyCode: CurrencyCode;
+}) {
+  return (
+    <section className="overflow-hidden border-b last:border-b-0">
+      <div className="flex flex-col justify-between gap-3 bg-muted/10 px-5 py-4 sm:flex-row sm:items-center md:px-6">
+        <div className="flex min-w-0 items-center gap-3">
           <span
             aria-hidden="true"
             className="size-3 shrink-0 rounded-full"
-            style={{ backgroundColor: investmentCategoryColors[category.key] }}
+            style={{ backgroundColor: portfolioCategoryColors[category.key] }}
           />
-          <div>
+          <div className="min-w-0">
             <h3 className="font-semibold">{category.label}</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              {formatConsolidatedCount(category.count, category.lots)}
+              {formatCount(category.assetCount, "ativo", "ativos")} ·{" "}
+              {formatPercentage(category.percentageOfPortfolio)} da carteira
             </p>
           </div>
         </div>
-        <p className="font-semibold tabular-nums">
-          {formatCurrency(category.balance, currencyCode)}
-        </p>
+        <div className="flex items-baseline gap-3 sm:text-right">
+          <p className="font-semibold tabular-nums">
+            {formatCurrency(category.balance, currencyCode)}
+          </p>
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {formatPercentage(category.percentageOfPortfolio)}
+          </p>
+        </div>
       </div>
-
-      <div className="overflow-x-auto">
-        <table className="min-w-[900px] w-full border-collapse text-left">
-          <thead>
-            <tr className="border-b text-xs tracking-wide text-muted-foreground uppercase">
-              <th scope="col" className="px-4 py-3 font-medium">
-                Investimento
-              </th>
-              <th scope="col" className="px-4 py-3 font-medium">
-                Instituição
-              </th>
-              <th scope="col" className="px-4 py-3 text-right font-medium">
-                Saldo atual
-              </th>
-              <th scope="col" className="px-4 py-3 text-right font-medium">
-                Resultado
-              </th>
-              <th scope="col" className="px-4 py-3 text-right font-medium">
-                Rentabilidade
-              </th>
-              <th scope="col" className="px-4 py-3 text-right font-medium">
-                Vencimento
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {categoryInvestments.map((investment) => {
-              const profitClassName =
-                investment.amountProfit === null
-                  ? "text-muted-foreground"
-                  : investment.amountProfit >= 0
-                    ? "text-emerald-700"
-                    : "text-destructive";
-
-              return (
-                <tr
-                  key={investment.id}
-                  className="border-b last:border-0 hover:bg-muted/30"
-                >
-                  <td className="min-w-64 px-4 py-4 align-top">
-                    <p className="font-medium">{investment.name}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {formatSubtype(investment.subtype)}
-                      {investment.positionCount > 1
-                        ? ` · ${formatCount(investment.positionCount, "lote", "lotes")}`
-                        : null}
-                    </p>
-                  </td>
-                  <td className="px-4 py-4 align-top text-sm text-muted-foreground">
-                    {investment.institutionName ||
-                      investment.issuer ||
-                      "Instituição não informada"}
-                  </td>
-                  <td className="px-4 py-4 text-right align-top font-medium tabular-nums whitespace-nowrap">
-                    {formatCurrency(investment.balance, currencyCode)}
-                  </td>
-                  <td
-                    className={`px-4 py-4 text-right align-top font-medium tabular-nums whitespace-nowrap ${profitClassName}`}
-                  >
-                    {formatSignedCurrency(
-                      investment.amountProfit,
-                      currencyCode,
-                    )}
-                  </td>
-                  <td className="px-4 py-4 text-right align-top text-sm tabular-nums whitespace-nowrap">
-                    {formatRate(investment)}
-                  </td>
-                  <td className="px-4 py-4 text-right align-top text-sm text-muted-foreground whitespace-nowrap">
-                    {investment.hasMultipleDueDates
-                      ? "Vencimentos variados"
-                      : formatDate(investment.dueDate)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="divide-y border-t">
+        {category.assets.map((asset) => (
+          <PortfolioAssetRow key={asset.id} asset={asset} />
+        ))}
       </div>
     </section>
   );
 }
 
-function CurrencyOverview({
+function PortfolioCurrencyView({
   currency,
-  investments,
 }: {
-  currency: InvestmentCurrencySummary;
-  investments: SerializedInvestment[];
+  currency: PortfolioCurrencyResult;
 }) {
-  const currencyInvestments = investments.filter(
-    (investment) => investment.currencyCode === currency.currencyCode,
-  );
+  const profitClassName = getProfitClassName(currency.amountProfit);
 
   return (
     <section className="space-y-4">
@@ -307,110 +380,154 @@ function CurrencyOverview({
             Patrimônio em {currency.currencyCode}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {formatConsolidatedCount(currencyInvestments.length, currency.lots)}
+            {formatCount(
+              currency.assetCount,
+              "ativo consolidado",
+              "ativos consolidados",
+            )}{" "}
+            · {formatCount(currency.lots, "lote", "lotes")}
           </p>
         </div>
         <p className="text-sm text-muted-foreground">
-          Atualizado pela última sincronização da instituição
+          Snapshot diário atualizado ao abrir esta página
         </p>
       </div>
 
-      <div className="grid gap-px overflow-hidden rounded-2xl border bg-border shadow-xs sm:grid-cols-3">
-        <div className="bg-card p-5">
-          <p className="text-sm text-muted-foreground">Saldo atual</p>
-          <p className="mt-2 text-xl font-semibold tabular-nums">
-            {formatCurrency(currency.balance, currency.currencyCode)}
-          </p>
-        </div>
-        <div className="bg-card p-5">
-          <p className="text-sm text-muted-foreground">Valor original</p>
-          <p className="mt-2 text-xl font-semibold tabular-nums">
-            {formatCurrency(currency.amountOriginal, currency.currencyCode)}
-          </p>
-        </div>
-        <div className="bg-card p-5">
-          <p className="text-sm text-muted-foreground">Lucro / prejuízo</p>
-          <p
-            className={`mt-2 text-xl font-semibold tabular-nums ${currency.amountProfit === null ? "text-muted-foreground" : currency.amountProfit >= 0 ? "text-emerald-700" : "text-destructive"}`}
-          >
-            {formatSignedCurrency(currency.amountProfit, currency.currencyCode)}
-          </p>
-        </div>
+      <div className="grid gap-px overflow-hidden rounded-2xl border bg-border shadow-xs sm:grid-cols-2 xl:grid-cols-4">
+        <PortfolioMetric
+          label="Patrimônio atual"
+          value={formatCurrency(currency.balance, currency.currencyCode)}
+        />
+        <PortfolioMetric
+          label="Custo total"
+          value={formatCurrency(currency.amountOriginal, currency.currencyCode)}
+          supportingText="Base de custo disponível"
+        />
+        <PortfolioMetric
+          label="Resultado acumulado"
+          value={formatSignedCurrency(
+            currency.amountProfit,
+            currency.currencyCode,
+          )}
+          valueClassName={profitClassName}
+        />
+        <PortfolioMetric
+          label="Rentabilidade"
+          value={formatPercentage(
+            currency.amountOriginal &&
+              currency.amountOriginal > 0 &&
+              currency.amountProfit !== null
+              ? (currency.amountProfit / currency.amountOriginal) * 100
+              : null,
+          )}
+          supportingText="Sobre o custo total"
+          valueClassName={profitClassName}
+        />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <div className="rounded-2xl border bg-card p-5 shadow-xs md:p-6">
+      <div className="grid gap-4 lg:grid-cols-12">
+        <section className="min-w-0 rounded-2xl border bg-card p-5 shadow-xs md:p-6 lg:col-span-8">
+          <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
+            <div>
+              <h3 className="font-semibold">Evolução do patrimônio</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Valor consolidado por snapshot diário em {currency.currencyCode}
+                .
+              </p>
+            </div>
+            {currency.history.length > 0 ? (
+              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                {formatCount(currency.history.length, "dia", "dias")}
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-5">
+            <PortfolioEvolutionChart
+              history={currency.history}
+              currencyCode={currency.currencyCode}
+            />
+          </div>
+        </section>
+
+        <section className="min-w-0 rounded-2xl border bg-card p-5 shadow-xs md:p-6 lg:col-span-4">
           <div>
-            <h3 className="font-semibold">Alocação por categoria</h3>
+            <h3 className="font-semibold">Alocação da carteira</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Distribuição do saldo líquido atual.
+              Distribuição do patrimônio por categoria.
             </p>
           </div>
-          <InvestmentsAllocationChart
+          <PortfolioAllocationChart
             categories={currency.categories}
             currencyCode={currency.currencyCode}
           />
-        </div>
-
-        <div className="rounded-2xl border bg-card p-5 shadow-xs md:p-6">
-          <div>
-            <h3 className="font-semibold">Resumo por categoria</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Veja onde o patrimônio está concentrado.
-            </p>
-          </div>
-          <div className="mt-5 divide-y">
-            {currency.categories.map((category) => {
-              const percentage =
-                currency.balance > 0
-                  ? (category.balance / currency.balance) * 100
-                  : 0;
-
-              return (
-                <div
-                  key={category.key}
-                  className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span
-                      aria-hidden="true"
-                      className="size-3 shrink-0 rounded-full"
-                      style={{
-                        backgroundColor: investmentCategoryColors[category.key],
-                      }}
-                    />
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{category.label}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {formatConsolidatedCount(category.count, category.lots)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="font-medium tabular-nums">
-                      {formatCurrency(category.balance, currency.currencyCode)}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-                      {formatPercentage(percentage)}%
-                    </p>
-                  </div>
+          <div className="divide-y">
+            {currency.categories.map((category) => (
+              <div
+                key={category.key}
+                className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="size-2.5 shrink-0 rounded-full"
+                    style={{
+                      backgroundColor: portfolioCategoryColors[category.key],
+                    }}
+                  />
+                  <span className="truncate text-sm font-medium">
+                    {category.label}
+                  </span>
                 </div>
-              );
-            })}
+                <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                  {formatPercentage(category.percentageOfPortfolio)}
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
+        </section>
       </div>
 
-      <div className="space-y-4">
+      <section className="overflow-hidden rounded-2xl border bg-card shadow-xs">
+        <div className="border-b p-5 md:p-6">
+          <div>
+            <h3 className="font-semibold">Ativos da carteira</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Posições automáticas e manuais consolidadas, com participação e
+              resultado de cada ativo.
+            </p>
+          </div>
+        </div>
         {currency.categories.map((category) => (
-          <InvestmentCategorySection
+          <PortfolioCategory
             key={category.key}
             category={category}
-            investments={currencyInvestments}
             currencyCode={currency.currencyCode}
           />
         ))}
-      </div>
+      </section>
+    </section>
+  );
+}
+
+function EmptyPortfolio({ hasError }: { hasError: boolean }) {
+  return (
+    <section className="rounded-2xl border border-dashed bg-card p-10 text-center shadow-xs">
+      <h2 className="font-semibold">
+        {hasError
+          ? "Não foi possível carregar o portfólio"
+          : "Seu portfólio está vazio"}
+      </h2>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+        {hasError
+          ? "Confira o status da conexão no Meu Pluggy e tente atualizar novamente. Você também pode cadastrar uma cripto manualmente."
+          : "Conecte uma conta no Meu Pluggy ou cadastre uma cripto manualmente para começar a acompanhar sua carteira."}
+      </p>
+      <a
+        href="/accounts"
+        className="mt-5 inline-flex h-9 items-center justify-center rounded-4xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+      >
+        Gerenciar conexões
+      </a>
     </section>
   );
 }
@@ -418,23 +535,16 @@ function CurrencyOverview({
 export default async function InvestmentsPage({
   searchParams,
 }: InvestmentsPageProps) {
-  const params = await searchParams;
+  const [params, result] = await Promise.all([searchParams, getPortfolio()]);
   const cryptoStatus = Array.isArray(params.crypto)
     ? params.crypto[0]
     : params.crypto;
-  const [result, manualCryptoResult] = await Promise.all([
-    getInvestments(),
-    getManualCryptoAssets(),
-  ]);
-  const institutionCount = new Set(
-    result.investments
-      .map((investment) => investment.institutionName || investment.issuer)
-      .filter(Boolean),
-  ).size;
-  const currencyCount = new Set([
-    ...result.currencies.map((currency) => currency.currencyCode),
-    ...manualCryptoResult.assets.map((asset) => asset.currencyCode),
-  ]).size;
+  const statusMessage = getStatusMessage(cryptoStatus);
+  const assetCount = result.currencies.reduce(
+    (total, currency) => total + currency.assetCount,
+    0,
+  );
+  const currencyCount = result.currencies.length;
 
   return (
     <SidebarProvider>
@@ -450,7 +560,7 @@ export default async function InvestmentsPage({
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Investimentos</BreadcrumbPage>
+                  <BreadcrumbPage>Meu portfólio</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -461,89 +571,68 @@ export default async function InvestmentsPage({
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
               <h1 className="text-3xl font-semibold tracking-tight">
-                Investimentos
+                Meu portfólio
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                Acompanhe a composição do seu patrimônio e o desempenho das
-                posições conectadas.
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                Uma visão consolidada dos investimentos conectados e dos
+                criptoativos cadastrados manualmente.
               </p>
             </div>
-            <a
-              href="/investments"
-              className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
-            >
-              Atualizar
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href="/investments"
+                className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
+              >
+                Atualizar dados
+              </a>
+              <ManualCryptoAssetsModal assets={supportedCryptoAssets} />
+            </div>
           </div>
 
-          <div className="grid gap-px overflow-hidden rounded-2xl border bg-border shadow-xs sm:grid-cols-3">
-            <div className="bg-card p-5">
-              <p className="text-sm text-muted-foreground">
-                Ativos sincronizados
-              </p>
-              <p className="mt-2 text-2xl font-semibold tabular-nums">
-                {result.investments.length}
-              </p>
-            </div>
-            <div className="bg-card p-5">
-              <p className="text-sm text-muted-foreground">
-                Criptoativos manuais
-              </p>
-              <p className="mt-2 text-2xl font-semibold tabular-nums">
-                {manualCryptoResult.assets.length}
-              </p>
-            </div>
-            <div className="bg-card p-5">
-              <p className="text-sm text-muted-foreground">
-                Instituições / moedas
-              </p>
-              <p className="mt-2 text-2xl font-semibold tabular-nums">
-                {institutionCount} / {currencyCount}
-              </p>
-            </div>
-          </div>
+          {statusMessage ? (
+            <p
+              className={`rounded-xl border px-4 py-3 text-sm ${statusMessage.className}`}
+              aria-live="polite"
+            >
+              {statusMessage.text}
+            </p>
+          ) : null}
 
           {result.error ? (
-            <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
+            <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
               {result.error}
             </p>
           ) : null}
 
-          <ManualCryptoAssetsSection
-            assets={manualCryptoResult.assets}
-            error={manualCryptoResult.error}
-            status={cryptoStatus}
-          />
+          <div className="grid gap-px overflow-hidden rounded-2xl border bg-border shadow-xs sm:grid-cols-3">
+            <PortfolioMetric
+              label="Ativos consolidados"
+              value={String(assetCount)}
+              supportingText="Pluggy + cadastro manual"
+            />
+            <PortfolioMetric
+              label="Criptoativos manuais"
+              value={String(result.manualAssetCount)}
+              supportingText="Preço via CoinGecko"
+            />
+            <PortfolioMetric
+              label="Conexões / moedas"
+              value={`${result.itemCount} / ${currencyCount}`}
+              supportingText="Itens Pluggy e moedas na carteira"
+            />
+          </div>
 
           {result.currencies.length > 0 ? (
             <div className="space-y-10">
               {result.currencies.map((currency) => (
-                <CurrencyOverview
+                <PortfolioCurrencyView
                   key={currency.currencyCode}
                   currency={currency}
-                  investments={result.investments}
                 />
               ))}
             </div>
           ) : (
-            <section className="rounded-2xl border bg-card p-10 text-center shadow-xs">
-              <h2 className="font-semibold">
-                {result.error
-                  ? "Não foi possível carregar os investimentos"
-                  : "Nenhum investimento encontrado"}
-              </h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                {result.error
-                  ? "Confira o status da conexão no Meu Pluggy e tente atualizar novamente."
-                  : "Quando uma conexão tiver posições sincronizadas, elas aparecerão aqui separadas por categoria."}
-              </p>
-              <a
-                href="/accounts"
-                className="mt-5 inline-flex h-9 items-center justify-center rounded-4xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
-              >
-                Gerenciar conexões
-              </a>
-            </section>
+            <EmptyPortfolio hasError={Boolean(result.error)} />
           )}
         </main>
       </SidebarInset>
