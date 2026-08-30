@@ -6,7 +6,7 @@ import {
   type PortfolioCurrencyResult,
 } from "@/actions/portfolio";
 import { AppSidebar } from "@/components/app-sidebar";
-import { ManualCryptoAssetsModal } from "@/components/manual-crypto-assets-modal";
+import { ManualCryptoOrderModal } from "@/components/manual-crypto-order-modal";
 import { PortfolioAllocationChart } from "@/components/portfolio-allocation-chart";
 import { PortfolioEvolutionChart } from "@/components/portfolio-evolution-chart";
 import {
@@ -165,6 +165,29 @@ function getProfitClassName(value: number | null) {
 }
 
 function getStatusMessage(status: string | undefined) {
+  if (status === "order-saved") {
+    return {
+      className:
+        "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
+      text: "Ordem salva. A posição, o custo médio e o resultado foram recalculados.",
+    };
+  }
+
+  if (status === "invalid-order") {
+    return {
+      className:
+        "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
+      text: "Informe dados válidos. Uma venda não pode exceder a quantidade disponível no histórico.",
+    };
+  }
+
+  if (status === "order-error") {
+    return {
+      className: "border-destructive/30 bg-destructive/10 text-destructive",
+      text: "Não foi possível salvar a ordem. Tente novamente.",
+    };
+  }
+
   if (status === "saved") {
     return {
       className:
@@ -259,7 +282,16 @@ function AssetDetails({ asset }: { asset: PortfolioAssetSummary }) {
       : asset.quantity !== null
         ? `Quantidade ${formatQuantity(asset.quantity)}`
         : null;
+  const orderDetails =
+    asset.source === "manual"
+      ? formatCount(asset.orders.length, "ordem", "ordens")
+      : null;
   const dueDate = formatDate(asset.dueDate);
+  const secondaryDetails = [
+    quantityDetails,
+    orderDetails,
+    dueDate ? `Vencimento ${dueDate}` : null,
+  ].filter(Boolean);
 
   return (
     <div className="min-w-0">
@@ -272,11 +304,9 @@ function AssetDetails({ asset }: { asset: PortfolioAssetSummary }) {
         ) : null}
       </div>
       <p className="mt-1 truncate text-sm text-muted-foreground">{metadata}</p>
-      {quantityDetails || dueDate ? (
+      {secondaryDetails.length > 0 ? (
         <p className="mt-1 truncate text-xs text-muted-foreground">
-          {[quantityDetails, dueDate ? `Vencimento ${dueDate}` : null]
-            .filter(Boolean)
-            .join(" · ")}
+          {secondaryDetails.join(" · ")}
         </p>
       ) : null}
     </div>
@@ -286,9 +316,24 @@ function AssetDetails({ asset }: { asset: PortfolioAssetSummary }) {
 function PortfolioAssetRow({ asset }: { asset: PortfolioAssetSummary }) {
   return (
     <div className="grid gap-4 px-5 py-4 transition-colors hover:bg-muted/20 sm:grid-cols-[minmax(0,1.5fr)_minmax(13rem,1fr)] sm:items-center md:px-6">
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 items-start gap-3">
         <AssetAvatar asset={asset} />
-        <AssetDetails asset={asset} />
+        <div className="min-w-0 space-y-2">
+          <AssetDetails asset={asset} />
+          {asset.source === "manual" ? (
+            <ManualCryptoOrderModal
+              catalog={supportedCryptoAssets}
+              asset={{
+                id: asset.sourceId,
+                symbol: asset.symbol,
+                name: asset.name,
+                coingeckoId: asset.coingeckoId,
+                orders: asset.orders,
+              }}
+              triggerLabel="Editar ordens"
+            />
+          ) : null}
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3 text-sm sm:gap-5">
@@ -585,7 +630,7 @@ export default async function InvestmentsPage({
               >
                 Atualizar dados
               </a>
-              <ManualCryptoAssetsModal assets={supportedCryptoAssets} />
+              <ManualCryptoOrderModal catalog={supportedCryptoAssets} />
             </div>
           </div>
 

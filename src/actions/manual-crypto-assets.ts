@@ -12,10 +12,16 @@ import {
 import { findSupportedCryptoAsset } from "@/lib/crypto-assets";
 import {
   type CryptoHistoryPoint,
-  calculateCryptoPerformance,
   calculateCryptoPurchase,
   mapMarketChartToHistory,
 } from "@/lib/crypto-market";
+import {
+  type CryptoOrder,
+  type CryptoOrderView,
+  type CryptoPosition,
+  calculateCryptoPosition,
+  sortCryptoOrders,
+} from "@/lib/crypto-orders";
 import { prisma } from "@/lib/prisma";
 
 const investmentsPath = "/investments";
@@ -27,6 +33,8 @@ const manualCryptoCurrencyCodes = [
 ] as const satisfies readonly CurrencyCode[];
 
 export type ManualCryptoCurrency = (typeof manualCryptoCurrencyCodes)[number];
+
+export type ManualCryptoOrder = CryptoOrderView;
 
 export type ManualCryptoAsset = {
   id: string;
@@ -47,6 +55,9 @@ export type ManualCryptoAsset = {
   priceSource: "CoinGecko" | "Manual" | "Último preço salvo" | null;
   priceUpdatedAt: string | null;
   history: CryptoHistoryPoint[];
+  orders: ManualCryptoOrder[];
+  realizedProfit: number;
+  orderCount: number;
   updatedAt: string;
 };
 
@@ -93,6 +104,20 @@ type StoredManualCryptoAsset = {
   purchaseTotal: number | null;
   brokerFee: number | null;
   purchasePrice: number | null;
+  createdAt?: Date;
+  updatedAt: Date;
+  orders?: StoredManualCryptoOrder[];
+};
+
+type StoredManualCryptoOrder = {
+  id: string;
+  side: string;
+  orderDate: Date;
+  total: number;
+  brokerFee: number;
+  unitPrice: number;
+  quantity: number;
+  createdAt: Date;
   updatedAt: Date;
 };
 
@@ -140,6 +165,84 @@ function getDerivedPurchase(asset: StoredManualCryptoAsset): DerivedPurchase {
   };
 }
 
+function getOrderDateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function getAssetOrders(asset: StoredManualCryptoAsset): CryptoOrder[] {
+  if (asset.orders && asset.orders.length > 0) {
+    return asset.orders.map((order) => ({
+      id: order.id,
+      side: order.side === "SELL" ? "SELL" : "BUY",
+      orderDate: getOrderDateKey(order.orderDate),
+      total: order.total,
+      brokerFee: order.brokerFee,
+      unitPrice: order.unitPrice,
+      createdAt: order.createdAt.toISOString(),
+    }));
+  }
+
+  const purchase = getDerivedPurchase(asset);
+  const legacyDate = asset.createdAt ?? asset.updatedAt;
+
+  if (
+    purchase.purchaseTotal !== null &&
+    purchase.purchasePrice !== null &&
+    purchase.quantity > 0
+  ) {
+    return [
+      {
+        id: `legacy:${asset.id}`,
+        side: "BUY",
+        orderDate: getOrderDateKey(legacyDate),
+        total: purchase.purchaseTotal,
+        brokerFee: purchase.brokerFee ?? 0,
+        unitPrice: purchase.purchasePrice,
+        createdAt: legacyDate.toISOString(),
+      },
+    ];
+  }
+
+  if (
+    asset.quantity > 0 &&
+    asset.averagePrice !== null &&
+    asset.averagePrice > 0
+  ) {
+    return [
+      {
+        id: `legacy:${asset.id}`,
+        side: "BUY",
+        orderDate: getOrderDateKey(legacyDate),
+        total: asset.quantity * asset.averagePrice,
+        brokerFee: 0,
+        unitPrice: asset.averagePrice,
+        createdAt: legacyDate.toISOString(),
+      },
+    ];
+  }
+
+  return [];
+}
+
+function getAssetPosition(asset: StoredManualCryptoAsset): CryptoPosition {
+  const orders = sortCryptoOrders(getAssetOrders(asset));
+
+  if (orders.length > 0) {
+    return calculateCryptoPosition(orders);
+  }
+
+  return {
+    quantity: asset.quantity,
+    amountOriginal:
+      asset.purchaseTotal ??
+      (asset.averagePrice === null ? 0 : asset.quantity * asset.averagePrice),
+    averagePrice: asset.averagePrice,
+    realizedProfit: 0,
+    totalBought: asset.purchaseTotal ?? 0,
+    totalSold: 0,
+  };
+}
+
 function getAssetMetadata(asset: StoredManualCryptoAsset) {
   const catalogAsset = findSupportedCryptoAsset(
     asset.coingeckoId?.trim() || asset.symbol,
@@ -155,7 +258,24 @@ function getAssetMetadata(asset: StoredManualCryptoAsset) {
 function getAssetQuantity(assets: StoredManualCryptoAsset[], assetId: string) {
   const asset = assets.find((candidate) => candidate.id === assetId);
 
-  return asset ? getDerivedPurchase(asset).quantity : 0;
+  return asset ? getAssetPosition(asset).quantity : 0;
+}
+
+function serializeOrder(
+  order: CryptoOrder,
+  timestamps: { createdAt: Date; updatedAt: Date },
+): ManualCryptoOrder {
+  return {
+    id: order.id ?? `legacy:${order.orderDate}`,
+    side: order.side,
+    orderDate: order.orderDate,
+    total: order.total,
+    brokerFee: order.brokerFee,
+    unitPrice: order.unitPrice,
+    quantity: (order.total - order.brokerFee) / order.unitPrice,
+    createdAt: order.createdAt ?? timestamps.createdAt.toISOString(),
+    updatedAt: timestamps.updatedAt.toISOString(),
+  };
 }
 
 function serializeAsset(
@@ -166,14 +286,32 @@ function serializeAsset(
     ? asset.currencyCode
     : "BRL";
   const metadata = getAssetMetadata(asset);
-  const purchase = getDerivedPurchase(asset);
+  const orders = sortCryptoOrders(getAssetOrders(asset));
+  const position = getAssetPosition(asset);
   const coingeckoId = metadata.coingeckoId;
   const currentPrice = liveMarketData.price?.price ?? asset.currentPrice;
-  const performance = calculateCryptoPerformance({
-    quantity: purchase.quantity,
-    averagePrice: purchase.averagePrice,
-    currentPrice,
-  });
+  const balance =
+    currentPrice === null ? null : position.quantity * currentPrice;
+  const amountOriginal =
+    position.amountOriginal > 0 || position.quantity === 0
+      ? position.amountOriginal
+      : null;
+  const amountProfit =
+    balance === null
+      ? position.realizedProfit === 0
+        ? null
+        : position.realizedProfit
+      : amountOriginal === null
+        ? position.realizedProfit === 0
+          ? null
+          : position.realizedProfit
+        : balance - amountOriginal + position.realizedProfit;
+  const amountProfitPercentage =
+    amountProfit === null || amountOriginal === null || amountOriginal <= 0
+      ? null
+      : (amountProfit / amountOriginal) * 100;
+  const lastOrder = orders.at(-1);
+  const singlePurchase = orders.length === 1 && lastOrder?.side === "BUY";
   const priceSource =
     liveMarketData.price !== undefined
       ? "CoinGecko"
@@ -193,18 +331,31 @@ function serializeAsset(
     id: asset.id,
     symbol: metadata.symbol,
     name: metadata.name,
-    quantity: purchase.quantity,
-    averagePrice: purchase.averagePrice,
+    quantity: position.quantity,
+    averagePrice: position.averagePrice,
     currentPrice,
-    purchaseTotal: purchase.purchaseTotal,
-    brokerFee: purchase.brokerFee,
-    purchasePrice: purchase.purchasePrice,
-    ...performance,
+    purchaseTotal: singlePurchase ? (lastOrder?.total ?? null) : amountOriginal,
+    brokerFee: singlePurchase ? (lastOrder?.brokerFee ?? null) : null,
+    purchasePrice: singlePurchase
+      ? (lastOrder?.unitPrice ?? null)
+      : position.averagePrice,
+    balance,
+    amountOriginal,
+    amountProfit,
+    amountProfitPercentage,
     currencyCode,
     coingeckoId,
     priceSource,
     priceUpdatedAt,
     history: liveMarketData.history,
+    orders: orders.map((order) =>
+      serializeOrder(order, {
+        createdAt: asset.createdAt ?? asset.updatedAt,
+        updatedAt: asset.updatedAt,
+      }),
+    ),
+    realizedProfit: position.realizedProfit,
+    orderCount: orders.length,
     updatedAt: serializeDate(asset.updatedAt),
   };
 }
@@ -300,6 +451,11 @@ export async function getManualCryptoAssets(): Promise<ManualCryptoAssetsResult>
   try {
     const assets = await prisma.manualCryptoAsset.findMany({
       orderBy: [{ currencyCode: "asc" }, { symbol: "asc" }],
+      include: {
+        orders: {
+          orderBy: [{ orderDate: "asc" }, { createdAt: "asc" }],
+        },
+      },
     });
     const liveMarketData = await getLiveMarketData(assets);
 

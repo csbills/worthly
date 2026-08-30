@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
+vi.mock("@/lib/crypto-orders", async () => import("../lib/crypto-orders"));
 vi.mock("@/lib/coingecko", () => mocks.coingecko);
 vi.mock("@/lib/crypto-assets", () => ({
   findSupportedCryptoAsset: (value: string) => {
@@ -144,6 +145,21 @@ describe("Manual crypto asset actions", () => {
           priceSource: "Manual",
           priceUpdatedAt: "2026-08-29T12:00:00.000Z",
           history: [],
+          orders: [
+            {
+              id: "legacy:crypto-btc",
+              side: "BUY",
+              orderDate: "2026-08-01",
+              total: 50000,
+              brokerFee: 0,
+              unitPrice: 100000,
+              quantity: 0.5,
+              createdAt: "2026-08-01T12:00:00.000Z",
+              updatedAt: "2026-08-29T12:00:00.000Z",
+            },
+          ],
+          realizedProfit: 0,
+          orderCount: 1,
           updatedAt: "2026-08-29T12:00:00.000Z",
         },
       ],
@@ -152,6 +168,11 @@ describe("Manual crypto asset actions", () => {
 
     expect(mocks.prisma.manualCryptoAsset.findMany).toHaveBeenCalledWith({
       orderBy: [{ currencyCode: "asc" }, { symbol: "asc" }],
+      include: {
+        orders: {
+          orderBy: [{ orderDate: "asc" }, { createdAt: "asc" }],
+        },
+      },
     });
   });
 
@@ -181,6 +202,80 @@ describe("Manual crypto asset actions", () => {
           balance: 24000,
           amountOriginal: null,
           amountProfit: null,
+        }),
+      ],
+      error: null,
+    });
+  });
+
+  it("consolidates saved buy and sell orders using the current average cost", async () => {
+    mocks.prisma.manualCryptoAsset.findMany.mockResolvedValue([
+      {
+        id: "crypto-btc",
+        symbol: "BTC",
+        name: "Bitcoin",
+        quantity: 999,
+        averagePrice: 1,
+        currentPrice: 120,
+        currencyCode: "BRL",
+        coingeckoId: null,
+        purchaseTotal: null,
+        brokerFee: 0,
+        purchasePrice: null,
+        createdAt: new Date("2026-08-01T12:00:00.000Z"),
+        updatedAt: new Date("2026-08-30T12:00:00.000Z"),
+        orders: [
+          {
+            id: "buy-first",
+            side: "BUY",
+            orderDate: new Date("2026-08-10T12:00:00.000Z"),
+            total: 1000,
+            brokerFee: 10,
+            unitPrice: 100,
+            quantity: 9.9,
+            createdAt: new Date("2026-08-10T12:00:00.000Z"),
+            updatedAt: new Date("2026-08-10T12:00:00.000Z"),
+          },
+          {
+            id: "buy-later",
+            side: "BUY",
+            orderDate: new Date("2026-08-20T12:00:00.000Z"),
+            total: 500,
+            brokerFee: 0,
+            unitPrice: 125,
+            quantity: 4,
+            createdAt: new Date("2026-08-20T12:00:00.000Z"),
+            updatedAt: new Date("2026-08-20T12:00:00.000Z"),
+          },
+          {
+            id: "sell",
+            side: "SELL",
+            orderDate: new Date("2026-08-25T12:00:00.000Z"),
+            total: 600,
+            brokerFee: 6,
+            unitPrice: 100,
+            quantity: 5.94,
+            createdAt: new Date("2026-08-25T12:00:00.000Z"),
+            updatedAt: new Date("2026-08-25T12:00:00.000Z"),
+          },
+        ],
+      },
+    ]);
+
+    await expect(getManualCryptoAssets()).resolves.toMatchObject({
+      assets: [
+        expect.objectContaining({
+          quantity: expect.closeTo(7.96),
+          balance: expect.closeTo(955.2),
+          amountOriginal: expect.closeTo(858.9928057553956),
+          amountProfit: expect.closeTo(49.2),
+          realizedProfit: expect.closeTo(-47.00719424460442),
+          orderCount: 3,
+          orders: [
+            expect.objectContaining({ id: "buy-first", side: "BUY" }),
+            expect.objectContaining({ id: "buy-later", side: "BUY" }),
+            expect.objectContaining({ id: "sell", side: "SELL" }),
+          ],
         }),
       ],
       error: null,

@@ -28,10 +28,28 @@ model ManualCryptoAsset {
   coingeckoId   String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  orders        ManualCryptoOrder[]
 
   @@unique([symbol, currencyCode])
   @@index([coingeckoId])
   @@index([currencyCode])
+}
+
+model ManualCryptoOrder {
+  id        String            @id @default(cuid())
+  assetId   String
+  side      String
+  orderDate DateTime
+  total     Float
+  brokerFee Float             @default(0)
+  unitPrice Float
+  quantity  Float
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  asset     ManualCryptoAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, orderDate])
+  @@index([orderDate])
 }
 
 model PortfolioSnapshot {

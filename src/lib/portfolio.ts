@@ -1,6 +1,7 @@
 import type { CurrencyCode, InvestmentType } from "pluggy-sdk";
 import { getBankLogoPath } from "./bank-assets";
 import { getCryptoAssetLogo } from "./crypto-assets";
+import type { CryptoOrderView } from "./crypto-orders";
 import { investmentCategoryColors } from "./investment-category-colors";
 
 export type PortfolioCategoryKey = InvestmentType | "CRYPTO";
@@ -39,10 +40,12 @@ export type PortfolioManualCryptoInput = {
   priceSource: string | null;
   priceUpdatedAt: string | null;
   updatedAt: string;
+  orders?: CryptoOrderView[];
 };
 
 export type PortfolioAsset = {
   id: string;
+  sourceId: string;
   source: PortfolioAssetSource;
   categoryKey: PortfolioCategoryKey;
   categoryLabel: string;
@@ -65,6 +68,7 @@ export type PortfolioAsset = {
   coingeckoId: string | null;
   priceSource: string | null;
   priceUpdatedAt: string | null;
+  orders: CryptoOrderView[];
   updatedAt: string | null;
 };
 
@@ -175,6 +179,7 @@ export function buildPortfolioAssets(
   return [
     ...investments.map((investment) => ({
       id: `pluggy:${investment.id}`,
+      sourceId: investment.id,
       source: "pluggy" as const,
       categoryKey: investment.type,
       categoryLabel: portfolioCategoryLabels[investment.type],
@@ -204,10 +209,12 @@ export function buildPortfolioAssets(
       coingeckoId: null,
       priceSource: null,
       priceUpdatedAt: null,
+      orders: [],
       updatedAt: null,
     })),
     ...manualAssets.map((asset) => ({
       id: `manual:${asset.id}`,
+      sourceId: asset.id,
       source: "manual" as const,
       categoryKey: "CRYPTO" as const,
       categoryLabel: portfolioCategoryLabels.CRYPTO,
@@ -229,12 +236,13 @@ export function buildPortfolioAssets(
       averagePrice: asset.averagePrice,
       institutionName: null,
       issuer: null,
-      positionCount: 1,
+      positionCount: Math.max(asset.orders?.length ?? 0, 1),
       dueDate: null,
       logoPath: getCryptoAssetLogo(asset.coingeckoId),
       coingeckoId: asset.coingeckoId,
       priceSource: asset.priceSource,
       priceUpdatedAt: asset.priceUpdatedAt,
+      orders: asset.orders ?? [],
       updatedAt: asset.updatedAt,
     })),
   ];
