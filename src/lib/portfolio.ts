@@ -1,5 +1,5 @@
 import type { CurrencyCode, InvestmentType } from "pluggy-sdk";
-
+import { getBankLogoPath } from "./bank-assets";
 import { getCryptoAssetLogo } from "./crypto-assets";
 import { investmentCategoryColors } from "./investment-category-colors";
 
@@ -196,7 +196,11 @@ export function buildPortfolioAssets(
       issuer: investment.issuer,
       positionCount: investment.positionCount,
       dueDate: investment.dueDate,
-      logoPath: null,
+      logoPath: getBankLogoPath(
+        investment.institutionName,
+        investment.issuer,
+        investment.name,
+      ),
       coingeckoId: null,
       priceSource: null,
       priceUpdatedAt: null,

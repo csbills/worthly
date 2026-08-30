@@ -13,7 +13,7 @@ describe("Portfolio aggregation", () => {
         {
           id: "pluggy-fixed-income",
           itemId: "item-a",
-          name: "CDB Banco",
+          name: "CDB - NU FINANCEIRA S.A.",
           type: "FIXED_INCOME",
           subtype: "CDB",
           currencyCode: "BRL",
@@ -21,8 +21,8 @@ describe("Portfolio aggregation", () => {
           amountOriginal: 5500,
           amountProfit: 500,
           quantity: 6,
-          institutionName: "Banco",
-          issuer: "Banco",
+          institutionName: "NU FINANCEIRA S.A.",
+          issuer: "NU FINANCEIRA S.A.",
           positionCount: 2,
           dueDate: "2027-08-28T00:00:00.000Z",
         },
@@ -69,6 +69,7 @@ describe("Portfolio aggregation", () => {
     const fixedIncome = currency.categories.find(
       (category) => category.key === "FIXED_INCOME",
     );
+    const fixedIncomeAsset = fixedIncome?.assets[0];
     const crypto = currency.categories.find(
       (category) => category.key === "CRYPTO",
     );
@@ -83,6 +84,9 @@ describe("Portfolio aggregation", () => {
       percentageOfPortfolio: (6000 / 11000) * 100,
       assetCount: 1,
       lots: 2,
+    });
+    expect(fixedIncomeAsset).toMatchObject({
+      logoPath: "/assets/banks/nubank.svg",
     });
     expect(crypto).toMatchObject({
       balance: 5000,
