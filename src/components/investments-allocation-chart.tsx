@@ -4,14 +4,7 @@ import type { CurrencyCode } from "pluggy-sdk";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import type { InvestmentCategorySummary } from "@/actions/investments";
-
-const chartColors = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
-];
+import { investmentCategoryColors } from "@/lib/investment-category-colors";
 
 function formatCurrency(value: number, currencyCode: CurrencyCode) {
   return new Intl.NumberFormat("pt-BR", {
@@ -62,10 +55,10 @@ export function InvestmentsAllocationChart({
             stroke="var(--card)"
             strokeWidth={4}
           >
-            {chartData.map((category, index) => (
+            {chartData.map((category) => (
               <Cell
                 key={category.key}
-                fill={chartColors[index % chartColors.length]}
+                fill={investmentCategoryColors[category.key]}
               />
             ))}
           </Pie>

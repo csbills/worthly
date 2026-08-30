@@ -1,4 +1,4 @@
-import type { CurrencyCode, InvestmentType } from "pluggy-sdk";
+import type { CurrencyCode } from "pluggy-sdk";
 
 import {
   getInvestments,
@@ -6,8 +6,10 @@ import {
   type InvestmentCurrencySummary,
   type SerializedInvestment,
 } from "@/actions/investments";
+import { getManualCryptoAssets } from "@/actions/manual-crypto-assets";
 import { AppSidebar } from "@/components/app-sidebar";
 import { InvestmentsAllocationChart } from "@/components/investments-allocation-chart";
+import { ManualCryptoAssetsSection } from "@/components/manual-crypto-assets-section";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -20,10 +22,17 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { investmentCategoryColors } from "@/lib/investment-category-colors";
 
 export const dynamic = "force-dynamic";
 
 const timeZone = "America/Sao_Paulo";
+
+type InvestmentsPageProps = {
+  searchParams: Promise<{
+    crypto?: string | string[] | undefined;
+  }>;
+};
 
 const investmentSubtypeLabels: Record<string, string> = {
   BDR: "BDR",
@@ -54,16 +63,6 @@ const investmentSubtypeLabels: Record<string, string> = {
   STOCK_FUND: "Fundo de ações",
   STRUCTURED_NOTE: "Nota estruturada",
   TREASURY: "Tesouro direto",
-};
-
-const categoryDotClasses: Record<InvestmentType, string> = {
-  COE: "bg-foreground/50",
-  EQUITY: "bg-chart-3",
-  ETF: "bg-chart-4",
-  FIXED_INCOME: "bg-chart-1",
-  MUTUAL_FUND: "bg-chart-2",
-  OTHER: "bg-muted-foreground",
-  SECURITY: "bg-chart-5",
 };
 
 function formatCurrency(value: number | null, currencyCode: CurrencyCode) {
@@ -193,7 +192,8 @@ function InvestmentCategorySection({
         <div className="flex items-center gap-3">
           <span
             aria-hidden="true"
-            className={`size-3 shrink-0 rounded-full ${categoryDotClasses[category.key]}`}
+            className="size-3 shrink-0 rounded-full"
+            style={{ backgroundColor: investmentCategoryColors[category.key] }}
           />
           <div>
             <h3 className="font-semibold">{category.label}</h3>
@@ -374,7 +374,10 @@ function CurrencyOverview({
                   <div className="flex min-w-0 items-center gap-3">
                     <span
                       aria-hidden="true"
-                      className={`size-3 shrink-0 rounded-full ${categoryDotClasses[category.key]}`}
+                      className="size-3 shrink-0 rounded-full"
+                      style={{
+                        backgroundColor: investmentCategoryColors[category.key],
+                      }}
                     />
                     <div className="min-w-0">
                       <p className="truncate font-medium">{category.label}</p>
@@ -412,16 +415,26 @@ function CurrencyOverview({
   );
 }
 
-export default async function InvestmentsPage() {
-  const result = await getInvestments();
+export default async function InvestmentsPage({
+  searchParams,
+}: InvestmentsPageProps) {
+  const params = await searchParams;
+  const cryptoStatus = Array.isArray(params.crypto)
+    ? params.crypto[0]
+    : params.crypto;
+  const [result, manualCryptoResult] = await Promise.all([
+    getInvestments(),
+    getManualCryptoAssets(),
+  ]);
   const institutionCount = new Set(
     result.investments
       .map((investment) => investment.institutionName || investment.issuer)
       .filter(Boolean),
   ).size;
-  const categoryCount = new Set(
-    result.investments.map((investment) => investment.type),
-  ).size;
+  const currencyCount = new Set([
+    ...result.currencies.map((currency) => currency.currencyCode),
+    ...manualCryptoResult.assets.map((asset) => asset.currencyCode),
+  ]).size;
 
   return (
     <SidebarProvider>
@@ -466,24 +479,26 @@ export default async function InvestmentsPage() {
           <div className="grid gap-px overflow-hidden rounded-2xl border bg-border shadow-xs sm:grid-cols-3">
             <div className="bg-card p-5">
               <p className="text-sm text-muted-foreground">
-                Ativos consolidados
+                Ativos sincronizados
               </p>
               <p className="mt-2 text-2xl font-semibold tabular-nums">
                 {result.investments.length}
               </p>
             </div>
             <div className="bg-card p-5">
-              <p className="text-sm text-muted-foreground">Instituições</p>
+              <p className="text-sm text-muted-foreground">
+                Criptoativos manuais
+              </p>
               <p className="mt-2 text-2xl font-semibold tabular-nums">
-                {institutionCount}
+                {manualCryptoResult.assets.length}
               </p>
             </div>
             <div className="bg-card p-5">
               <p className="text-sm text-muted-foreground">
-                Categorias / moedas
+                Instituições / moedas
               </p>
               <p className="mt-2 text-2xl font-semibold tabular-nums">
-                {categoryCount} / {result.currencies.length}
+                {institutionCount} / {currencyCount}
               </p>
             </div>
           </div>
@@ -493,6 +508,12 @@ export default async function InvestmentsPage() {
               {result.error}
             </p>
           ) : null}
+
+          <ManualCryptoAssetsSection
+            assets={manualCryptoResult.assets}
+            error={manualCryptoResult.error}
+            status={cryptoStatus}
+          />
 
           {result.currencies.length > 0 ? (
             <div className="space-y-10">

@@ -13,3 +13,18 @@ model PluggyItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model ManualCryptoAsset {
+  id            String   @id @default(cuid())
+  symbol        String
+  name          String
+  quantity      Float
+  averagePrice  Float?
+  currentPrice  Float
+  currencyCode  String   @default("BRL")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([symbol, currencyCode])
+  @@index([currencyCode])
+}
