@@ -42,3 +42,26 @@ export function getBankLogoPath(
 
   return null;
 }
+
+export function getBankDisplayName(
+  ...identities: Array<string | null | undefined>
+) {
+  const logoPath = getBankLogoPath(...identities);
+
+  if (logoPath === bankLogoPaths.nubank) {
+    return "Nubank";
+  }
+
+  if (logoPath === bankLogoPaths.inter) {
+    return "Inter";
+  }
+
+  if (logoPath === bankLogoPaths.santander) {
+    return "Santander";
+  }
+
+  return (
+    identities.find((identity) => Boolean(identity?.trim()))?.trim() ??
+    "Banco não identificado"
+  );
+}

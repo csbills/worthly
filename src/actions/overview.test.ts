@@ -266,6 +266,133 @@ describe("Spending pace action", () => {
     });
   });
 
+  it("excludes mirrored transfers between connected accounts from spending pace", async () => {
+    mocks.getConnectedAccounts.mockResolvedValue({
+      itemCount: 2,
+      error: null,
+      accounts: [
+        {
+          id: "account-a",
+          itemId: "item-a",
+          type: "BANK",
+          subtype: "CHECKING_ACCOUNT",
+          number: "0001",
+          balance: 1000,
+          name: "Conta A",
+          marketingName: "Conta principal",
+          currencyCode: "BRL",
+        },
+        {
+          id: "account-b",
+          itemId: "item-b",
+          type: "BANK",
+          subtype: "CHECKING_ACCOUNT",
+          number: "0002",
+          balance: 1000,
+          name: "Conta B",
+          marketingName: "Conta secundária",
+          currencyCode: "BRL",
+        },
+      ],
+    });
+    mocks.fetchAllTransactions.mockImplementation(async (accountId: string) => {
+      if (accountId === "account-a") {
+        return [
+          {
+            id: "regular-expense",
+            accountId,
+            date: new Date("2026-08-10T12:00:00.000Z"),
+            type: "DEBIT",
+            amount: 50,
+            category: "Groceries",
+            categoryId: "10000000",
+          },
+          {
+            id: "internal-debit",
+            accountId,
+            date: new Date("2026-08-10T13:00:00.000Z"),
+            type: "DEBIT",
+            amount: 300,
+            category: "Transfer - PIX",
+            categoryId: "05070000",
+            operationType: "PIX",
+          },
+        ];
+      }
+
+      return [
+        {
+          id: "internal-credit",
+          accountId,
+          date: new Date("2026-08-10T13:00:00.000Z"),
+          type: "CREDIT",
+          amount: 300,
+          category: "Transfers",
+          categoryId: "05000000",
+          operationType: "PIX",
+        },
+      ];
+    });
+
+    const result = await getSpendingPace();
+
+    expect(result.currentMonth.total).toBe(50);
+    expect(result.points[9]).toEqual({
+      day: 10,
+      current: 50,
+      previous: 0,
+    });
+  });
+
+  it("excludes a credit card settlement without excluding card purchases", async () => {
+    mocks.getConnectedAccounts.mockResolvedValue({
+      itemCount: 1,
+      error: null,
+      accounts: [
+        {
+          id: "credit-card-a",
+          itemId: "item-a",
+          type: "CREDIT",
+          subtype: "CREDIT_CARD",
+          number: "0001",
+          balance: 1000,
+          name: "Cartão",
+          marketingName: "Cartão principal",
+          currencyCode: "BRL",
+        },
+      ],
+    });
+    mocks.fetchAllTransactions.mockResolvedValue([
+      {
+        id: "card-settlement",
+        accountId: "credit-card-a",
+        date: new Date("2026-08-10T12:00:00.000Z"),
+        type: "DEBIT",
+        amount: 120,
+        category: "Credit card payment",
+        categoryId: "05100000",
+      },
+      {
+        id: "card-purchase",
+        accountId: "credit-card-a",
+        date: new Date("2026-08-10T13:00:00.000Z"),
+        type: "DEBIT",
+        amount: 80,
+        category: "Shopping",
+        categoryId: "08000000",
+      },
+    ]);
+
+    const result = await getSpendingPace();
+
+    expect(result.currentMonth.total).toBe(80);
+    expect(result.points[9]).toEqual({
+      day: 10,
+      current: 80,
+      previous: 0,
+    });
+  });
+
   it("returns an empty result without calling Pluggy when there are no accounts", async () => {
     mocks.getConnectedAccounts.mockResolvedValue({
       itemCount: 0,

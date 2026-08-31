@@ -4,6 +4,7 @@ export type ResolvedTransactionCategory = {
   groupId: string;
   groupLabel: string;
   color: string;
+  icon: string;
 };
 
 type CategoryEntry = {
@@ -720,6 +721,31 @@ export const transactionCategoryGroupColors: Record<string, string> = {
   [otherCategoryId]: "#94a3b8",
 };
 
+export const transactionCategoryGroupIcons: Record<string, string> = {
+  "01000000": "💰",
+  "02000000": "🏦",
+  "03000000": "📈",
+  "04000000": "🔄",
+  "05000000": "↔️",
+  "06000000": "⚖️",
+  "07000000": "🛠️",
+  "08000000": "🛍️",
+  "09000000": "💻",
+  "10000000": "🛒",
+  "11000000": "🍽️",
+  "12000000": "✈️",
+  "13000000": "🤝",
+  "14000000": "🎰",
+  "15000000": "🧾",
+  "16000000": "💳",
+  "17000000": "🏠",
+  "18000000": "🩺",
+  "19000000": "🚗",
+  "20000000": "🛡️",
+  "21000000": "🎟️",
+  [otherCategoryId]: "📦",
+};
+
 const categoriesById = new Map(
   categoryEntries.map((category) => [category.id, category]),
 );
@@ -795,6 +821,7 @@ export function getTransactionCategory(
       groupId: otherCategoryId,
       groupLabel: "Outros",
       color: transactionCategoryGroupColors[otherCategoryId],
+      icon: transactionCategoryGroupIcons[otherCategoryId],
     };
   }
 
@@ -808,5 +835,8 @@ export function getTransactionCategory(
     color:
       transactionCategoryGroupColors[rootCategory.id] ??
       transactionCategoryGroupColors[otherCategoryId],
+    icon:
+      transactionCategoryGroupIcons[rootCategory.id] ??
+      transactionCategoryGroupIcons[otherCategoryId],
   };
 }

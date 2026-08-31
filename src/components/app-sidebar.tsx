@@ -70,6 +70,11 @@ const data = {
       url: "/categories",
       icon: <HugeiconsIcon icon={TagsIcon} strokeWidth={2} />,
     },
+    {
+      title: "Cartões",
+      url: "/cards",
+      icon: <HugeiconsIcon icon={CreditCardIcon} strokeWidth={2} />,
+    },
   ],
   navSecondary: [
     {

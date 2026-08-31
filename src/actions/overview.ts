@@ -1,10 +1,14 @@
 "use server";
 
-import type { Transaction } from "pluggy-sdk";
-
 import { getConnectedAccounts } from "@/actions/pluggy";
 import { getPluggyClient } from "@/lib/pluggy";
-import { isNonSpendingTransaction } from "../lib/transaction-spending-rules";
+import {
+  getConnectedAccountNumbers,
+  getInternalTransferTransactionIds,
+  isExcludedFromFinancialReporting,
+  type ReportingTransaction,
+  withReportingAccountContext,
+} from "../lib/transaction-reporting";
 
 const timeZone = "America/Sao_Paulo";
 
@@ -157,10 +161,12 @@ function buildPoints(
 }
 
 function collectMonthlyAmounts(
-  transactions: Transaction[],
+  transactions: ReportingTransaction[],
   currentMonth: Month,
   previousMonth: Month,
   currentElapsedDays: number,
+  internalTransferIds: ReadonlySet<string>,
+  connectedAccountNumbers: ReadonlySet<string>,
 ) {
   const currentDailyAmounts = new Map<number, number>();
   const previousDailyAmounts = new Map<number, number>();
@@ -168,7 +174,11 @@ function collectMonthlyAmounts(
   for (const transaction of transactions) {
     if (
       transaction.type !== "DEBIT" ||
-      isNonSpendingTransaction(transaction) ||
+      isExcludedFromFinancialReporting(
+        transaction,
+        internalTransferIds,
+        connectedAccountNumbers,
+      ) ||
       !Number.isFinite(transaction.amount)
     ) {
       continue;
@@ -224,21 +234,31 @@ export async function getSpendingPace(): Promise<SpendingPaceResult> {
   try {
     const client = getPluggyClient();
     const transactionResults = await Promise.allSettled(
-      accountResult.accounts.map((account) =>
-        client.fetchAllTransactions(account.id, {
+      accountResult.accounts.map(async (account) => {
+        const transactions = await client.fetchAllTransactions(account.id, {
           dateFrom: previousMonth.dateFrom,
           dateTo: currentMonth.dateTo,
-        }),
-      ),
+        });
+
+        return transactions.map((transaction) =>
+          withReportingAccountContext(transaction, account),
+        );
+      }),
     );
     const transactions = transactionResults.flatMap((result) =>
       result.status === "fulfilled" ? result.value : [],
+    );
+    const internalTransferIds = getInternalTransferTransactionIds(transactions);
+    const connectedAccountNumbers = getConnectedAccountNumbers(
+      accountResult.accounts,
     );
     const { currentDailyAmounts, previousDailyAmounts } = collectMonthlyAmounts(
       transactions,
       currentMonth,
       previousMonth,
       currentDate.day,
+      internalTransferIds,
+      connectedAccountNumbers,
     );
 
     return {

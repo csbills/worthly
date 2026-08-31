@@ -4,6 +4,14 @@ import type { Transaction } from "pluggy-sdk";
 
 import { type ConnectedAccount, getConnectedAccounts } from "@/actions/pluggy";
 import { getPluggyClient } from "@/lib/pluggy";
+import { getBankLogoPath } from "../lib/bank-assets";
+import { getTransactionCategory } from "../lib/transaction-category-dictionary";
+import {
+  getConnectedAccountNumbers,
+  getInternalTransferTransactionIds,
+  isExcludedFromFinancialReporting,
+  withReportingAccountContext,
+} from "../lib/transaction-reporting";
 
 const timeZone = "America/Sao_Paulo";
 
@@ -20,8 +28,13 @@ export type CurrentMonthTransaction = Pick<
 > & {
   date: string;
   description: string;
+  bankName: string;
+  bankLogoPath: string | null;
   accountName: string;
   accountNumber: string;
+  categoryLabel: string;
+  categoryIcon: string;
+  excludeFromSummary: boolean;
 };
 
 export type CurrentMonthTransactionsResult = {
@@ -90,10 +103,63 @@ function belongsToMonth(date: Date, monthKey: string) {
   return `${parts.year}-${pad(parts.month)}` === monthKey;
 }
 
+type AccountBankDetails = {
+  name: string;
+  logoPath: string | null;
+};
+
+function resolveBankDetails(
+  identities: Array<string | null | undefined>,
+): AccountBankDetails {
+  const names = identities
+    .filter((identity): identity is string => Boolean(identity?.trim()))
+    .map((identity) => identity.trim());
+  const nameWithLogo = names.find((name) => getBankLogoPath(name));
+  const name = nameWithLogo || names[0] || "Banco não identificado";
+
+  return {
+    name,
+    logoPath: getBankLogoPath(name),
+  };
+}
+
+function getFallbackBankDetails(
+  accounts: ConnectedAccount[],
+): AccountBankDetails {
+  return resolveBankDetails(
+    accounts.flatMap((account) => [account.name, account.marketingName]),
+  );
+}
+
+async function getAccountBankDetails(
+  client: ReturnType<typeof getPluggyClient>,
+  accounts: ConnectedAccount[],
+): Promise<AccountBankDetails> {
+  const fallback = getFallbackBankDetails(accounts);
+
+  try {
+    const item = await client.fetchItem(accounts[0].itemId);
+    return resolveBankDetails([
+      ...accounts.flatMap((account) => [account.name, account.marketingName]),
+      item.connector?.name,
+    ]);
+  } catch {
+    return fallback;
+  }
+}
+
 function serializeTransaction(
   transaction: Transaction,
   account: ConnectedAccount,
+  bank: AccountBankDetails,
+  internalTransferIds: ReadonlySet<string>,
+  connectedAccountNumbers: ReadonlySet<string>,
 ): CurrentMonthTransaction {
+  const category = getTransactionCategory(
+    transaction.categoryId ?? null,
+    transaction.category ?? null,
+  );
+
   return {
     id: transaction.id,
     accountId: transaction.accountId,
@@ -107,7 +173,16 @@ function serializeTransaction(
     balance: transaction.balance,
     currencyCode: transaction.currencyCode,
     category: transaction.category,
+    categoryLabel: category.label,
+    categoryIcon: category.icon,
+    excludeFromSummary: isExcludedFromFinancialReporting(
+      withReportingAccountContext(transaction, account),
+      internalTransferIds,
+      connectedAccountNumbers,
+    ),
     status: transaction.status,
+    bankName: bank.name,
+    bankLogoPath: bank.logoPath,
     accountName: account.marketingName || account.name || "Conta sem nome",
     accountNumber: account.number,
   };
@@ -128,20 +203,66 @@ export async function getCurrentMonthTransactions(): Promise<CurrentMonthTransac
 
   try {
     const client = getPluggyClient();
+    const connectedAccountNumbers = getConnectedAccountNumbers(
+      accountResult.accounts,
+    );
+    const accountsByItemId = new Map<string, ConnectedAccount[]>();
+
+    for (const account of accountResult.accounts) {
+      const accountsForItem = accountsByItemId.get(account.itemId) ?? [];
+      accountsForItem.push(account);
+      accountsByItemId.set(account.itemId, accountsForItem);
+    }
+
+    const bankDetailsByItemId = new Map<string, Promise<AccountBankDetails>>();
+    const getBankDetails = (account: ConnectedAccount) => {
+      const existingDetails = bankDetailsByItemId.get(account.itemId);
+
+      if (existingDetails) {
+        return existingDetails;
+      }
+
+      const details = getAccountBankDetails(
+        client,
+        accountsByItemId.get(account.itemId) ?? [account],
+      );
+      bankDetailsByItemId.set(account.itemId, details);
+
+      return details;
+    };
     const transactionResults = await Promise.allSettled(
       accountResult.accounts.map(async (account) => {
-        const transactions = await client.fetchAllTransactions(account.id, {
-          dateFrom: month.dateFrom,
-          dateTo: month.dateTo,
-        });
+        const [transactions, bank] = await Promise.all([
+          client.fetchAllTransactions(account.id, {
+            dateFrom: month.dateFrom,
+            dateTo: month.dateTo,
+          }),
+          getBankDetails(account),
+        ]);
 
         return transactions
           .filter((transaction) => belongsToMonth(transaction.date, month.key))
-          .map((transaction) => serializeTransaction(transaction, account));
+          .map((transaction) => ({ transaction, account, bank }));
       }),
     );
-    const transactions = transactionResults
-      .flatMap((result) => (result.status === "fulfilled" ? result.value : []))
+    const transactionRecords = transactionResults.flatMap((result) =>
+      result.status === "fulfilled" ? result.value : [],
+    );
+    const internalTransferIds = getInternalTransferTransactionIds(
+      transactionRecords.map(({ transaction, account }) =>
+        withReportingAccountContext(transaction, account),
+      ),
+    );
+    const transactions = transactionRecords
+      .map(({ transaction, account, bank }) =>
+        serializeTransaction(
+          transaction,
+          account,
+          bank,
+          internalTransferIds,
+          connectedAccountNumbers,
+        ),
+      )
       .sort((left, right) => right.date.localeCompare(left.date));
     const hasError = transactionResults.some(
       (result) => result.status === "rejected",

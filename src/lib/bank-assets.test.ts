@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getBankLogoPath } from "./bank-assets";
+import { getBankDisplayName, getBankLogoPath } from "./bank-assets";
 
 describe("Bank asset logos", () => {
   it("resolves the Nubank logo from the NU Financeira identity", () => {
@@ -14,6 +14,22 @@ describe("Bank asset logos", () => {
   it("resolves the Santander logo from the institution identity", () => {
     expect(getBankLogoPath("BANCO SANTANDER (BRASIL) S.A.")).toBe(
       "/assets/banks/santander.svg",
+    );
+  });
+
+  it("shortens known bank names for account displays", () => {
+    expect(
+      getBankDisplayName("NU PAGAMENTOS S.A. - INSTITUIÇÃO DE PAGAMENTO"),
+    ).toBe("Nubank");
+    expect(getBankDisplayName("BANCO INTER")).toBe("Inter");
+    expect(getBankDisplayName("BANCO SANTANDER (BRASIL) S.A.")).toBe(
+      "Santander",
+    );
+  });
+
+  it("keeps the original name for banks outside the catalog", () => {
+    expect(getBankDisplayName("Banco não catalogado")).toBe(
+      "Banco não catalogado",
     );
   });
 

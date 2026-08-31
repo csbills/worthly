@@ -1,6 +1,6 @@
 "use server";
 
-import type { CurrencyCode, Transaction } from "pluggy-sdk";
+import type { CurrencyCode } from "pluggy-sdk";
 
 import { getConnectedAccounts } from "@/actions/pluggy";
 import { getPluggyClient } from "@/lib/pluggy";
@@ -8,7 +8,13 @@ import {
   getTransactionCategory,
   type ResolvedTransactionCategory,
 } from "../lib/transaction-category-dictionary";
-import { isNonSpendingTransaction } from "../lib/transaction-spending-rules";
+import {
+  getConnectedAccountNumbers,
+  getInternalTransferTransactionIds,
+  isExcludedFromFinancialReporting,
+  type ReportingTransaction,
+  withReportingAccountContext,
+} from "../lib/transaction-reporting";
 
 const timeZone = "America/Sao_Paulo";
 const defaultCurrencyCode: CurrencyCode = "BRL";
@@ -38,6 +44,7 @@ type GroupAccumulator = {
   key: string;
   label: string;
   color: string;
+  icon: string;
   amount: number;
   transactionCount: number;
   categories: Map<string, CategoryAccumulator>;
@@ -46,6 +53,7 @@ type GroupAccumulator = {
 export type CategorySpendingItem = {
   id: string;
   label: string;
+  icon: string;
   amount: number;
   percentage: number;
   transactionCount: number;
@@ -55,6 +63,7 @@ export type CategorySpendingGroup = {
   key: string;
   label: string;
   color: string;
+  icon: string;
   amount: number;
   percentage: number;
   categoryCount: number;
@@ -182,7 +191,7 @@ function resolveRequestedMonth(
 }
 
 function isTransactionInMonth(
-  transaction: Transaction,
+  transaction: ReportingTransaction,
   month: Month,
   currentMonth: Month,
   currentDay: number,
@@ -201,7 +210,7 @@ function isTransactionInMonth(
 }
 
 function getCategoryCurrency(
-  transactions: Transaction[],
+  transactions: ReportingTransaction[],
   accountCurrencyCode: CurrencyCode | undefined,
 ) {
   return (
@@ -213,17 +222,23 @@ function getCategoryCurrency(
 }
 
 function buildCategoryGroups(
-  transactions: Transaction[],
+  transactions: ReportingTransaction[],
   month: Month,
   currentMonth: Month,
   currentDay: number,
+  internalTransferIds: ReadonlySet<string>,
+  connectedAccountNumbers: ReadonlySet<string>,
 ) {
   const groups = new Map<string, GroupAccumulator>();
 
   for (const transaction of transactions) {
     if (
       transaction.type !== "DEBIT" ||
-      isNonSpendingTransaction(transaction) ||
+      isExcludedFromFinancialReporting(
+        transaction,
+        internalTransferIds,
+        connectedAccountNumbers,
+      ) ||
       !Number.isFinite(transaction.amount) ||
       !isTransactionInMonth(transaction, month, currentMonth, currentDay)
     ) {
@@ -242,6 +257,7 @@ function buildCategoryGroups(
         key: category.groupId,
         label: category.groupLabel,
         color: category.color,
+        icon: category.icon,
         amount: 0,
         transactionCount: 0,
         categories: new Map(),
@@ -282,6 +298,7 @@ function buildCategoryGroups(
         key: group.key,
         label: group.label,
         color: group.color,
+        icon: group.icon,
         amount: group.amount,
         percentage: total > 0 ? (group.amount / total) * 100 : 0,
         categoryCount: group.categories.size,
@@ -291,6 +308,7 @@ function buildCategoryGroups(
           .map(({ category, amount, transactionCount }) => ({
             id: category.id,
             label: category.label,
+            icon: category.icon,
             amount,
             percentage: group.amount > 0 ? (amount / group.amount) * 100 : 0,
             transactionCount,
@@ -339,21 +357,31 @@ export async function getCategorySpending(
   try {
     const client = getPluggyClient();
     const transactionResults = await Promise.allSettled(
-      accountResult.accounts.map((account) =>
-        client.fetchAllTransactions(account.id, {
+      accountResult.accounts.map(async (account) => {
+        const transactions = await client.fetchAllTransactions(account.id, {
           dateFrom: month.dateFrom,
           dateTo: month.dateTo,
-        }),
-      ),
+        });
+
+        return transactions.map((transaction) =>
+          withReportingAccountContext(transaction, account),
+        );
+      }),
     );
     const transactions = transactionResults.flatMap((result) =>
       result.status === "fulfilled" ? result.value : [],
+    );
+    const internalTransferIds = getInternalTransferTransactionIds(transactions);
+    const connectedAccountNumbers = getConnectedAccountNumbers(
+      accountResult.accounts,
     );
     const summary = buildCategoryGroups(
       transactions,
       month,
       currentMonth,
       currentDate.day,
+      internalTransferIds,
+      connectedAccountNumbers,
     );
 
     return {

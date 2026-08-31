@@ -1,16 +1,7 @@
 import {
   ArrowLeft01Icon,
-  ArrowLeftRightIcon,
   ArrowRight01Icon,
-  BankIcon,
-  Car01Icon,
   ChevronDownIcon,
-  HealthIcon,
-  Home01Icon,
-  RestaurantIcon,
-  ShoppingBag01Icon,
-  Tag01Icon,
-  TicketsIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { CurrencyCode } from "pluggy-sdk";
@@ -41,17 +32,6 @@ type CategoriesPageProps = {
   searchParams: Promise<{
     month?: string | string[] | undefined;
   }>;
-};
-
-const categoryIcons = {
-  "05000000": ArrowLeftRightIcon,
-  "07000000": BankIcon,
-  "08000000": ShoppingBag01Icon,
-  "11000000": RestaurantIcon,
-  "17000000": Home01Icon,
-  "18000000": HealthIcon,
-  "19000000": Car01Icon,
-  "21000000": TicketsIcon,
 };
 
 function formatCurrency(value: number, currencyCode: CurrencyCode) {
@@ -112,11 +92,23 @@ function CategoryItem({
 }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-      <div className="min-w-0">
-        <p className="truncate text-sm">{category.label}</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {formatCount(category.transactionCount, "lançamento", "lançamentos")}
-        </p>
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-lg leading-none"
+        >
+          {category.icon}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm">{category.label}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {formatCount(
+              category.transactionCount,
+              "lançamento",
+              "lançamentos",
+            )}
+          </p>
+        </div>
       </div>
       <div className="flex min-w-0 items-center gap-3">
         <p className="text-right text-sm font-medium tabular-nums whitespace-nowrap">
@@ -137,9 +129,6 @@ function CategoryGroup({
   group: CategorySpendingGroup;
   currencyCode: CurrencyCode;
 }) {
-  const groupIcon =
-    categoryIcons[group.key as keyof typeof categoryIcons] ?? Tag01Icon;
-
   return (
     <details open className="group border-b last:border-0">
       <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-5 outline-none transition-colors hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring md:px-6 [&::-webkit-details-marker]:hidden">
@@ -150,11 +139,11 @@ function CategoryGroup({
           aria-hidden="true"
         />
         <span
-          className="flex size-9 shrink-0 items-center justify-center rounded-lg text-white"
+          className="flex size-9 shrink-0 items-center justify-center rounded-lg text-lg leading-none"
           style={{ backgroundColor: group.color }}
           aria-hidden="true"
         >
-          <HugeiconsIcon icon={groupIcon} strokeWidth={2} className="size-5" />
+          {group.icon}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-semibold">{group.label}</span>
@@ -255,13 +244,6 @@ export default async function CategoriesPage({
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
                 gasto em {result.month.label}
-              </p>
-              <p className="mt-3 text-xs text-muted-foreground">
-                {formatCount(
-                  result.transactionCount,
-                  "lançamento considerado",
-                  "lançamentos considerados",
-                )}
               </p>
             </div>
 

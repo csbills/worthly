@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import {
   type CurrentMonthTransaction,
   getCurrentMonthTransactions,
@@ -15,57 +17,54 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { getBankDisplayName } from "@/lib/bank-assets";
+import { summarizeTransactions } from "@/lib/transaction-summary";
 
 export const dynamic = "force-dynamic";
 
 const timeZone = "America/Sao_Paulo";
 
-const transactionTypeLabels: Record<CurrentMonthTransaction["type"], string> = {
-  CREDIT: "Entrada",
-  DEBIT: "Saída",
-};
-
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("pt-BR", {
     timeZone,
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
   }).format(new Date(date));
 }
 
-function formatAmount(transaction: CurrentMonthTransaction) {
-  const sign = transaction.type === "CREDIT" ? "+" : "-";
-  const amount = new Intl.NumberFormat("pt-BR", {
+function formatCurrency(amount: number, currencyCode: string) {
+  return new Intl.NumberFormat("pt-BR", {
     style: "currency",
-    currency: transaction.currencyCode,
-  }).format(Math.abs(transaction.amount));
-
-  return `${sign}${amount}`;
+    currency: currencyCode,
+  }).format(amount);
 }
 
-function formatAccountNumber(number: string) {
-  const normalizedNumber = number.replace(/\s/g, "");
+function formatSignedCurrency(amount: number, currencyCode: string) {
+  const sign = amount > 0 ? "+" : amount < 0 ? "-" : "";
 
-  if (normalizedNumber.length <= 4) {
-    return `•••• ${normalizedNumber}`;
-  }
-
-  return `•••• ${normalizedNumber.slice(-4)}`;
+  return `${sign}${formatCurrency(Math.abs(amount), currencyCode)}`;
 }
 
-function getStatus(transaction: CurrentMonthTransaction) {
-  if (transaction.status === "PENDING") {
-    return {
-      className: "bg-amber-500/10 text-amber-700",
-      label: "Pendente",
-    };
-  }
+function formatAmount(transaction: CurrentMonthTransaction) {
+  return formatSignedCurrency(
+    transaction.type === "CREDIT"
+      ? Math.abs(transaction.amount)
+      : -Math.abs(transaction.amount),
+    transaction.currencyCode,
+  );
+}
 
-  return {
-    className: "bg-emerald-500/10 text-emerald-700",
-    label: "Confirmada",
-  };
+function getInitials(value: string) {
+  const initials = value
+    .split(/\s+/u)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toLocaleUpperCase("pt-BR");
+
+  return initials || "?";
 }
 
 function TransactionRow({
@@ -73,38 +72,56 @@ function TransactionRow({
 }: {
   transaction: CurrentMonthTransaction;
 }) {
-  const status = getStatus(transaction);
   const amountClassName =
-    transaction.type === "CREDIT" ? "text-emerald-700" : "text-foreground";
+    transaction.type === "CREDIT"
+      ? "text-emerald-600 dark:text-emerald-400"
+      : "text-red-600 dark:text-red-400";
+  const bankName = getBankDisplayName(transaction.bankName);
 
   return (
     <tr className="border-b last:border-0 hover:bg-muted/30">
-      <td className="px-4 py-4 align-top text-sm whitespace-nowrap text-muted-foreground">
-        {formatDate(transaction.date)}
-      </td>
       <td className="min-w-64 px-4 py-4 align-top">
         <p className="font-medium">{transaction.description}</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {transaction.accountName} ·{" "}
-          {formatAccountNumber(transaction.accountNumber)}
-        </p>
       </td>
-      <td className="px-4 py-4 align-top text-sm text-muted-foreground">
-        {transaction.category || "Sem categoria"}
-      </td>
-      <td className="px-4 py-4 align-top">
-        <span
-          className={`rounded-full px-2.5 py-1 text-xs font-medium ${status.className}`}
-        >
-          {status.label}
+      <td className="min-w-40 px-4 py-4 align-top text-sm text-muted-foreground">
+        <span className="inline-flex items-center gap-2">
+          <span aria-hidden="true" className="text-base leading-none">
+            {transaction.categoryIcon}
+          </span>
+          <span>{transaction.categoryLabel}</span>
         </span>
       </td>
-      <td className="px-4 py-4 text-right align-top whitespace-nowrap">
+      <td className="min-w-64 px-4 py-4 align-top">
+        <div className="flex min-w-0 items-center gap-3">
+          {transaction.bankLogoPath ? (
+            <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-background">
+              <Image
+                src={transaction.bankLogoPath}
+                alt=""
+                width={36}
+                height={36}
+                className="size-full object-cover"
+              />
+            </span>
+          ) : (
+            <span
+              aria-hidden="true"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground"
+            >
+              {getInitials(bankName)}
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="truncate font-medium">{bankName}</p>
+          </div>
+        </div>
+      </td>
+      <td className="w-36 px-4 py-4 align-top text-sm whitespace-nowrap text-muted-foreground">
+        {formatDate(transaction.date)}
+      </td>
+      <td className="w-40 px-4 py-4 text-right align-top whitespace-nowrap">
         <p className={`font-semibold ${amountClassName}`}>
           {formatAmount(transaction)}
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {transactionTypeLabels[transaction.type]}
         </p>
       </td>
     </tr>
@@ -113,12 +130,10 @@ function TransactionRow({
 
 export default async function TransactionsPage() {
   const result = await getCurrentMonthTransactions();
-  const creditCount = result.transactions.filter(
-    (transaction) => transaction.type === "CREDIT",
-  ).length;
-  const debitCount = result.transactions.filter(
-    (transaction) => transaction.type === "DEBIT",
-  ).length;
+  const summary = summarizeTransactions(result.transactions);
+  const summaryCurrency =
+    result.transactions.find((transaction) => transaction.currencyCode)
+      ?.currencyCode ?? "BRL";
 
   return (
     <SidebarProvider>
@@ -162,22 +177,37 @@ export default async function TransactionsPage() {
             </a>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl border bg-card p-5 shadow-xs">
-              <p className="text-sm text-muted-foreground">Transações no mês</p>
-              <p className="mt-2 text-2xl font-semibold">
-                {result.transactions.length}
+              <p className="text-sm text-muted-foreground">Total</p>
+              <p className="mt-2 text-2xl font-semibold">{summary.total}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {summary.total === 1 ? "transação" : "transações"} no mês
               </p>
             </div>
             <div className="rounded-2xl border bg-card p-5 shadow-xs">
-              <p className="text-sm text-muted-foreground">Entradas</p>
-              <p className="mt-2 text-2xl font-semibold text-emerald-700">
-                {creditCount}
+              <p className="text-sm text-muted-foreground">Receitas</p>
+              <p className="mt-2 text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(summary.receipts, summaryCurrency)}
               </p>
             </div>
             <div className="rounded-2xl border bg-card p-5 shadow-xs">
-              <p className="text-sm text-muted-foreground">Saídas</p>
-              <p className="mt-2 text-2xl font-semibold">{debitCount}</p>
+              <p className="text-sm text-muted-foreground">Despesas</p>
+              <p className="mt-2 text-2xl font-semibold text-red-600 dark:text-red-400">
+                {formatCurrency(summary.expenses, summaryCurrency)}
+              </p>
+            </div>
+            <div className="rounded-2xl border bg-card p-5 shadow-xs">
+              <p className="text-sm text-muted-foreground">Saldo</p>
+              <p
+                className={`mt-2 text-2xl font-semibold ${
+                  summary.balance < 0
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-emerald-600 dark:text-emerald-400"
+                }`}
+              >
+                {formatSignedCurrency(summary.balance, summaryCurrency)}
+              </p>
             </div>
           </div>
 
@@ -203,12 +233,9 @@ export default async function TransactionsPage() {
 
             {result.transactions.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="min-w-[760px] w-full border-collapse text-left">
+                <table className="w-full min-w-[980px] border-collapse text-left">
                   <thead>
                     <tr className="border-b text-xs tracking-wide text-muted-foreground uppercase">
-                      <th scope="col" className="px-4 py-3 font-medium">
-                        Data
-                      </th>
                       <th scope="col" className="px-4 py-3 font-medium">
                         Descrição
                       </th>
@@ -216,7 +243,10 @@ export default async function TransactionsPage() {
                         Categoria
                       </th>
                       <th scope="col" className="px-4 py-3 font-medium">
-                        Status
+                        Conta
+                      </th>
+                      <th scope="col" className="px-4 py-3 font-medium">
+                        Data
                       </th>
                       <th
                         scope="col"

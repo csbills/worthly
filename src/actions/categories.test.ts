@@ -146,6 +146,7 @@ describe("Category spending action", () => {
     expect(result.groups[1]).toMatchObject({
       key: "17000000",
       label: "Moradia",
+      icon: "🏠",
       amount: 70,
       categoryCount: 2,
       categories: [
@@ -169,6 +170,138 @@ describe("Category spending action", () => {
       dateFrom: "2026-08-01",
       dateTo: "2026-09-01",
     });
+  });
+
+  it("excludes mirrored transfers between connected accounts from category spending", async () => {
+    mocks.getConnectedAccounts.mockResolvedValue({
+      itemCount: 2,
+      error: null,
+      accounts: [
+        {
+          id: "account-a",
+          itemId: "item-a",
+          type: "BANK",
+          subtype: "CHECKING_ACCOUNT",
+          number: "0001",
+          balance: 1000,
+          name: "Conta A",
+          marketingName: "Conta principal",
+          currencyCode: "BRL",
+        },
+        {
+          id: "account-b",
+          itemId: "item-b",
+          type: "BANK",
+          subtype: "CHECKING_ACCOUNT",
+          number: "0002",
+          balance: 1000,
+          name: "Conta B",
+          marketingName: "Conta secundária",
+          currencyCode: "BRL",
+        },
+      ],
+    });
+    mocks.fetchAllTransactions.mockImplementation(async (accountId: string) => {
+      if (accountId === "account-a") {
+        return [
+          {
+            id: "regular-expense",
+            accountId,
+            date: new Date("2026-08-10T12:00:00.000Z"),
+            type: "DEBIT",
+            amount: 50,
+            category: "Groceries",
+            categoryId: "10000000",
+          },
+          {
+            id: "internal-debit",
+            accountId,
+            date: new Date("2026-08-10T13:00:00.000Z"),
+            type: "DEBIT",
+            amount: 300,
+            category: "Transfer - PIX",
+            categoryId: "05070000",
+          },
+        ];
+      }
+
+      return [
+        {
+          id: "internal-credit",
+          accountId,
+          date: new Date("2026-08-10T13:00:00.000Z"),
+          type: "CREDIT",
+          amount: 300,
+          category: "Transfers",
+          categoryId: "05000000",
+        },
+      ];
+    });
+
+    const result = await getCategorySpending();
+
+    expect(result.total).toBe(50);
+    expect(result.transactionCount).toBe(1);
+    expect(result.groups).toMatchObject([
+      {
+        key: "10000000",
+        label: "Supermercado",
+        icon: "🛒",
+        amount: 50,
+      },
+    ]);
+  });
+
+  it("excludes a credit card settlement without excluding card purchases", async () => {
+    mocks.getConnectedAccounts.mockResolvedValue({
+      itemCount: 1,
+      error: null,
+      accounts: [
+        {
+          id: "credit-card-a",
+          itemId: "item-a",
+          type: "CREDIT",
+          subtype: "CREDIT_CARD",
+          number: "0001",
+          balance: 1000,
+          name: "Cartão",
+          marketingName: "Cartão principal",
+          currencyCode: "BRL",
+        },
+      ],
+    });
+    mocks.fetchAllTransactions.mockResolvedValue([
+      {
+        id: "card-settlement",
+        accountId: "credit-card-a",
+        date: new Date("2026-08-10T12:00:00.000Z"),
+        type: "DEBIT",
+        amount: 120,
+        category: "Credit card payment",
+        categoryId: "05100000",
+      },
+      {
+        id: "card-purchase",
+        accountId: "credit-card-a",
+        date: new Date("2026-08-10T13:00:00.000Z"),
+        type: "DEBIT",
+        amount: 80,
+        category: "Shopping",
+        categoryId: "08000000",
+      },
+    ]);
+
+    const result = await getCategorySpending();
+
+    expect(result.total).toBe(80);
+    expect(result.transactionCount).toBe(1);
+    expect(result.groups).toMatchObject([
+      {
+        key: "08000000",
+        label: "Compras",
+        amount: 80,
+      },
+    ]);
   });
 
   it("loads a requested previous month and does not allow a future month", async () => {

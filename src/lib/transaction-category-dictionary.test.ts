@@ -16,6 +16,12 @@ describe("Transaction category dictionary", () => {
       label: "Eletricidade",
       groupId: "17000000",
       groupLabel: "Moradia",
+      icon: "🏠",
+    });
+    expect(getTransactionCategory("14000000", "Gambling")).toMatchObject({
+      label: "Apostas",
+      groupLabel: "Apostas",
+      icon: "🎰",
     });
   });
 
@@ -25,6 +31,7 @@ describe("Transaction category dictionary", () => {
       label: "Nova categoria",
       groupId: "99999999",
       groupLabel: "Outros",
+      icon: "📦",
     });
   });
 });
