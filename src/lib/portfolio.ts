@@ -201,6 +201,33 @@ function getBalance(value: number | null) {
   return value !== null && Number.isFinite(value) ? value : 0;
 }
 
+function calculateAveragePrice(
+  categoryKey: PortfolioCategoryKey,
+  amountOriginal: number | null,
+  quantity: number | null,
+) {
+  if (
+    categoryKey !== "EQUITY" &&
+    categoryKey !== "ETF" &&
+    categoryKey !== "CRYPTO"
+  ) {
+    return null;
+  }
+
+  if (
+    amountOriginal === null ||
+    quantity === null ||
+    !Number.isFinite(amountOriginal) ||
+    !Number.isFinite(quantity) ||
+    amountOriginal < 0 ||
+    quantity <= 0
+  ) {
+    return null;
+  }
+
+  return amountOriginal / quantity;
+}
+
 export function buildPortfolioAssets(
   investments: PortfolioInvestmentInput[],
   manualAssets: PortfolioManualCryptoInput[],
@@ -227,7 +254,11 @@ export function buildPortfolioAssets(
       ),
       quantity: investment.quantity,
       unitPrice: null,
-      averagePrice: null,
+      averagePrice: calculateAveragePrice(
+        investment.type,
+        investment.amountOriginal,
+        investment.quantity,
+      ),
       institutionName: investment.institutionName,
       issuer: investment.issuer,
       positionCount: investment.positionCount,
@@ -244,41 +275,47 @@ export function buildPortfolioAssets(
       history: [],
       updatedAt: null,
     })),
-    ...manualAssets.map((asset) => ({
-      id: `manual:${asset.id}`,
-      sourceId: asset.id,
-      source: "manual" as const,
-      manualKind: "crypto" as const,
-      categoryKey: "CRYPTO" as const,
-      categoryLabel: portfolioCategoryLabels.CRYPTO,
-      symbol: asset.symbol,
-      name: asset.name,
-      subtype: null,
-      currencyCode: asset.currencyCode,
-      balance:
-        asset.currentPrice === null
-          ? null
-          : asset.currentPrice * asset.quantity,
-      amountOriginal: asset.amountOriginal ?? asset.purchaseTotal,
-      amountProfit: asset.amountProfit,
-      amountProfitPercentage:
-        asset.amountProfitPercentage ??
-        getProfitPercentage(asset.amountProfit, asset.amountOriginal),
-      quantity: asset.quantity,
-      unitPrice: asset.currentPrice,
-      averagePrice: asset.averagePrice,
-      institutionName: null,
-      issuer: null,
-      positionCount: Math.max(asset.orders?.length ?? 0, 1),
-      dueDate: null,
-      logoPath: getCryptoAssetLogo(asset.coingeckoId),
-      coingeckoId: asset.coingeckoId,
-      priceSource: asset.priceSource,
-      priceUpdatedAt: asset.priceUpdatedAt,
-      orders: asset.orders ?? [],
-      history: [],
-      updatedAt: asset.updatedAt,
-    })),
+    ...manualAssets.map((asset) => {
+      const amountOriginal = asset.amountOriginal ?? asset.purchaseTotal;
+
+      return {
+        id: `manual:${asset.id}`,
+        sourceId: asset.id,
+        source: "manual" as const,
+        manualKind: "crypto" as const,
+        categoryKey: "CRYPTO" as const,
+        categoryLabel: portfolioCategoryLabels.CRYPTO,
+        symbol: asset.symbol,
+        name: asset.name,
+        subtype: null,
+        currencyCode: asset.currencyCode,
+        balance:
+          asset.currentPrice === null
+            ? null
+            : asset.currentPrice * asset.quantity,
+        amountOriginal,
+        amountProfit: asset.amountProfit,
+        amountProfitPercentage:
+          asset.amountProfitPercentage ??
+          getProfitPercentage(asset.amountProfit, amountOriginal),
+        quantity: asset.quantity,
+        unitPrice: asset.currentPrice,
+        averagePrice:
+          asset.averagePrice ??
+          calculateAveragePrice("CRYPTO", amountOriginal, asset.quantity),
+        institutionName: null,
+        issuer: null,
+        positionCount: Math.max(asset.orders?.length ?? 0, 1),
+        dueDate: null,
+        logoPath: getCryptoAssetLogo(asset.coingeckoId),
+        coingeckoId: asset.coingeckoId,
+        priceSource: asset.priceSource,
+        priceUpdatedAt: asset.priceUpdatedAt,
+        orders: asset.orders ?? [],
+        history: [],
+        updatedAt: asset.updatedAt,
+      };
+    }),
     ...manualMarketAssets.map((asset) => ({
       id: `manual-market:${asset.id}`,
       sourceId: asset.id,
@@ -296,7 +333,13 @@ export function buildPortfolioAssets(
       amountProfitPercentage: asset.amountProfitPercentage,
       quantity: asset.quantity,
       unitPrice: asset.currentPrice,
-      averagePrice: asset.averagePrice,
+      averagePrice:
+        asset.averagePrice ??
+        calculateAveragePrice(
+          asset.categoryKey,
+          asset.amountOriginal,
+          asset.quantity,
+        ),
       institutionName: null,
       issuer: null,
       positionCount: Math.max(asset.orders?.length ?? asset.orderCount, 1),

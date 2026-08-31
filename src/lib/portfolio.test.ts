@@ -7,6 +7,93 @@ import {
 } from "./portfolio";
 
 describe("Portfolio aggregation", () => {
+  it("calculates average prices for stocks, ETFs, and crypto positions", () => {
+    const assets = buildPortfolioAssets(
+      [
+        {
+          id: "pluggy-stock",
+          itemId: "item-a",
+          name: "PETR4",
+          type: "EQUITY",
+          subtype: "STOCK",
+          currencyCode: "BRL",
+          balance: 1200,
+          amountOriginal: 1000,
+          amountProfit: 200,
+          quantity: 20,
+          institutionName: "Corretora",
+          issuer: "Petrobras",
+          positionCount: 1,
+          dueDate: null,
+        },
+        {
+          id: "pluggy-etf",
+          itemId: "item-a",
+          name: "B5P211",
+          type: "ETF",
+          subtype: "ETF",
+          currencyCode: "BRL",
+          balance: 600,
+          amountOriginal: 500,
+          amountProfit: 100,
+          quantity: 5,
+          institutionName: "Corretora",
+          issuer: "B5P211",
+          positionCount: 1,
+          dueDate: null,
+        },
+        {
+          id: "pluggy-fixed-income",
+          itemId: "item-a",
+          name: "CDB",
+          type: "FIXED_INCOME",
+          subtype: "CDB",
+          currencyCode: "BRL",
+          balance: 1100,
+          amountOriginal: 1000,
+          amountProfit: 100,
+          quantity: 10,
+          institutionName: "Banco",
+          issuer: "Banco",
+          positionCount: 1,
+          dueDate: null,
+        },
+      ],
+      [
+        {
+          id: "manual-bitcoin",
+          symbol: "BTC",
+          name: "Bitcoin",
+          quantity: 9.9,
+          averagePrice: null,
+          currentPrice: 120,
+          purchaseTotal: 990,
+          amountOriginal: 990,
+          amountProfit: 198,
+          amountProfitPercentage: 20,
+          currencyCode: "BRL",
+          coingeckoId: "bitcoin",
+          priceSource: "CoinGecko",
+          priceUpdatedAt: "2026-08-30T12:00:00.000Z",
+          updatedAt: "2026-08-30T12:00:00.000Z",
+        },
+      ],
+    );
+
+    expect(assets.find((asset) => asset.name === "PETR4")).toMatchObject({
+      averagePrice: 50,
+    });
+    expect(assets.find((asset) => asset.name === "B5P211")).toMatchObject({
+      averagePrice: 100,
+    });
+    expect(assets.find((asset) => asset.symbol === "BTC")).toMatchObject({
+      averagePrice: 100,
+    });
+    expect(assets.find((asset) => asset.name === "CDB")).toMatchObject({
+      averagePrice: null,
+    });
+  });
+
   it("unifies Pluggy and manual assets and calculates category and asset shares", () => {
     const assets = buildPortfolioAssets(
       [

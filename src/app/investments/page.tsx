@@ -1,6 +1,7 @@
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import Image from "next/image";
 import type { CurrencyCode } from "pluggy-sdk";
-
 import {
   getPortfolio,
   type PortfolioCurrencyResult,
@@ -10,6 +11,11 @@ import { ManualCryptoOrderModal } from "@/components/manual-crypto-order-modal";
 import { ManualMarketOrderModal } from "@/components/manual-market-order-modal";
 import { PortfolioAllocationChart } from "@/components/portfolio-allocation-chart";
 import { PortfolioEvolutionChart } from "@/components/portfolio-evolution-chart";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { supportedCryptoAssets } from "@/lib/crypto-assets";
 import { supportedMarketAssets } from "@/lib/market-assets";
 import {
@@ -17,47 +23,19 @@ import {
   type PortfolioCategorySummary,
   portfolioCategoryColors,
 } from "@/lib/portfolio";
+import {
+  getPortfolioAssetLabel,
+  getPortfolioAssetQuantityLabel,
+  getPortfolioCategoryToggleLabel,
+} from "@/lib/portfolio-display";
 
 export const dynamic = "force-dynamic";
-
-const timeZone = "America/Sao_Paulo";
 
 type InvestmentsPageProps = {
   searchParams: Promise<{
     crypto?: string | string[] | undefined;
     market?: string | string[] | undefined;
   }>;
-};
-
-const investmentSubtypeLabels: Record<string, string> = {
-  BDR: "BDR",
-  CDB: "CDB",
-  COE: "COE",
-  CORPORATE_DEBT: "Dívida corporativa",
-  CRA: "CRA",
-  CRI: "CRI",
-  DEBENTURES: "Debêntures",
-  DERIVATIVES: "Derivativos",
-  ETF: "ETF",
-  ETF_FUND: "Fundo ETF",
-  EXCHANGE_FUND: "Fundo cambial",
-  FI_AGRO: "Fundo Fiagro",
-  FI_INFRA: "Fundo de infraestrutura",
-  FIXED_INCOME_FUND: "Fundo de renda fixa",
-  FIP_FUND: "FIP",
-  INVESTMENT_FUND: "Fundo de investimento",
-  LCA: "LCA",
-  LCI: "LCI",
-  LC: "Letra de crédito",
-  MULTIMARKET_FUND: "Fundo multimercado",
-  OFFSHORE_FUND: "Fundo offshore",
-  OPTION: "Opção",
-  REAL_ESTATE_FUND: "Fundo imobiliário",
-  RETIREMENT: "Previdência",
-  STOCK: "Ação",
-  STOCK_FUND: "Fundo de ações",
-  STRUCTURED_NOTE: "Nota estruturada",
-  TREASURY: "Tesouro direto",
 };
 
 function formatCurrency(value: number | null, currencyCode: CurrencyCode) {
@@ -102,43 +80,6 @@ function formatPercentage(value: number | null) {
     maximumFractionDigits: 1,
     minimumFractionDigits: 1,
   }).format(value)}%`;
-}
-
-function formatQuantity(value: number | null) {
-  if (value === null) {
-    return "—";
-  }
-
-  return new Intl.NumberFormat("pt-BR", {
-    maximumFractionDigits: 8,
-  }).format(value);
-}
-
-function formatDate(date: string | null) {
-  if (!date) {
-    return null;
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    timeZone,
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(date));
-}
-
-function formatSubtype(subtype: string | null) {
-  if (!subtype) {
-    return "Posição consolidada";
-  }
-
-  return (
-    investmentSubtypeLabels[subtype] ??
-    subtype
-      .replaceAll("_", " ")
-      .toLocaleLowerCase("pt-BR")
-      .replace(/^./, (letter) => letter.toLocaleUpperCase("pt-BR"))
-  );
 }
 
 function formatCount(count: number, singular: string, plural: string) {
@@ -234,13 +175,13 @@ function PortfolioMetric({
 function AssetAvatar({ asset }: { asset: PortfolioAssetSummary }) {
   if (asset.logoPath) {
     return (
-      <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-background">
+      <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-background">
         <Image
           src={asset.logoPath}
-          alt={`${asset.name} logo`}
-          width={32}
-          height={32}
-          className="size-7"
+          alt={`${getPortfolioAssetLabel(asset)} logo`}
+          width={24}
+          height={24}
+          className="size-6 object-contain"
         />
       </span>
     );
@@ -250,7 +191,7 @@ function AssetAvatar({ asset }: { asset: PortfolioAssetSummary }) {
 
   return (
     <span
-      className="flex size-10 shrink-0 items-center justify-center rounded-xl text-xs font-semibold text-white"
+      className="flex size-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold text-white"
       style={{ backgroundColor: portfolioCategoryColors[asset.categoryKey] }}
       aria-hidden="true"
     >
@@ -259,58 +200,63 @@ function AssetAvatar({ asset }: { asset: PortfolioAssetSummary }) {
   );
 }
 
-function AssetDetails({ asset }: { asset: PortfolioAssetSummary }) {
-  const metadata =
-    asset.source === "manual"
-      ? `Manual · ${asset.priceSource ?? "Preço indisponível"}`
-      : [
-          formatSubtype(asset.subtype),
-          asset.institutionName || asset.issuer || "Instituição não informada",
-        ].join(" · ");
-  const quantityDetails =
-    asset.source === "manual"
-      ? `${formatQuantity(asset.quantity)} ${asset.symbol} · preço ${formatCurrency(asset.unitPrice, asset.currencyCode)}`
-      : asset.quantity !== null
-        ? `Quantidade ${formatQuantity(asset.quantity)}`
-        : null;
-  const orderDetails =
-    asset.source === "manual"
-      ? formatCount(asset.orders.length, "ordem", "ordens")
-      : null;
-  const dueDate = formatDate(asset.dueDate);
-  const secondaryDetails = [
-    quantityDetails,
-    orderDetails,
-    dueDate ? `Vencimento ${dueDate}` : null,
-  ].filter(Boolean);
+function getProfitBadgeClassName(value: number | null) {
+  if (value === null) {
+    return "bg-muted text-muted-foreground";
+  }
 
+  return value >= 0
+    ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
+    : "bg-rose-500/12 text-rose-700 dark:text-rose-300";
+}
+
+function PortfolioAssetResult({ asset }: { asset: PortfolioAssetSummary }) {
   return (
-    <div className="min-w-0">
-      <div className="flex items-center gap-2">
-        <p className="truncate font-semibold">{asset.name}</p>
-        {asset.source === "manual" ? (
-          <span className="shrink-0 rounded-full bg-amber-500/12 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
-            Manual
-          </span>
-        ) : null}
+    <div className="col-span-2 min-w-0 md:col-span-1 md:text-right">
+      <p className="text-xs text-muted-foreground">Resultado</p>
+      <div className="mt-1 flex flex-wrap items-center gap-2 md:justify-end">
+        <span
+          className={`rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${getProfitBadgeClassName(asset.amountProfitPercentage)}`}
+        >
+          {formatPercentage(asset.amountProfitPercentage)}
+        </span>
+        <span
+          className={`whitespace-nowrap text-sm font-semibold tabular-nums ${getProfitClassName(asset.amountProfit)}`}
+        >
+          {formatSignedCurrency(asset.amountProfit, asset.currencyCode)}
+        </span>
       </div>
-      <p className="mt-1 truncate text-sm text-muted-foreground">{metadata}</p>
-      {secondaryDetails.length > 0 ? (
-        <p className="mt-1 truncate text-xs text-muted-foreground">
-          {secondaryDetails.join(" · ")}
-        </p>
-      ) : null}
     </div>
   );
 }
 
 function PortfolioAssetRow({ asset }: { asset: PortfolioAssetSummary }) {
+  const quantityLabel = getPortfolioAssetQuantityLabel(asset);
+  const averagePriceLabel =
+    asset.averagePrice !== null && Number.isFinite(asset.averagePrice)
+      ? `Preço médio ${formatCurrency(asset.averagePrice, asset.currencyCode)}`
+      : null;
+
   return (
-    <div className="grid gap-4 px-5 py-4 transition-colors hover:bg-muted/20 sm:grid-cols-[minmax(0,1.5fr)_minmax(13rem,1fr)] sm:items-center md:px-6">
-      <div className="flex min-w-0 items-start gap-3">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-3 px-4 py-3 transition-colors hover:bg-muted/20 md:grid-cols-[minmax(0,1fr)_7rem_8.5rem_13rem] md:items-center md:px-5 md:py-2.5">
+      <div className="col-span-2 flex min-w-0 items-center gap-3 md:col-span-1">
         <AssetAvatar asset={asset} />
-        <div className="min-w-0 space-y-2">
-          <AssetDetails asset={asset} />
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">
+              {getPortfolioAssetLabel(asset)}
+            </p>
+            {quantityLabel ? (
+              <p className="mt-0.5 truncate text-xs text-muted-foreground tabular-nums">
+                {quantityLabel}
+              </p>
+            ) : null}
+            {averagePriceLabel ? (
+              <p className="mt-0.5 truncate text-xs text-muted-foreground tabular-nums">
+                {averagePriceLabel}
+              </p>
+            ) : null}
+          </div>
           {asset.source === "manual" ? (
             asset.manualKind === "crypto" ? (
               <ManualCryptoOrderModal
@@ -322,7 +268,7 @@ function PortfolioAssetRow({ asset }: { asset: PortfolioAssetSummary }) {
                   coingeckoId: asset.coingeckoId,
                   orders: asset.orders,
                 }}
-                triggerLabel="Editar ordens"
+                triggerLabel="Editar"
               />
             ) : (
               <ManualMarketOrderModal
@@ -334,41 +280,26 @@ function PortfolioAssetRow({ asset }: { asset: PortfolioAssetSummary }) {
                   quantity: asset.quantity,
                   orders: asset.orders,
                 }}
-                triggerLabel="Editar ordens"
+                triggerLabel="Editar"
               />
             )
           ) : null}
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 text-sm sm:gap-5">
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">Saldo atual</p>
-          <p className="mt-1 truncate font-semibold tabular-nums">
-            {formatCurrency(asset.balance, asset.currencyCode)}
-          </p>
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">Na categoria</p>
-          <p className="mt-1 truncate font-medium tabular-nums">
-            {formatPercentage(asset.percentageOfCategory)}
-          </p>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground tabular-nums">
-            {formatPercentage(asset.percentageOfPortfolio)} da carteira
-          </p>
-        </div>
-        <div className="min-w-0 text-right">
-          <p className="text-xs text-muted-foreground">Resultado</p>
-          <p
-            className={`mt-1 truncate font-medium tabular-nums ${getProfitClassName(asset.amountProfit)}`}
-          >
-            {formatSignedCurrency(asset.amountProfit, asset.currencyCode)}
-          </p>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground tabular-nums">
-            {formatPercentage(asset.amountProfitPercentage)}
-          </p>
-        </div>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">Na carteira</p>
+        <p className="mt-1 truncate text-sm font-medium tabular-nums">
+          {formatPercentage(asset.percentageOfPortfolio)}
+        </p>
       </div>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">Saldo atual</p>
+        <p className="mt-1 truncate text-sm font-semibold tabular-nums">
+          {formatCurrency(asset.balance, asset.currencyCode)}
+        </p>
+      </div>
+      <PortfolioAssetResult asset={asset} />
     </div>
   );
 }
@@ -381,68 +312,70 @@ function PortfolioCategory({
   currencyCode: CurrencyCode;
 }) {
   return (
-    <section className="overflow-hidden border-b last:border-b-0">
-      <div className="flex flex-col justify-between gap-3 bg-muted/10 px-5 py-4 sm:flex-row sm:items-center md:px-6">
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="size-3 shrink-0 rounded-full"
-            style={{ backgroundColor: portfolioCategoryColors[category.key] }}
-          />
-          <div className="min-w-0">
-            <h3 className="font-semibold">{category.label}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {formatCount(category.assetCount, "ativo", "ativos")} ·{" "}
-              {formatPercentage(category.percentageOfPortfolio)} da carteira
-            </p>
+    <Collapsible
+      defaultOpen={false}
+      className="overflow-hidden border-b last:border-b-0"
+    >
+      <section>
+        <CollapsibleTrigger
+          type="button"
+          aria-label={getPortfolioCategoryToggleLabel(category.label)}
+          className="group flex w-full flex-col justify-between gap-2 bg-muted/10 px-5 py-3 text-left transition-colors hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:flex-row sm:items-center md:px-6"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              aria-hidden="true"
+              className="size-3 shrink-0 rounded-full"
+              style={{ backgroundColor: portfolioCategoryColors[category.key] }}
+            />
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold">{category.label}</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {formatCount(category.assetCount, "ativo", "ativos")}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-baseline gap-3 sm:text-right">
-          <p className="font-semibold tabular-nums">
-            {formatCurrency(category.balance, currencyCode)}
-          </p>
-          <p className="text-sm text-muted-foreground tabular-nums">
-            {formatPercentage(category.percentageOfPortfolio)}
-          </p>
-        </div>
-      </div>
-      <div className="divide-y border-t">
-        {category.assets.map((asset) => (
-          <PortfolioAssetRow key={asset.id} asset={asset} />
-        ))}
-      </div>
-    </section>
+
+          <div className="flex items-center gap-3 sm:text-right">
+            <div className="flex items-baseline gap-3">
+              <p className="text-sm font-semibold tabular-nums">
+                {formatCurrency(category.balance, currencyCode)}
+              </p>
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {formatPercentage(category.percentageOfPortfolio)}
+              </p>
+            </div>
+            <HugeiconsIcon
+              icon={ArrowDown01Icon}
+              aria-hidden="true"
+              className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[panel-open]:rotate-180"
+              strokeWidth={2}
+            />
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="divide-y border-t">
+            {category.assets.map((asset) => (
+              <PortfolioAssetRow key={asset.id} asset={asset} />
+            ))}
+          </div>
+        </CollapsibleContent>
+      </section>
+    </Collapsible>
   );
 }
 
 function PortfolioCurrencyView({
   currency,
+  showManualActions,
 }: {
   currency: PortfolioCurrencyResult;
+  showManualActions: boolean;
 }) {
   const profitClassName = getProfitClassName(currency.amountProfit);
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-col justify-between gap-2 md:flex-row md:items-end">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">
-            Patrimônio em {currency.currencyCode}
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {formatCount(
-              currency.assetCount,
-              "ativo consolidado",
-              "ativos consolidados",
-            )}{" "}
-            · {formatCount(currency.lots, "lote", "lotes")}
-          </p>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Snapshot diário atualizado ao abrir esta página
-        </p>
-      </div>
-
       <div className="grid gap-px overflow-hidden rounded-2xl border bg-border shadow-xs sm:grid-cols-2 xl:grid-cols-4">
         <PortfolioMetric
           label="Patrimônio atual"
@@ -538,14 +471,19 @@ function PortfolioCurrencyView({
       </div>
 
       <section className="overflow-hidden rounded-2xl border bg-card shadow-xs">
-        <div className="border-b p-5 md:p-6">
-          <div>
-            <h3 className="font-semibold">Ativos da carteira</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Posições automáticas e manuais consolidadas, com participação e
-              resultado de cada ativo.
+        <div className="flex flex-col gap-4 border-b px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold">Ativos da carteira</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Posição, participação, saldo e resultado de cada ativo.
             </p>
           </div>
+          {showManualActions ? (
+            <div className="flex shrink-0 flex-wrap items-center gap-2 md:justify-end">
+              <ManualCryptoOrderModal catalog={supportedCryptoAssets} />
+              <ManualMarketOrderModal catalog={supportedMarketAssets} />
+            </div>
+          ) : null}
         </div>
         {currency.categories.map((category) => (
           <PortfolioCategory
@@ -593,36 +531,9 @@ export default async function InvestmentsPage({
     ? params.market[0]
     : params.market;
   const statusMessage = getStatusMessage(marketStatus ?? cryptoStatus);
-  const assetCount = result.currencies.reduce(
-    (total, currency) => total + currency.assetCount,
-    0,
-  );
-  const currencyCount = result.currencies.length;
 
   return (
     <DashboardShell>
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Meu portfólio
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Uma visão consolidada dos investimentos conectados e dos ativos
-            cadastrados manualmente.
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 md:flex-nowrap">
-          <a
-            href="/investments"
-            className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
-          >
-            Atualizar dados
-          </a>
-          <ManualCryptoOrderModal catalog={supportedCryptoAssets} />
-          <ManualMarketOrderModal catalog={supportedMarketAssets} />
-        </div>
-      </div>
-
       {statusMessage ? (
         <p
           className={`rounded-xl border px-4 py-3 text-sm ${statusMessage.className}`}
@@ -638,30 +549,13 @@ export default async function InvestmentsPage({
         </p>
       ) : null}
 
-      <div className="grid gap-px overflow-hidden rounded-2xl border bg-border shadow-xs sm:grid-cols-3">
-        <PortfolioMetric
-          label="Ativos consolidados"
-          value={String(assetCount)}
-          supportingText="Pluggy + cadastro manual"
-        />
-        <PortfolioMetric
-          label="Ativos manuais"
-          value={String(result.manualAssetCount)}
-          supportingText="Cripto, ações, FIIs e ETFs"
-        />
-        <PortfolioMetric
-          label="Conexões / moedas"
-          value={`${result.itemCount} / ${currencyCount}`}
-          supportingText="Itens Pluggy e moedas na carteira"
-        />
-      </div>
-
       {result.currencies.length > 0 ? (
         <div className="space-y-10">
-          {result.currencies.map((currency) => (
+          {result.currencies.map((currency, index) => (
             <PortfolioCurrencyView
               key={currency.currencyCode}
               currency={currency}
+              showManualActions={index === 0}
             />
           ))}
         </div>
