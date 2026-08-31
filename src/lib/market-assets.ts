@@ -31,6 +31,11 @@ export const supportedMarketAssets = [
   { symbol: "BCFF11", name: "BTG Fundo de Fundos", assetType: "FII" },
   { symbol: "HSML11", name: "HSI Malls", assetType: "FII" },
   { symbol: "RBRF11", name: "RBR Alpha", assetType: "FII" },
+  {
+    symbol: "KNCR11",
+    name: "Kinea Rendimentos Imobiliários",
+    assetType: "FII",
+  },
   { symbol: "BOVA11", name: "iShares Ibovespa", assetType: "ETF" },
   { symbol: "IVVB11", name: "iShares S&P 500", assetType: "ETF" },
   { symbol: "SMAL11", name: "iShares Small Cap", assetType: "ETF" },
@@ -39,6 +44,7 @@ export const supportedMarketAssets = [
   { symbol: "HASH11", name: "Hashdex Nasdaq Crypto", assetType: "ETF" },
   { symbol: "XINA11", name: "Trend China", assetType: "ETF" },
   { symbol: "WRLD11", name: "Investo Global", assetType: "ETF" },
+  { symbol: "B5P211", name: "It Now IMA-B5 P2", assetType: "ETF" },
 ] as const;
 
 export type ManualMarketAssetType =

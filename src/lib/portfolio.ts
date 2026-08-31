@@ -4,6 +4,7 @@ import { getCryptoAssetLogo } from "./crypto-assets";
 import type { CryptoHistoryPoint } from "./crypto-market";
 import type { CryptoOrderView } from "./crypto-orders";
 import { investmentCategoryColors } from "./investment-category-colors";
+import { getMarketAssetLogo } from "./market-asset-logos";
 
 export type PortfolioCategoryKey = InvestmentType | "CRYPTO";
 export type PortfolioAssetSource = "pluggy" | "manual";
@@ -60,7 +61,7 @@ export type PortfolioManualMarketInput = {
   amountProfit: number | null;
   amountProfitPercentage: number | null;
   currencyCode: CurrencyCode;
-  priceSource: "Brapi" | "Último preço salvo" | null;
+  priceSource: "Yahoo Finance" | "Último preço salvo" | null;
   priceUpdatedAt: string | null;
   history: CryptoHistoryPoint[];
   orders?: CryptoOrderView[];
@@ -300,7 +301,7 @@ export function buildPortfolioAssets(
       issuer: null,
       positionCount: Math.max(asset.orders?.length ?? asset.orderCount, 1),
       dueDate: null,
-      logoPath: null,
+      logoPath: getMarketAssetLogo(asset.symbol, asset.assetType),
       coingeckoId: null,
       priceSource: asset.priceSource,
       priceUpdatedAt: asset.priceUpdatedAt,

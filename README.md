@@ -26,7 +26,7 @@ Each bank connection has its own `itemId`. The application stores these identifi
 
 Quando a Pluggy não retornar posições de renda variável, use o botão `Adicionar ação, FII ou ETF` em `/investments`. O catálogo de ativos é pré-configurado e cada ordem aceita compra ou venda, data, valor total, taxa e preço por unidade. A quantidade é calculada automaticamente e as ordens podem ser editadas depois.
 
-Para atualizar cotações e histórico, preencha `BRAPI_API_TOKEN` no `.env.local`. Sem esse token, o cadastro e o cálculo da posição continuam disponíveis, mas o preço atual e o gráfico podem ficar indisponíveis.
+As cotações e o histórico são consultados no Yahoo Finance por uma rota pública, sem token ou custo adicional. Se um ticker não estiver disponível nessa fonte, a posição continua carregando com o último preço salvo.
 
 ## Prisma
 

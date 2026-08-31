@@ -415,15 +415,6 @@ export function ManualCryptoOrderModal({
                 className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 text-base tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
               />
             </div>
-
-            <div className="rounded-xl border bg-muted/30 p-4 text-sm leading-6 text-muted-foreground">
-              <p className="font-medium text-foreground">Como calculamos</p>
-              <p className="mt-1">
-                Quantidade = (total da ordem − taxa) ÷ preço por unidade. Nas
-                vendas, o custo médio vigente é baixado e o lucro realizado fica
-                registrado.
-              </p>
-            </div>
           </div>
 
           <SheetFooter className="border-t bg-muted/10 sm:flex-row sm:justify-end">

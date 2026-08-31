@@ -94,7 +94,11 @@ function SaveOrderButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" disabled={pending} className="w-full">
+    <Button
+      type="submit"
+      disabled={pending}
+      className="w-full sm:min-w-36 sm:w-auto"
+    >
       {pending ? "Salvando…" : "Salvar ordem"}
     </Button>
   );
@@ -226,8 +230,11 @@ export function ManualMarketOrderModal({
           </Button>
         }
       />
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-        <SheetHeader className="border-b">
+      <SheetContent
+        side="right"
+        className="w-full overflow-y-auto data-[side=right]:sm:max-w-xl data-[side=right]:lg:max-w-2xl"
+      >
+        <SheetHeader className="border-b pr-14">
           <SheetTitle>
             {asset ? `Ordens de ${asset.symbol}` : "Adicionar ativo de mercado"}
           </SheetTitle>
@@ -246,7 +253,7 @@ export function ManualMarketOrderModal({
             <input type="hidden" name="assetId" value={form.assetId} />
           ) : null}
 
-          <div className="space-y-5 p-6">
+          <div className="space-y-5 p-6 lg:p-7">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium">
@@ -375,49 +382,51 @@ export function ManualMarketOrderModal({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label
-                htmlFor={`${formPrefix}-total`}
-                className="text-sm font-medium"
-              >
-                Total pago/recebido (BRL, incluindo taxa)
-              </label>
-              <input
-                id={`${formPrefix}-total`}
-                name="total"
-                type="number"
-                required
-                min="0.01"
-                step="0.01"
-                inputMode="decimal"
-                placeholder="0,00"
-                value={form.total}
-                onChange={(event) => updateField("total", event.target.value)}
-                className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 text-base tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
-              />
-            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label
+                  htmlFor={`${formPrefix}-total`}
+                  className="text-sm font-medium"
+                >
+                  Total pago/recebido (BRL, incluindo taxa)
+                </label>
+                <input
+                  id={`${formPrefix}-total`}
+                  name="total"
+                  type="number"
+                  required
+                  min="0.01"
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={form.total}
+                  onChange={(event) => updateField("total", event.target.value)}
+                  className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 text-base tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <label
-                htmlFor={`${formPrefix}-fee`}
-                className="text-sm font-medium"
-              >
-                Taxa da corretora (já incluída no total)
-              </label>
-              <input
-                id={`${formPrefix}-fee`}
-                name="brokerFee"
-                type="number"
-                required
-                min="0"
-                step="0.01"
-                inputMode="decimal"
-                value={form.brokerFee}
-                onChange={(event) =>
-                  updateField("brokerFee", event.target.value)
-                }
-                className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 text-base tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
-              />
+              <div className="space-y-2">
+                <label
+                  htmlFor={`${formPrefix}-fee`}
+                  className="text-sm font-medium"
+                >
+                  Taxa da corretora (já incluída no total)
+                </label>
+                <input
+                  id={`${formPrefix}-fee`}
+                  name="brokerFee"
+                  type="number"
+                  required
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={form.brokerFee}
+                  onChange={(event) =>
+                    updateField("brokerFee", event.target.value)
+                  }
+                  className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 text-base tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -460,15 +469,6 @@ export function ManualMarketOrderModal({
                 </p>
               </div>
             ) : null}
-
-            <div className="rounded-xl border bg-muted/30 p-4 text-sm leading-6 text-muted-foreground">
-              <p className="font-medium text-foreground">Como calculamos</p>
-              <p className="mt-1">
-                Quantidade líquida = (total pago/recebido − taxa) ÷ preço por
-                unidade. Nas vendas, o custo médio vigente é baixado e o lucro
-                realizado fica registrado.
-              </p>
-            </div>
           </div>
 
           <SheetFooter className="border-t bg-muted/10 sm:flex-row sm:justify-end">

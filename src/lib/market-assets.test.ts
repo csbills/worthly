@@ -19,6 +19,14 @@ describe("Market asset catalog", () => {
       symbol: "IVVB11",
       assetType: "ETF",
     });
+    expect(findSupportedMarketAsset("kncr11")).toMatchObject({
+      symbol: "KNCR11",
+      assetType: "FII",
+    });
+    expect(findSupportedMarketAsset("b5p211")).toMatchObject({
+      symbol: "B5P211",
+      assetType: "ETF",
+    });
   });
 
   it("maps manual asset types to the same portfolio categories as Pluggy", () => {

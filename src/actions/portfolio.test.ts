@@ -188,7 +188,7 @@ describe("Portfolio action", () => {
           amountProfit: 100,
           amountProfitPercentage: 10,
           currencyCode: "BRL",
-          priceSource: "Brapi",
+          priceSource: "Yahoo Finance",
           priceUpdatedAt: "2026-08-30T18:00:00.000Z",
           history: [],
           orders: [],

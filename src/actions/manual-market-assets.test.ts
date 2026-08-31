@@ -6,15 +6,14 @@ const mocks = vi.hoisted(() => ({
       findMany: vi.fn(),
     },
   },
-  brapi: {
-    fetchBrapiPrices: vi.fn(),
-    fetchBrapiMarketHistory: vi.fn(),
+  yahooFinance: {
+    fetchYahooMarketData: vi.fn(),
   },
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
-vi.mock("@/lib/brapi", () => mocks.brapi);
+vi.mock("@/lib/yahoo-finance", () => mocks.yahooFinance);
 vi.mock("@/lib/market-assets", async () => import("../lib/market-assets"));
 vi.mock("@/lib/crypto-market", async () => import("../lib/crypto-market"));
 vi.mock("@/lib/crypto-orders", async () => import("../lib/crypto-orders"));
@@ -24,14 +23,14 @@ import { getManualMarketAssets } from "./manual-market-assets";
 describe("Manual market asset action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.brapi.fetchBrapiPrices.mockResolvedValue({
+    mocks.yahooFinance.fetchYahooMarketData.mockResolvedValue({
       PETR4: {
-        price: 30,
-        updatedAt: "2026-08-31T18:00:00.000Z",
+        price: {
+          price: 30,
+          updatedAt: "2026-08-31T18:00:00.000Z",
+        },
+        history: [[1_756_560_000_000, 29]],
       },
-    });
-    mocks.brapi.fetchBrapiMarketHistory.mockResolvedValue({
-      PETR4: [[1_756_560_000_000, 29]],
     });
   });
 
@@ -77,7 +76,7 @@ describe("Manual market asset action", () => {
           amountOriginal: 1000,
           amountProfit: 485,
           amountProfitPercentage: 48.5,
-          priceSource: "Brapi",
+          priceSource: "Yahoo Finance",
           history: [
             {
               date: "2025-08-30T13:20:00.000Z",
@@ -98,13 +97,8 @@ describe("Manual market asset action", () => {
         },
       },
     });
-    expect(mocks.brapi.fetchBrapiPrices).toHaveBeenCalledWith(
+    expect(mocks.yahooFinance.fetchYahooMarketData).toHaveBeenCalledWith(
       ["PETR4"],
-      "STOCK",
-    );
-    expect(mocks.brapi.fetchBrapiMarketHistory).toHaveBeenCalledWith(
-      ["PETR4"],
-      "STOCK",
       90,
     );
   });

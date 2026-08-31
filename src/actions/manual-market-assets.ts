@@ -3,11 +3,6 @@
 import type { CurrencyCode } from "pluggy-sdk";
 
 import {
-  type BrapiPrice,
-  fetchBrapiMarketHistory,
-  fetchBrapiPrices,
-} from "@/lib/brapi";
-import {
   type CryptoHistoryPoint,
   mapMarketChartToHistory,
 } from "@/lib/crypto-market";
@@ -21,6 +16,7 @@ import {
   type ManualMarketAssetType,
 } from "@/lib/market-assets";
 import { prisma } from "@/lib/prisma";
+import { fetchYahooMarketData, type YahooPrice } from "@/lib/yahoo-finance";
 
 const marketHistoryDays = 90;
 
@@ -46,7 +42,7 @@ export type ManualMarketAsset = {
   amountProfit: number | null;
   amountProfitPercentage: number | null;
   currencyCode: ManualMarketCurrency;
-  priceSource: "Brapi" | "Último preço salvo" | null;
+  priceSource: "Yahoo Finance" | "Último preço salvo" | null;
   priceUpdatedAt: string | null;
   history: CryptoHistoryPoint[];
   orders: ManualMarketOrder[];
@@ -87,7 +83,7 @@ type StoredManualMarketOrder = {
 };
 
 type LiveMarketData = {
-  price?: BrapiPrice;
+  price?: YahooPrice;
   history: CryptoHistoryPoint[];
 };
 
@@ -187,7 +183,7 @@ function serializeAsset(
       : (amountProfit / amountOriginal) * 100;
   const priceSource =
     liveMarketData.price !== undefined
-      ? "Brapi"
+      ? "Yahoo Finance"
       : currentPrice === null
         ? null
         : "Último preço salvo";
@@ -227,73 +223,28 @@ function serializeAsset(
   };
 }
 
-function getLiveMarketData(assets: StoredManualMarketAsset[]) {
-  const groupedSymbols = new Map<ManualMarketAssetType, string[]>();
+async function getLiveMarketData(assets: StoredManualMarketAsset[]) {
+  const symbols = assets
+    .filter((asset) => isManualMarketAssetType(asset.assetType))
+    .map((asset) => asset.symbol);
+  const marketData = await fetchYahooMarketData(symbols, marketHistoryDays);
 
-  for (const asset of assets) {
-    if (!isManualMarketAssetType(asset.assetType)) {
-      continue;
-    }
+  return new Map(
+    assets.map((asset) => {
+      const data = marketData[asset.symbol];
 
-    const symbols = groupedSymbols.get(asset.assetType) ?? [];
-    symbols.push(asset.symbol);
-    groupedSymbols.set(asset.assetType, symbols);
-  }
-
-  return Promise.all([
-    Promise.allSettled(
-      [...groupedSymbols.entries()].map(async ([assetType, symbols]) => ({
-        assetType,
-        prices: await fetchBrapiPrices(symbols, assetType),
-      })),
-    ),
-    Promise.allSettled(
-      [...groupedSymbols.entries()].map(async ([assetType, symbols]) => ({
-        assetType,
-        histories: await fetchBrapiMarketHistory(
-          symbols,
-          assetType,
-          marketHistoryDays,
-        ),
-      })),
-    ),
-  ]).then(([priceResults, historyResults]) => {
-    const pricesBySymbol = new Map<string, BrapiPrice>();
-    const historiesBySymbol = new Map<string, CryptoHistoryPoint[]>();
-
-    for (const result of priceResults) {
-      if (result.status !== "fulfilled") {
-        continue;
-      }
-
-      for (const [symbol, price] of Object.entries(result.value.prices)) {
-        pricesBySymbol.set(symbol, price);
-      }
-    }
-
-    for (const result of historyResults) {
-      if (result.status !== "fulfilled") {
-        continue;
-      }
-
-      for (const [symbol, prices] of Object.entries(result.value.histories)) {
-        historiesBySymbol.set(symbol, mapMarketChartToHistory(prices, 1));
-      }
-    }
-
-    return new Map(
-      assets.map((asset) => [
+      return [
         asset.id,
         {
-          price: pricesBySymbol.get(asset.symbol),
-          history: (historiesBySymbol.get(asset.symbol) ?? []).map((point) => ({
-            ...point,
-            balance: point.price * getAssetPosition(asset).quantity,
-          })),
+          price: data?.price,
+          history: mapMarketChartToHistory(
+            data?.history ?? [],
+            getAssetPosition(asset).quantity,
+          ),
         },
-      ]),
-    );
-  });
+      ];
+    }),
+  );
 }
 
 export async function getManualMarketAssets(): Promise<ManualMarketAssetsResult> {
