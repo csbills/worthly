@@ -33,11 +33,8 @@ export function DashboardTopNav() {
   const pathname = usePathname();
 
   return (
-    <nav
-      aria-label="Navegação principal"
-      className="-mx-4 w-[calc(100%+2rem)] overflow-x-auto px-4 md:mx-0 md:w-full md:px-0"
-    >
-      <div className="flex min-w-max justify-center gap-2 pb-1">
+    <nav aria-label="Navegação principal" className="w-full px-2 md:px-0">
+      <div className="flex flex-wrap justify-center gap-2 pb-1">
         {dashboardNavigationItems.map((item) => {
           const isActive = isDashboardNavigationItemActive(item.href, pathname);
 

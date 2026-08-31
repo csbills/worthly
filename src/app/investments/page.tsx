@@ -7,9 +7,11 @@ import {
 } from "@/actions/portfolio";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { ManualCryptoOrderModal } from "@/components/manual-crypto-order-modal";
+import { ManualMarketOrderModal } from "@/components/manual-market-order-modal";
 import { PortfolioAllocationChart } from "@/components/portfolio-allocation-chart";
 import { PortfolioEvolutionChart } from "@/components/portfolio-evolution-chart";
 import { supportedCryptoAssets } from "@/lib/crypto-assets";
+import { supportedMarketAssets } from "@/lib/market-assets";
 import {
   type PortfolioAssetSummary,
   type PortfolioCategorySummary,
@@ -23,6 +25,7 @@ const timeZone = "America/Sao_Paulo";
 type InvestmentsPageProps = {
   searchParams: Promise<{
     crypto?: string | string[] | undefined;
+    market?: string | string[] | undefined;
   }>;
 };
 
@@ -309,17 +312,31 @@ function PortfolioAssetRow({ asset }: { asset: PortfolioAssetSummary }) {
         <div className="min-w-0 space-y-2">
           <AssetDetails asset={asset} />
           {asset.source === "manual" ? (
-            <ManualCryptoOrderModal
-              catalog={supportedCryptoAssets}
-              asset={{
-                id: asset.sourceId,
-                symbol: asset.symbol,
-                name: asset.name,
-                coingeckoId: asset.coingeckoId,
-                orders: asset.orders,
-              }}
-              triggerLabel="Editar ordens"
-            />
+            asset.manualKind === "crypto" ? (
+              <ManualCryptoOrderModal
+                catalog={supportedCryptoAssets}
+                asset={{
+                  id: asset.sourceId,
+                  symbol: asset.symbol,
+                  name: asset.name,
+                  coingeckoId: asset.coingeckoId,
+                  orders: asset.orders,
+                }}
+                triggerLabel="Editar ordens"
+              />
+            ) : (
+              <ManualMarketOrderModal
+                catalog={supportedMarketAssets}
+                asset={{
+                  id: asset.sourceId,
+                  symbol: asset.symbol,
+                  name: asset.name,
+                  quantity: asset.quantity,
+                  orders: asset.orders,
+                }}
+                triggerLabel="Editar ordens"
+              />
+            )
           ) : null}
         </div>
       </div>
@@ -552,8 +569,8 @@ function EmptyPortfolio({ hasError }: { hasError: boolean }) {
       </h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
         {hasError
-          ? "Confira o status da conexão no Meu Pluggy e tente atualizar novamente. Você também pode cadastrar uma cripto manualmente."
-          : "Conecte uma conta no Meu Pluggy ou cadastre uma cripto manualmente para começar a acompanhar sua carteira."}
+          ? "Confira o status da conexão no Meu Pluggy e tente atualizar novamente. Você também pode cadastrar cripto, ação, FII ou ETF manualmente."
+          : "Conecte uma conta no Meu Pluggy ou cadastre cripto, ação, FII ou ETF manualmente para começar a acompanhar sua carteira."}
       </p>
       <a
         href="/accounts"
@@ -572,7 +589,10 @@ export default async function InvestmentsPage({
   const cryptoStatus = Array.isArray(params.crypto)
     ? params.crypto[0]
     : params.crypto;
-  const statusMessage = getStatusMessage(cryptoStatus);
+  const marketStatus = Array.isArray(params.market)
+    ? params.market[0]
+    : params.market;
+  const statusMessage = getStatusMessage(marketStatus ?? cryptoStatus);
   const assetCount = result.currencies.reduce(
     (total, currency) => total + currency.assetCount,
     0,
@@ -582,16 +602,16 @@ export default async function InvestmentsPage({
   return (
     <DashboardShell>
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="text-3xl font-semibold tracking-tight">
             Meu portfólio
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Uma visão consolidada dos investimentos conectados e dos
-            criptoativos cadastrados manualmente.
+            Uma visão consolidada dos investimentos conectados e dos ativos
+            cadastrados manualmente.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 md:flex-nowrap">
           <a
             href="/investments"
             className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
@@ -599,6 +619,7 @@ export default async function InvestmentsPage({
             Atualizar dados
           </a>
           <ManualCryptoOrderModal catalog={supportedCryptoAssets} />
+          <ManualMarketOrderModal catalog={supportedMarketAssets} />
         </div>
       </div>
 
@@ -624,9 +645,9 @@ export default async function InvestmentsPage({
           supportingText="Pluggy + cadastro manual"
         />
         <PortfolioMetric
-          label="Criptoativos manuais"
+          label="Ativos manuais"
           value={String(result.manualAssetCount)}
-          supportingText="Preço via CoinGecko"
+          supportingText="Cripto, ações, FIIs e ETFs"
         />
         <PortfolioMetric
           label="Conexões / moedas"

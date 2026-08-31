@@ -1,11 +1,13 @@
 import type { CurrencyCode, InvestmentType } from "pluggy-sdk";
 import { getBankLogoPath } from "./bank-assets";
 import { getCryptoAssetLogo } from "./crypto-assets";
+import type { CryptoHistoryPoint } from "./crypto-market";
 import type { CryptoOrderView } from "./crypto-orders";
 import { investmentCategoryColors } from "./investment-category-colors";
 
 export type PortfolioCategoryKey = InvestmentType | "CRYPTO";
 export type PortfolioAssetSource = "pluggy" | "manual";
+export type PortfolioManualKind = "crypto" | "market";
 
 export type PortfolioInvestmentInput = {
   id: string;
@@ -43,10 +45,35 @@ export type PortfolioManualCryptoInput = {
   orders?: CryptoOrderView[];
 };
 
+export type PortfolioManualMarketInput = {
+  id: string;
+  symbol: string;
+  name: string;
+  assetType: "STOCK" | "FII" | "ETF";
+  categoryKey: "EQUITY" | "ETF";
+  subtype: "STOCK" | "REAL_ESTATE_FUND" | "ETF";
+  quantity: number;
+  averagePrice: number | null;
+  currentPrice: number | null;
+  balance: number | null;
+  amountOriginal: number | null;
+  amountProfit: number | null;
+  amountProfitPercentage: number | null;
+  currencyCode: CurrencyCode;
+  priceSource: "Brapi" | "Último preço salvo" | null;
+  priceUpdatedAt: string | null;
+  history: CryptoHistoryPoint[];
+  orders?: CryptoOrderView[];
+  realizedProfit: number;
+  orderCount: number;
+  updatedAt: string;
+};
+
 export type PortfolioAsset = {
   id: string;
   sourceId: string;
   source: PortfolioAssetSource;
+  manualKind: PortfolioManualKind | null;
   categoryKey: PortfolioCategoryKey;
   categoryLabel: string;
   symbol: string;
@@ -69,6 +96,7 @@ export type PortfolioAsset = {
   priceSource: string | null;
   priceUpdatedAt: string | null;
   orders: CryptoOrderView[];
+  history: CryptoHistoryPoint[];
   updatedAt: string | null;
 };
 
@@ -175,12 +203,14 @@ function getBalance(value: number | null) {
 export function buildPortfolioAssets(
   investments: PortfolioInvestmentInput[],
   manualAssets: PortfolioManualCryptoInput[],
+  manualMarketAssets: PortfolioManualMarketInput[] = [],
 ): PortfolioAsset[] {
   return [
     ...investments.map((investment) => ({
       id: `pluggy:${investment.id}`,
       sourceId: investment.id,
       source: "pluggy" as const,
+      manualKind: null,
       categoryKey: investment.type,
       categoryLabel: portfolioCategoryLabels[investment.type],
       symbol: investment.subtype ?? investment.type,
@@ -210,12 +240,14 @@ export function buildPortfolioAssets(
       priceSource: null,
       priceUpdatedAt: null,
       orders: [],
+      history: [],
       updatedAt: null,
     })),
     ...manualAssets.map((asset) => ({
       id: `manual:${asset.id}`,
       sourceId: asset.id,
       source: "manual" as const,
+      manualKind: "crypto" as const,
       categoryKey: "CRYPTO" as const,
       categoryLabel: portfolioCategoryLabels.CRYPTO,
       symbol: asset.symbol,
@@ -243,6 +275,37 @@ export function buildPortfolioAssets(
       priceSource: asset.priceSource,
       priceUpdatedAt: asset.priceUpdatedAt,
       orders: asset.orders ?? [],
+      history: [],
+      updatedAt: asset.updatedAt,
+    })),
+    ...manualMarketAssets.map((asset) => ({
+      id: `manual-market:${asset.id}`,
+      sourceId: asset.id,
+      source: "manual" as const,
+      manualKind: "market" as const,
+      categoryKey: asset.categoryKey,
+      categoryLabel: portfolioCategoryLabels[asset.categoryKey],
+      symbol: asset.symbol,
+      name: asset.name,
+      subtype: asset.subtype,
+      currencyCode: asset.currencyCode,
+      balance: asset.balance,
+      amountOriginal: asset.amountOriginal,
+      amountProfit: asset.amountProfit,
+      amountProfitPercentage: asset.amountProfitPercentage,
+      quantity: asset.quantity,
+      unitPrice: asset.currentPrice,
+      averagePrice: asset.averagePrice,
+      institutionName: null,
+      issuer: null,
+      positionCount: Math.max(asset.orders?.length ?? asset.orderCount, 1),
+      dueDate: null,
+      logoPath: null,
+      coingeckoId: null,
+      priceSource: asset.priceSource,
+      priceUpdatedAt: asset.priceUpdatedAt,
+      orders: asset.orders ?? [],
+      history: asset.history,
       updatedAt: asset.updatedAt,
     })),
   ];

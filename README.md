@@ -22,6 +22,12 @@ This project uses the existing connections from Meu Pluggy. In the Pluggy Dashbo
 
 Each bank connection has its own `itemId`. The application stores these identifiers in SQLite and uses the server-side SDK to retrieve the associated accounts. Pluggy Connect is not needed for this flow.
 
+### Ações, FIIs e ETFs manuais
+
+Quando a Pluggy não retornar posições de renda variável, use o botão `Adicionar ação, FII ou ETF` em `/investments`. O catálogo de ativos é pré-configurado e cada ordem aceita compra ou venda, data, valor total, taxa e preço por unidade. A quantidade é calculada automaticamente e as ordens podem ser editadas depois.
+
+Para atualizar cotações e histórico, preencha `BRAPI_API_TOKEN` no `.env.local`. Sem esse token, o cadastro e o cálculo da posição continuam disponíveis, mas o preço atual e o gráfico podem ficar indisponíveis.
+
 ## Prisma
 
 The project uses Prisma with a local SQLite database during development.

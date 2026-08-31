@@ -2,10 +2,18 @@ import Image from "next/image";
 
 import {
   type CurrentMonthTransaction,
-  getCurrentMonthTransactions,
+  getTransactions,
 } from "@/actions/transactions";
 import { DashboardShell } from "@/components/dashboard-shell";
+import {
+  TransactionsFilters,
+  TransactionsSearch,
+} from "@/components/transactions-filters";
 import { getBankDisplayName } from "@/lib/bank-assets";
+import {
+  normalizeTransactionFilters,
+  type TransactionFilterInput,
+} from "@/lib/transaction-filters";
 import { summarizeTransactions } from "@/lib/transaction-summary";
 
 export const dynamic = "force-dynamic";
@@ -116,8 +124,13 @@ function TransactionRow({
   );
 }
 
-export default async function TransactionsPage() {
-  const result = await getCurrentMonthTransactions();
+export default async function TransactionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<TransactionFilterInput>;
+}) {
+  const filters = normalizeTransactionFilters(await searchParams);
+  const result = await getTransactions(filters);
   const summary = summarizeTransactions(result.transactions);
   const summaryCurrency =
     result.transactions.find((transaction) => transaction.currencyCode)
@@ -125,25 +138,9 @@ export default async function TransactionsPage() {
 
   return (
     <DashboardShell>
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">
-            Movimentações
-          </p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-            Transações de {result.month.label}
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Todas as movimentações das contas autorizadas no mês atual.
-          </p>
-        </div>
-        <a
-          href="/transactions"
-          className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
-        >
-          Atualizar
-        </a>
-      </div>
+      <h1 className="sr-only">Transações</h1>
+
+      <TransactionsFilters filters={filters} options={result.filterOptions} />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border bg-card p-5 shadow-xs">
@@ -186,17 +183,16 @@ export default async function TransactionsPage() {
       ) : null}
 
       <section className="min-w-0 rounded-2xl border bg-card shadow-xs">
-        <div className="flex flex-col justify-between gap-2 border-b p-5 md:flex-row md:items-center md:p-6">
-          <div>
-            <h2 className="text-lg font-semibold">Todas as transações</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Dados consultados diretamente na Pluggy.
-            </p>
+        <div className="flex flex-col justify-between gap-3 border-b p-4 md:flex-row md:items-center md:p-5">
+          <TransactionsSearch initialValue={filters.search} />
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span>
+              {result.transactions.length}{" "}
+              {result.transactions.length === 1 ? "transação" : "transações"}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>{result.period.label}</span>
           </div>
-          <span className="text-sm text-muted-foreground">
-            {result.accountCount}{" "}
-            {result.accountCount === 1 ? "conta" : "contas"}
-          </span>
         </div>
 
         {result.transactions.length > 0 ? (
@@ -235,8 +231,8 @@ export default async function TransactionsPage() {
           <div className="p-10 text-center">
             <p className="font-medium">Nenhuma transação encontrada</p>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Verifique se a conexão já sincronizou os dados ou cadastre um
-              itemId em Contas.
+              Ajuste os filtros ou verifique se a conexão já sincronizou os
+              dados.
             </p>
             <a
               href="/accounts"

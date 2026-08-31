@@ -101,6 +101,58 @@ describe("Portfolio aggregation", () => {
     });
   });
 
+  it("adds manual stocks, FIIs, and ETFs to the matching portfolio category", () => {
+    const assets = buildPortfolioAssets(
+      [],
+      [],
+      [
+        {
+          id: "manual-mxrf11",
+          symbol: "MXRF11",
+          name: "Maxi Renda",
+          assetType: "FII",
+          categoryKey: "EQUITY",
+          subtype: "REAL_ESTATE_FUND",
+          quantity: 10,
+          averagePrice: 100,
+          currentPrice: 110,
+          balance: 1100,
+          amountOriginal: 1000,
+          amountProfit: 100,
+          amountProfitPercentage: 10,
+          currencyCode: "BRL",
+          priceSource: "Brapi",
+          priceUpdatedAt: "2026-08-30T18:00:00.000Z",
+          history: [],
+          orders: [],
+          realizedProfit: 0,
+          orderCount: 1,
+          updatedAt: "2026-08-30T18:00:00.000Z",
+        },
+      ],
+    );
+
+    const [currency] = summarizePortfolioAssets(assets);
+    const equity = currency.categories.find(
+      (category) => category.key === "EQUITY",
+    );
+
+    expect(assets).toHaveLength(1);
+    expect(equity).toMatchObject({
+      assetCount: 1,
+      balance: 1100,
+      assets: [
+        expect.objectContaining({
+          symbol: "MXRF11",
+          source: "manual",
+          categoryKey: "EQUITY",
+          subtype: "REAL_ESTATE_FUND",
+          logoPath: null,
+        }),
+      ],
+    });
+  });
+
   it("creates one daily snapshot payload per currency with category totals", () => {
     const assets = buildPortfolioAssets(
       [

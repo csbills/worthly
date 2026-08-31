@@ -4,8 +4,14 @@ import type { Transaction } from "pluggy-sdk";
 
 import { type ConnectedAccount, getConnectedAccounts } from "@/actions/pluggy";
 import { getPluggyClient } from "@/lib/pluggy";
-import { getBankLogoPath } from "../lib/bank-assets";
+import { getBankDisplayName, getBankLogoPath } from "../lib/bank-assets";
 import { getTransactionCategory } from "../lib/transaction-category-dictionary";
+import {
+  defaultTransactionFilters,
+  filterAndSortTransactions,
+  resolveTransactionPeriod,
+  type TransactionFilters,
+} from "../lib/transaction-filters";
 import {
   getConnectedAccountNumbers,
   getInternalTransferTransactionIds,
@@ -44,6 +50,35 @@ export type CurrentMonthTransactionsResult = {
   };
   accountCount: number;
   transactions: CurrentMonthTransaction[];
+  error: string | null;
+};
+
+export type TransactionAccountFilterOption = {
+  id: string;
+  name: string;
+  logoPath: string | null;
+  typeLabel: "Conta" | "Cartão";
+  accountNumber: string;
+};
+
+export type TransactionCategoryFilterOption = {
+  label: string;
+  icon: string;
+};
+
+export type TransactionsResult = {
+  period: {
+    key: string;
+    label: string;
+    dateFrom: string | null;
+    dateTo: string | null;
+  };
+  accountCount: number;
+  transactions: CurrentMonthTransaction[];
+  filterOptions: {
+    accounts: TransactionAccountFilterOption[];
+    categories: TransactionCategoryFilterOption[];
+  };
   error: string | null;
 };
 
@@ -98,9 +133,21 @@ function getCurrentMonth() {
   };
 }
 
-function belongsToMonth(date: Date, monthKey: string) {
+function getLocalDateKey(date: Date) {
   const parts = getDateParts(date);
-  return `${parts.year}-${pad(parts.month)}` === monthKey;
+  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}`;
+}
+
+function belongsToPeriod(
+  date: Date,
+  period: Pick<TransactionsResult["period"], "dateFrom" | "dateTo">,
+) {
+  const dateKey = getLocalDateKey(date);
+
+  return (
+    (!period.dateFrom || dateKey >= period.dateFrom) &&
+    (!period.dateTo || dateKey < period.dateTo)
+  );
 }
 
 type AccountBankDetails = {
@@ -188,15 +235,59 @@ function serializeTransaction(
   };
 }
 
-export async function getCurrentMonthTransactions(): Promise<CurrentMonthTransactionsResult> {
-  const month = getCurrentMonth();
+function getAccountFilterOption(
+  account: ConnectedAccount,
+  bank: AccountBankDetails,
+): TransactionAccountFilterOption {
+  return {
+    id: account.id,
+    name: getBankDisplayName(bank.name),
+    logoPath: bank.logoPath,
+    typeLabel:
+      account.type === "CREDIT" || account.subtype === "CREDIT_CARD"
+        ? "Cartão"
+        : "Conta",
+    accountNumber: account.number,
+  };
+}
+
+function getCategoryFilterOptions(
+  transactions: readonly CurrentMonthTransaction[],
+): TransactionCategoryFilterOption[] {
+  const categories = new Map<string, TransactionCategoryFilterOption>();
+
+  for (const transaction of transactions) {
+    if (!categories.has(transaction.categoryLabel)) {
+      categories.set(transaction.categoryLabel, {
+        label: transaction.categoryLabel,
+        icon: transaction.categoryIcon,
+      });
+    }
+  }
+
+  return [...categories.values()].sort((left, right) =>
+    left.label.localeCompare(right.label, "pt-BR"),
+  );
+}
+
+export async function getTransactions(
+  filters: TransactionFilters = defaultTransactionFilters,
+): Promise<TransactionsResult> {
+  const resolvedPeriod = resolveTransactionPeriod(
+    filters.period,
+    new Date(),
+    filters.dateFrom,
+    filters.dateTo,
+  );
+  const emptyFilterOptions = { accounts: [], categories: [] };
   const accountResult = await getConnectedAccounts();
 
   if (accountResult.accounts.length === 0) {
     return {
-      month: { key: month.key, label: month.label },
+      period: resolvedPeriod,
       accountCount: 0,
       transactions: [],
+      filterOptions: emptyFilterOptions,
       error: accountResult.error,
     };
   }
@@ -230,18 +321,27 @@ export async function getCurrentMonthTransactions(): Promise<CurrentMonthTransac
 
       return details;
     };
+    const transactionOptions =
+      resolvedPeriod.dateFrom && resolvedPeriod.dateTo
+        ? {
+            dateFrom: resolvedPeriod.dateFrom,
+            dateTo: resolvedPeriod.dateTo,
+          }
+        : undefined;
     const transactionResults = await Promise.allSettled(
       accountResult.accounts.map(async (account) => {
+        const transactionsPromise = transactionOptions
+          ? client.fetchAllTransactions(account.id, transactionOptions)
+          : client.fetchAllTransactions(account.id);
         const [transactions, bank] = await Promise.all([
-          client.fetchAllTransactions(account.id, {
-            dateFrom: month.dateFrom,
-            dateTo: month.dateTo,
-          }),
+          transactionsPromise,
           getBankDetails(account),
         ]);
 
         return transactions
-          .filter((transaction) => belongsToMonth(transaction.date, month.key))
+          .filter((transaction) =>
+            belongsToPeriod(transaction.date, resolvedPeriod),
+          )
           .map((transaction) => ({ transaction, account, bank }));
       }),
     );
@@ -253,8 +353,8 @@ export async function getCurrentMonthTransactions(): Promise<CurrentMonthTransac
         withReportingAccountContext(transaction, account),
       ),
     );
-    const transactions = transactionRecords
-      .map(({ transaction, account, bank }) =>
+    const serializedTransactions = transactionRecords.map(
+      ({ transaction, account, bank }) =>
         serializeTransaction(
           transaction,
           account,
@@ -262,16 +362,28 @@ export async function getCurrentMonthTransactions(): Promise<CurrentMonthTransac
           internalTransferIds,
           connectedAccountNumbers,
         ),
-      )
-      .sort((left, right) => right.date.localeCompare(left.date));
+    );
+    const transactions = filterAndSortTransactions(
+      serializedTransactions,
+      filters,
+    );
+    const filterAccounts = await Promise.all(
+      accountResult.accounts.map(async (account) =>
+        getAccountFilterOption(account, await getBankDetails(account)),
+      ),
+    );
     const hasError = transactionResults.some(
       (result) => result.status === "rejected",
     );
 
     return {
-      month: { key: month.key, label: month.label },
+      period: resolvedPeriod,
       accountCount: accountResult.accounts.length,
       transactions,
+      filterOptions: {
+        accounts: filterAccounts,
+        categories: getCategoryFilterOptions(serializedTransactions),
+      },
       error:
         accountResult.error ??
         (hasError
@@ -280,10 +392,26 @@ export async function getCurrentMonthTransactions(): Promise<CurrentMonthTransac
     };
   } catch {
     return {
-      month: { key: month.key, label: month.label },
+      period: resolvedPeriod,
       accountCount: accountResult.accounts.length,
       transactions: [],
+      filterOptions: emptyFilterOptions,
       error: "Não foi possível consultar as transações na Pluggy.",
     };
   }
+}
+
+export async function getCurrentMonthTransactions(): Promise<CurrentMonthTransactionsResult> {
+  const month = getCurrentMonth();
+  const result = await getTransactions({
+    ...defaultTransactionFilters,
+    showHidden: true,
+  });
+
+  return {
+    month: { key: month.key, label: month.label },
+    accountCount: result.accountCount,
+    transactions: result.transactions,
+    error: result.error,
+  };
 }
