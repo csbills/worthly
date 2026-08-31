@@ -16,6 +16,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { getSpendingComparison } from "@/lib/spending-comparison";
 
 export const dynamic = "force-dynamic";
 
@@ -35,37 +36,45 @@ function formatPercentage(value: number) {
 }
 
 function getComparison(current: number, previous: number) {
-  if (current > previous) {
+  const spendingComparison = getSpendingComparison(current, previous);
+
+  if (spendingComparison.label === "acima") {
     return {
+      difference: spendingComparison.difference,
       label: "acima",
       className: "text-destructive",
       badgeClassName: "bg-destructive/10 text-destructive",
       delta:
-        previous > 0
-          ? `+${formatPercentage(((current - previous) / previous) * 100)}%`
+        spendingComparison.percentage !== null
+          ? `+${formatPercentage(spendingComparison.percentage)}%`
           : "novo gasto",
       isAbovePrevious: true,
     };
   }
 
-  if (current < previous) {
+  if (spendingComparison.label === "abaixo") {
     return {
+      difference: spendingComparison.difference,
       label: "abaixo",
       className: "text-emerald-700",
       badgeClassName: "bg-emerald-500/10 text-emerald-700",
       delta:
-        previous > 0
-          ? `-${formatPercentage(((previous - current) / previous) * 100)}%`
+        spendingComparison.percentage !== null
+          ? `-${formatPercentage(spendingComparison.percentage)}%`
           : "sem base",
       isAbovePrevious: false,
     };
   }
 
   return {
+    difference: spendingComparison.difference,
     label: "igual",
     className: "text-muted-foreground",
     badgeClassName: "bg-muted text-muted-foreground",
-    delta: "0,0%",
+    delta:
+      spendingComparison.percentage !== null
+        ? `${formatPercentage(spendingComparison.percentage)}%`
+        : "sem base",
     isAbovePrevious: false,
   };
 }
@@ -124,7 +133,7 @@ export default async function Page() {
           ) : null}
 
           <div className="grid grid-cols-12 gap-4">
-            <section className="col-span-12 min-w-0 rounded-2xl border bg-card p-5 lg:col-span-6 md:p-6">
+            <section className="col-span-12 min-w-0 rounded-2xl border bg-card p-4 lg:col-span-6 md:p-5">
               <div className="flex items-start justify-between gap-4">
                 <h2 className="text-sm font-semibold tracking-[0.08em] text-muted-foreground uppercase">
                   Ritmo de gastos
@@ -143,18 +152,18 @@ export default async function Page() {
                 </a>
               </div>
 
-              <div className="mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <p className="text-4xl font-semibold tracking-[-0.03em] tabular-nums md:text-5xl">
-                  {formatCurrency(result.currentMonth.total)}
+              <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <p className="text-3xl font-semibold tracking-[-0.03em] tabular-nums md:text-4xl">
+                  {formatCurrency(comparison.difference)}
                 </p>
-                <p className={`text-base font-medium ${comparison.className}`}>
+                <p className={`text-sm font-medium ${comparison.className}`}>
                   {comparison.label}
                 </p>
               </div>
 
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span
-                  className={`rounded-md px-2 py-1 text-xs font-semibold tabular-nums ${comparison.badgeClassName}`}
+                  className={`rounded-md px-2 py-0.5 text-[11px] font-semibold tabular-nums ${comparison.badgeClassName}`}
                 >
                   {comparison.delta}
                 </span>
@@ -171,7 +180,7 @@ export default async function Page() {
                   isAbovePrevious={comparison.isAbovePrevious}
                 />
               ) : (
-                <div className="mt-6 flex h-64 flex-col items-center justify-center rounded-xl bg-muted/30 px-6 text-center">
+                <div className="mt-4 flex h-52 flex-col items-center justify-center rounded-xl bg-muted/30 px-6 text-center">
                   <p className="font-medium">
                     {result.error
                       ? "Não foi possível carregar o ritmo de gastos"

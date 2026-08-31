@@ -49,9 +49,9 @@ export function SpendingPaceChart({
   );
 
   return (
-    <div className="mt-6 min-w-0">
+    <div className="mt-4 min-w-0">
       <div
-        className="h-64 w-full"
+        className="h-52 w-full"
         role="img"
         aria-label={`Ritmo de gastos: ${currentMonthLabel} comparado com ${previousMonthLabel}`}
       >
@@ -136,7 +136,7 @@ export function SpendingPaceChart({
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-2">
           <span
             aria-hidden="true"
