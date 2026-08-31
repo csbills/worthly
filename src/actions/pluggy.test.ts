@@ -80,6 +80,7 @@ describe("Pluggy account actions", () => {
             name: "Conta corrente",
             marketingName: "Conta principal",
             currencyCode: "BRL",
+            creditData: null,
           },
         ],
       })
@@ -95,6 +96,7 @@ describe("Pluggy account actions", () => {
             name: "Cartão",
             marketingName: null,
             currencyCode: "BRL",
+            creditData: null,
           },
         ],
       });
@@ -112,6 +114,7 @@ describe("Pluggy account actions", () => {
           name: "Conta corrente",
           marketingName: "Conta principal",
           currencyCode: "BRL",
+          creditData: null,
         },
         {
           id: "account-b",
@@ -123,6 +126,7 @@ describe("Pluggy account actions", () => {
           name: "Cartão",
           marketingName: null,
           currencyCode: "BRL",
+          creditData: null,
         },
       ],
       error: null,

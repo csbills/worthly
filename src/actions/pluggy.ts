@@ -20,6 +20,7 @@ export type ConnectedAccount = Pick<
   | "name"
   | "marketingName"
   | "currencyCode"
+  | "creditData"
 >;
 
 export type ConnectedAccountsResult = {
@@ -62,6 +63,7 @@ function serializeAccount(account: Account): ConnectedAccount {
     name: account.name,
     marketingName: account.marketingName,
     currencyCode: account.currencyCode,
+    creditData: account.creditData ?? null,
   };
 }
 

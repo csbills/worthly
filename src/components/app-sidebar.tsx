@@ -72,7 +72,7 @@ const data = {
     },
     {
       title: "Cartões",
-      url: "/cards",
+      url: "/credit-cards",
       icon: <HugeiconsIcon icon={CreditCardIcon} strokeWidth={2} />,
     },
   ],
