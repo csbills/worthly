@@ -76,22 +76,6 @@ export default async function Page() {
 
   return (
     <DashboardShell>
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Visão geral</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Acompanhe o ritmo das suas finanças e os principais movimentos das
-            contas conectadas.
-          </p>
-        </div>
-        <a
-          href="/"
-          className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
-        >
-          Atualizar
-        </a>
-      </div>
-
       {result.error ? (
         <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
           {result.error}

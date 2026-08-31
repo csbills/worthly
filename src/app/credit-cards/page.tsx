@@ -341,23 +341,6 @@ export default async function CreditCardsPage() {
 
   return (
     <DashboardShell>
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Cartões de crédito
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Acompanhe suas faturas e o limite disponível em um só lugar.
-          </p>
-        </div>
-        <a
-          href="/credit-cards"
-          className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
-        >
-          Atualizar
-        </a>
-      </div>
-
       {result.error ? (
         <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
           {result.error}

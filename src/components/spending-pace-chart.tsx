@@ -1,27 +1,23 @@
 "use client";
 
+import { ChartDownIcon, ChartUpIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
   CartesianGrid,
   Line,
   LineChart,
   ResponsiveContainer,
   Tooltip,
+  type TooltipContentProps,
   XAxis,
   YAxis,
 } from "recharts";
 
 import type { SpendingPacePoint } from "@/actions/overview";
+import { summarizeSpendingPaceTooltip } from "@/lib/spending-pace-tooltip";
 
 const currentAboveColor = "var(--destructive)";
 const currentBelowColor = "#15803d";
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    maximumFractionDigits: 2,
-  }).format(value);
-}
 
 function formatAxisValue(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -30,6 +26,107 @@ function formatAxisValue(value: number) {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(value);
+}
+
+function formatTooltipCurrency(value: number | null) {
+  if (value == null || !Number.isFinite(value)) {
+    return "—";
+  }
+
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatTooltipDifference(value: number) {
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+
+  return `${sign}${formatTooltipCurrency(Math.abs(value))}`;
+}
+
+function SpendingPaceTooltip({ active, label, payload }: TooltipContentProps) {
+  if (!active || payload.length === 0) {
+    return null;
+  }
+
+  const point = payload[0]?.payload as SpendingPacePoint | undefined;
+
+  if (!point) {
+    return null;
+  }
+
+  const currentValue = point.current ?? null;
+  const previousValue = point.previous ?? null;
+  const summary = summarizeSpendingPaceTooltip(currentValue, previousValue);
+  const isDecrease = summary?.direction === "decrease";
+  const isUnchanged = summary?.direction === "unchanged";
+  const comparisonLabel = isDecrease
+    ? "Redução"
+    : isUnchanged
+      ? "Sem alteração"
+      : "Aumento";
+  const comparisonIcon = isDecrease ? ChartDownIcon : ChartUpIcon;
+  const comparisonClassName = isUnchanged
+    ? "bg-zinc-800/70 text-zinc-300"
+    : isDecrease
+      ? "bg-emerald-950/50 text-emerald-400"
+      : "bg-red-950/50 text-red-400";
+
+  return (
+    <div className="w-[232px] overflow-hidden rounded-2xl border border-zinc-700/80 bg-zinc-900 text-zinc-100 shadow-[0_16px_36px_rgb(0_0_0_/_0.28)]">
+      <div className="px-4 pb-4 pt-3.5">
+        <p className="text-base font-semibold">Dia {label ?? point.day}</p>
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center gap-2.5">
+            <span
+              aria-hidden="true"
+              className="size-3 shrink-0 rounded-full bg-emerald-500"
+            />
+            <span className="text-sm text-zinc-300">Este mês</span>
+            <span className="ml-auto text-base font-semibold tabular-nums">
+              {formatTooltipCurrency(currentValue)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <span
+              aria-hidden="true"
+              className="size-3 shrink-0 rounded-full bg-zinc-500"
+            />
+            <span className="text-sm text-zinc-300">Mês passado</span>
+            <span className="ml-auto text-base font-semibold text-zinc-400 tabular-nums">
+              {formatTooltipCurrency(previousValue)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {summary ? (
+        <div
+          className={`flex items-center gap-2 border-t border-zinc-700/80 px-4 py-3 ${comparisonClassName}`}
+        >
+          <HugeiconsIcon
+            icon={comparisonIcon}
+            aria-hidden="true"
+            className="size-4 shrink-0"
+            strokeWidth={2}
+          />
+          <p className="min-w-0 text-sm leading-5">
+            <span className="font-medium">{comparisonLabel}</span>
+            <span className="font-semibold">
+              {formatTooltipDifference(summary.difference)}
+            </span>
+            {summary.percentage !== null ? (
+              <span className="ml-1 text-xs opacity-70">
+                ({summary.percentage}%)
+              </span>
+            ) : null}
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function SpendingPaceChart({
@@ -89,21 +186,14 @@ export function SpendingPaceChart({
               domain={[0, "auto"]}
             />
             <Tooltip
-              cursor={{ stroke: "var(--border)" }}
-              formatter={(value, name) => [
-                formatCurrency(Number(value)),
-                name === "current" ? "Este mês" : "Mês passado",
-              ]}
-              labelFormatter={(label) => `Dia ${label}`}
-              contentStyle={{
-                border: "1px solid var(--border)",
-                borderRadius: "0.75rem",
-                backgroundColor: "var(--card)",
-                color: "var(--card-foreground)",
-                boxShadow: "0 8px 24px rgb(0 0 0 / 0.08)",
+              content={SpendingPaceTooltip}
+              cursor={{
+                stroke: "var(--muted-foreground)",
+                strokeOpacity: 0.65,
+                strokeWidth: 1,
               }}
-              itemStyle={{ color: "var(--card-foreground)" }}
-              labelStyle={{ color: "var(--muted-foreground)" }}
+              filterNull={false}
+              isAnimationActive={false}
             />
             <Line
               type="monotone"

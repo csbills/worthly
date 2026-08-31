@@ -179,26 +179,6 @@ export default async function CategoriesPage({
 
   return (
     <DashboardShell>
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">
-            Análise de gastos
-          </p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-            Gastos por categoria
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Entenda onde seu dinheiro foi gasto no mês selecionado.
-          </p>
-        </div>
-        <a
-          href={monthHref(result.month.key)}
-          className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
-        >
-          Atualizar
-        </a>
-      </div>
-
       {result.error ? (
         <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
           {result.error}
