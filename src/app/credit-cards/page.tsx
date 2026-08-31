@@ -8,19 +8,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import Image from "next/image";
 
 import { type CreditCardsResult, getCreditCards } from "@/actions/credit-cards";
-import { AppSidebar } from "@/components/app-sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { DashboardShell } from "@/components/dashboard-shell";
 import {
   type CreditCardView,
   formatCreditCardDueDate,
@@ -352,53 +340,31 @@ export default async function CreditCardsPage() {
   const result = await getCreditCards();
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-vertical:h-4 data-vertical:self-auto"
-            />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Cartões</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
+    <DashboardShell>
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Cartões de crédito
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Acompanhe suas faturas e o limite disponível em um só lugar.
+          </p>
+        </div>
+        <a
+          href="/credit-cards"
+          className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
+        >
+          Atualizar
+        </a>
+      </div>
 
-        <main className="flex flex-1 flex-col gap-6 p-4 pt-0 md:p-6">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight">
-                Cartões de crédito
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                Acompanhe suas faturas e o limite disponível em um só lugar.
-              </p>
-            </div>
-            <a
-              href="/credit-cards"
-              className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
-            >
-              Atualizar
-            </a>
-          </div>
+      {result.error ? (
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
+          {result.error}
+        </p>
+      ) : null}
 
-          {result.error ? (
-            <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
-              {result.error}
-            </p>
-          ) : null}
-
-          <CardsContent result={result} />
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+      <CardsContent result={result} />
+    </DashboardShell>
   );
 }

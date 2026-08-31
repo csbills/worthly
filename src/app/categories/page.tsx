@@ -11,20 +11,8 @@ import {
   type CategorySpendingItem,
   getCategorySpending,
 } from "@/actions/categories";
-import { AppSidebar } from "@/components/app-sidebar";
 import { CategorySpendingChart } from "@/components/category-spending-chart";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { DashboardShell } from "@/components/dashboard-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -190,153 +178,129 @@ export default async function CategoriesPage({
   const result = await getCategorySpending(requestedMonth);
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-vertical:h-4 data-vertical:self-auto"
-            />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Categorias</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
+    <DashboardShell>
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">
+            Análise de gastos
+          </p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight">
+            Gastos por categoria
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Entenda onde seu dinheiro foi gasto no mês selecionado.
+          </p>
+        </div>
+        <a
+          href={monthHref(result.month.key)}
+          className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
+        >
+          Atualizar
+        </a>
+      </div>
 
-        <main className="flex flex-1 flex-col gap-6 p-4 pt-0 md:p-6">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Análise de gastos
-              </p>
-              <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-                Gastos por categoria
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                Entenda onde seu dinheiro foi gasto no mês selecionado.
-              </p>
-            </div>
-            <a
-              href={monthHref(result.month.key)}
-              className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
+      {result.error ? (
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
+          {result.error}
+        </p>
+      ) : null}
+
+      <section className="grid items-center gap-6 rounded-2xl border bg-card p-5 shadow-xs md:grid-cols-[minmax(0,1fr)_220px_minmax(0,1fr)] md:p-6">
+        <div>
+          <p className="text-4xl font-semibold tracking-[-0.03em] tabular-nums">
+            {formatCurrency(result.total, result.currencyCode)}
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            gasto em {result.month.label}
+          </p>
+        </div>
+
+        <CategorySpendingChart
+          groups={result.groups}
+          total={result.total}
+          currencyCode={result.currencyCode}
+        />
+
+        <nav
+          aria-label="Navegação por mês"
+          className="flex items-center justify-between gap-3 md:justify-end"
+        >
+          <a
+            href={monthHref(result.month.previousKey)}
+            aria-label="Mês anterior"
+            className="inline-flex size-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <HugeiconsIcon
+              icon={ArrowLeft01Icon}
+              strokeWidth={2}
+              className="size-5"
+            />
+          </a>
+          <span className="min-w-36 text-center text-sm font-semibold">
+            {result.month.label}
+          </span>
+          {result.month.isCurrent ? (
+            <span
+              aria-disabled="true"
+              className="inline-flex size-9 items-center justify-center rounded-full border border-border text-muted-foreground/40"
             >
-              Atualizar
+              <span className="sr-only">Mês seguinte indisponível</span>
+              <HugeiconsIcon
+                icon={ArrowRight01Icon}
+                strokeWidth={2}
+                className="size-5"
+              />
+            </span>
+          ) : (
+            <a
+              href={monthHref(result.month.nextKey)}
+              aria-label="Mês seguinte"
+              className="inline-flex size-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <HugeiconsIcon
+                icon={ArrowRight01Icon}
+                strokeWidth={2}
+                className="size-5"
+              />
+            </a>
+          )}
+        </nav>
+      </section>
+
+      <section className="overflow-hidden rounded-2xl border bg-card shadow-xs">
+        <div className="border-b px-5 py-4 md:px-6">
+          <h2 className="text-sm font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+            Categorias
+          </h2>
+        </div>
+
+        {result.groups.length > 0 ? (
+          <div>
+            {result.groups.map((group) => (
+              <CategoryGroup
+                key={group.key}
+                group={group}
+                currencyCode={result.currencyCode}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="p-10 text-center">
+            <p className="font-medium">Nenhum gasto categorizado neste mês</p>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              Assim que houver saídas sincronizadas, elas aparecerão agrupadas
+              aqui. Investimentos e transferências para a mesma pessoa ficam
+              fora desta análise.
+            </p>
+            <a
+              href="/transactions"
+              className="mt-5 inline-flex h-9 items-center justify-center rounded-4xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+            >
+              Ver transações
             </a>
           </div>
-
-          {result.error ? (
-            <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
-              {result.error}
-            </p>
-          ) : null}
-
-          <section className="grid items-center gap-6 rounded-2xl border bg-card p-5 shadow-xs md:grid-cols-[minmax(0,1fr)_220px_minmax(0,1fr)] md:p-6">
-            <div>
-              <p className="text-4xl font-semibold tracking-[-0.03em] tabular-nums">
-                {formatCurrency(result.total, result.currencyCode)}
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                gasto em {result.month.label}
-              </p>
-            </div>
-
-            <CategorySpendingChart
-              groups={result.groups}
-              total={result.total}
-              currencyCode={result.currencyCode}
-            />
-
-            <nav
-              aria-label="Navegação por mês"
-              className="flex items-center justify-between gap-3 md:justify-end"
-            >
-              <a
-                href={monthHref(result.month.previousKey)}
-                aria-label="Mês anterior"
-                className="inline-flex size-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <HugeiconsIcon
-                  icon={ArrowLeft01Icon}
-                  strokeWidth={2}
-                  className="size-5"
-                />
-              </a>
-              <span className="min-w-36 text-center text-sm font-semibold">
-                {result.month.label}
-              </span>
-              {result.month.isCurrent ? (
-                <span
-                  aria-disabled="true"
-                  className="inline-flex size-9 items-center justify-center rounded-full border border-border text-muted-foreground/40"
-                >
-                  <span className="sr-only">Mês seguinte indisponível</span>
-                  <HugeiconsIcon
-                    icon={ArrowRight01Icon}
-                    strokeWidth={2}
-                    className="size-5"
-                  />
-                </span>
-              ) : (
-                <a
-                  href={monthHref(result.month.nextKey)}
-                  aria-label="Mês seguinte"
-                  className="inline-flex size-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  <HugeiconsIcon
-                    icon={ArrowRight01Icon}
-                    strokeWidth={2}
-                    className="size-5"
-                  />
-                </a>
-              )}
-            </nav>
-          </section>
-
-          <section className="overflow-hidden rounded-2xl border bg-card shadow-xs">
-            <div className="border-b px-5 py-4 md:px-6">
-              <h2 className="text-sm font-semibold tracking-[0.08em] text-muted-foreground uppercase">
-                Categorias
-              </h2>
-            </div>
-
-            {result.groups.length > 0 ? (
-              <div>
-                {result.groups.map((group) => (
-                  <CategoryGroup
-                    key={group.key}
-                    group={group}
-                    currencyCode={result.currencyCode}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="p-10 text-center">
-                <p className="font-medium">
-                  Nenhum gasto categorizado neste mês
-                </p>
-                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                  Assim que houver saídas sincronizadas, elas aparecerão
-                  agrupadas aqui. Investimentos e transferências para a mesma
-                  pessoa ficam fora desta análise.
-                </p>
-                <a
-                  href="/transactions"
-                  className="mt-5 inline-flex h-9 items-center justify-center rounded-4xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
-                >
-                  Ver transações
-                </a>
-              </div>
-            )}
-          </section>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+        )}
+      </section>
+    </DashboardShell>
   );
 }

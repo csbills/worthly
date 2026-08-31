@@ -5,22 +5,10 @@ import {
   getPortfolio,
   type PortfolioCurrencyResult,
 } from "@/actions/portfolio";
-import { AppSidebar } from "@/components/app-sidebar";
+import { DashboardShell } from "@/components/dashboard-shell";
 import { ManualCryptoOrderModal } from "@/components/manual-crypto-order-modal";
 import { PortfolioAllocationChart } from "@/components/portfolio-allocation-chart";
 import { PortfolioEvolutionChart } from "@/components/portfolio-evolution-chart";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
 import { supportedCryptoAssets } from "@/lib/crypto-assets";
 import {
   type PortfolioAssetSummary,
@@ -592,95 +580,73 @@ export default async function InvestmentsPage({
   const currencyCount = result.currencies.length;
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-vertical:h-4 data-vertical:self-auto"
+    <DashboardShell>
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Meu portfólio
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Uma visão consolidada dos investimentos conectados e dos
+            criptoativos cadastrados manualmente.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/investments"
+            className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
+          >
+            Atualizar dados
+          </a>
+          <ManualCryptoOrderModal catalog={supportedCryptoAssets} />
+        </div>
+      </div>
+
+      {statusMessage ? (
+        <p
+          className={`rounded-xl border px-4 py-3 text-sm ${statusMessage.className}`}
+          aria-live="polite"
+        >
+          {statusMessage.text}
+        </p>
+      ) : null}
+
+      {result.error ? (
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+          {result.error}
+        </p>
+      ) : null}
+
+      <div className="grid gap-px overflow-hidden rounded-2xl border bg-border shadow-xs sm:grid-cols-3">
+        <PortfolioMetric
+          label="Ativos consolidados"
+          value={String(assetCount)}
+          supportingText="Pluggy + cadastro manual"
+        />
+        <PortfolioMetric
+          label="Criptoativos manuais"
+          value={String(result.manualAssetCount)}
+          supportingText="Preço via CoinGecko"
+        />
+        <PortfolioMetric
+          label="Conexões / moedas"
+          value={`${result.itemCount} / ${currencyCount}`}
+          supportingText="Itens Pluggy e moedas na carteira"
+        />
+      </div>
+
+      {result.currencies.length > 0 ? (
+        <div className="space-y-10">
+          {result.currencies.map((currency) => (
+            <PortfolioCurrencyView
+              key={currency.currencyCode}
+              currency={currency}
             />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Meu portfólio</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
-
-        <main className="flex flex-1 flex-col gap-6 p-4 pt-0 md:p-6">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight">
-                Meu portfólio
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                Uma visão consolidada dos investimentos conectados e dos
-                criptoativos cadastrados manualmente.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <a
-                href="/investments"
-                className="inline-flex h-9 items-center justify-center rounded-4xl border border-border bg-input/30 px-4 text-sm font-medium transition-colors hover:bg-input/50"
-              >
-                Atualizar dados
-              </a>
-              <ManualCryptoOrderModal catalog={supportedCryptoAssets} />
-            </div>
-          </div>
-
-          {statusMessage ? (
-            <p
-              className={`rounded-xl border px-4 py-3 text-sm ${statusMessage.className}`}
-              aria-live="polite"
-            >
-              {statusMessage.text}
-            </p>
-          ) : null}
-
-          {result.error ? (
-            <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
-              {result.error}
-            </p>
-          ) : null}
-
-          <div className="grid gap-px overflow-hidden rounded-2xl border bg-border shadow-xs sm:grid-cols-3">
-            <PortfolioMetric
-              label="Ativos consolidados"
-              value={String(assetCount)}
-              supportingText="Pluggy + cadastro manual"
-            />
-            <PortfolioMetric
-              label="Criptoativos manuais"
-              value={String(result.manualAssetCount)}
-              supportingText="Preço via CoinGecko"
-            />
-            <PortfolioMetric
-              label="Conexões / moedas"
-              value={`${result.itemCount} / ${currencyCount}`}
-              supportingText="Itens Pluggy e moedas na carteira"
-            />
-          </div>
-
-          {result.currencies.length > 0 ? (
-            <div className="space-y-10">
-              {result.currencies.map((currency) => (
-                <PortfolioCurrencyView
-                  key={currency.currencyCode}
-                  currency={currency}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyPortfolio hasError={Boolean(result.error)} />
-          )}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+          ))}
+        </div>
+      ) : (
+        <EmptyPortfolio hasError={Boolean(result.error)} />
+      )}
+    </DashboardShell>
   );
 }
