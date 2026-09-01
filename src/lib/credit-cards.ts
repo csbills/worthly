@@ -1,4 +1,4 @@
-import type { Account } from "pluggy-sdk";
+import type { Account, CreditCardBills } from "pluggy-sdk";
 
 export type CreditCardSourceAccount = Pick<
   Account,
@@ -19,6 +19,18 @@ export type CreditCardBankDetails = {
   bankLogoPath: string | null;
 };
 
+export type CreditCardBillSource = Pick<
+  CreditCardBills,
+  "id" | "dueDate" | "billClosingDate" | "totalAmount"
+>;
+
+export type CreditCardBillView = {
+  id: string;
+  amount: number;
+  closingDate: string | null;
+  dueDate: string | null;
+};
+
 export type CreditCardView = {
   id: string;
   itemId: string;
@@ -28,8 +40,10 @@ export type CreditCardView = {
   bankName: string;
   bankLogoPath: string | null;
   lastFourDigits: string;
-  statementAmount: number;
-  dueDate: string | null;
+  openBalanceAmount: number;
+  openDueDate: string | null;
+  latestClosedBill: CreditCardBillView | null;
+  billError: string | null;
   creditLimit: number | null;
   usedAmount: number;
   availableAmount: number | null;
@@ -81,6 +95,65 @@ function toIsoDate(value: Date | string | null | undefined) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function getDateTimestamp(value: Date | string | null | undefined) {
+  const isoDate = toIsoDate(value);
+
+  if (!isoDate) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  return new Date(isoDate).getTime();
+}
+
+function getLatestBill(bills: CreditCardBillSource[]) {
+  return bills.reduce<CreditCardBillSource | null>((latest, bill) => {
+    if (!latest) {
+      return bill;
+    }
+
+    const latestTimestamp = getDateTimestamp(
+      latest.billClosingDate ?? latest.dueDate,
+    );
+    const billTimestamp = getDateTimestamp(
+      bill.billClosingDate ?? bill.dueDate,
+    );
+
+    return billTimestamp > latestTimestamp ? bill : latest;
+  }, null);
+}
+
+function toBillView(
+  bill: CreditCardBillSource | null,
+): CreditCardBillView | null {
+  if (!bill) {
+    return null;
+  }
+
+  return {
+    id: bill.id,
+    amount: toAbsoluteAmount(bill.totalAmount) ?? 0,
+    closingDate: toIsoDate(bill.billClosingDate),
+    dueDate: toIsoDate(bill.dueDate),
+  };
+}
+
+function getNonExpiredDate(value: Date | string | null | undefined, now: Date) {
+  const isoDate = toIsoDate(value);
+
+  if (!isoDate) {
+    return null;
+  }
+
+  const date = new Date(isoDate);
+  const today = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
+
+  return date.getTime() >= today ? isoDate : null;
+}
+
 function getLastFourDigits(number: string) {
   const digits = number.replace(/\D/gu, "");
 
@@ -90,9 +163,12 @@ function getLastFourDigits(number: string) {
 export function normalizeCreditCard(
   account: CreditCardSourceAccount,
   bank: CreditCardBankDetails,
+  bills: CreditCardBillSource[] = [],
+  now = new Date(),
+  billError: string | null = null,
 ): CreditCardView {
   const creditData = account.creditData;
-  const statementAmount = toAbsoluteAmount(account.balance) ?? 0;
+  const openBalanceAmount = toAbsoluteAmount(account.balance) ?? 0;
   const creditLimit = toAbsoluteAmount(creditData?.creditLimit);
   const reportedAvailableAmount = toNonNegativeAmount(
     creditData?.availableCreditLimit,
@@ -103,10 +179,11 @@ export function normalizeCreditCard(
           creditLimit,
           Math.max(0, creditLimit - reportedAvailableAmount),
         )
-      : statementAmount;
+      : openBalanceAmount;
   const availableAmount =
     reportedAvailableAmount ??
     (creditLimit !== null ? Math.max(0, creditLimit - usedAmount) : null);
+  const latestClosedBill = toBillView(getLatestBill(bills));
 
   return {
     id: account.id,
@@ -117,8 +194,10 @@ export function normalizeCreditCard(
     bankName: bank.bankName,
     bankLogoPath: bank.bankLogoPath,
     lastFourDigits: getLastFourDigits(account.number),
-    statementAmount,
-    dueDate: toIsoDate(creditData?.balanceDueDate),
+    openBalanceAmount,
+    openDueDate: getNonExpiredDate(creditData?.balanceDueDate, now),
+    latestClosedBill,
+    billError,
     creditLimit,
     usedAmount,
     availableAmount,

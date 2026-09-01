@@ -11,7 +11,7 @@ import {
 
 export type CreditCardsResult = {
   cards: CreditCardView[];
-  totalStatementAmount: number;
+  totalOpenBalance: number;
   error: string | null;
 };
 
@@ -63,7 +63,7 @@ export async function getCreditCards(): Promise<CreditCardsResult> {
   if (creditAccounts.length === 0) {
     return {
       cards: [],
-      totalStatementAmount: 0,
+      totalOpenBalance: 0,
       error: accountResult.error,
     };
   }
@@ -98,16 +98,33 @@ export async function getCreditCards(): Promise<CreditCardsResult> {
       return details;
     };
 
+    const now = new Date();
     const cards = await Promise.all(
-      creditAccounts.map(async (account) =>
-        normalizeCreditCard(account, await getBankDetailsForAccount(account)),
-      ),
+      creditAccounts.map(async (account) => {
+        const bankDetails = await getBankDetailsForAccount(account);
+
+        try {
+          const bills = await client.fetchCreditCardBills(account.id, {
+            pageSize: 500,
+          });
+
+          return normalizeCreditCard(account, bankDetails, bills.results, now);
+        } catch {
+          return normalizeCreditCard(
+            account,
+            bankDetails,
+            [],
+            now,
+            "Histórico de faturas não disponível para este cartão.",
+          );
+        }
+      }),
     );
 
     return {
       cards,
-      totalStatementAmount: cards.reduce(
-        (total, card) => total + card.statementAmount,
+      totalOpenBalance: cards.reduce(
+        (total, card) => total + card.openBalanceAmount,
         0,
       ),
       error: accountResult.error,
@@ -115,7 +132,7 @@ export async function getCreditCards(): Promise<CreditCardsResult> {
   } catch {
     return {
       cards: [],
-      totalStatementAmount: 0,
+      totalOpenBalance: 0,
       error: "Não foi possível consultar os cartões na Pluggy.",
     };
   }

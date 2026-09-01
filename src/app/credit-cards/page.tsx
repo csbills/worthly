@@ -210,16 +210,16 @@ function CreditCardItem({ card }: { card: CreditCardView }) {
 
         <div className="mt-6">
           <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <span>Fatura estimada</span>
+            <span>Fatura em aberto</span>
             <HugeiconsIcon
               icon={InformationCircleIcon}
-              aria-label="O valor é uma estimativa baseada no saldo atual do cartão"
+              aria-label="O valor representa o saldo aberto atual do cartão"
               className="size-3.5"
               strokeWidth={2}
             />
           </div>
           <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">
-            {formatCurrency(card.statementAmount, card.currencyCode)}
+            {formatCurrency(card.openBalanceAmount, card.currencyCode)}
           </p>
         </div>
 
@@ -231,12 +231,51 @@ function CreditCardItem({ card }: { card: CreditCardView }) {
             strokeWidth={2}
           />
           <span>
-            Vence{" "}
+            Próximo vencimento{" "}
             <strong className="font-medium text-foreground">
-              {formatCreditCardDueDate(card.dueDate)}
+              {formatCreditCardDueDate(card.openDueDate)}
             </strong>
           </span>
         </div>
+
+        {card.latestClosedBill ? (
+          <div className="mt-4 border-t pt-3">
+            <div className="flex items-start justify-between gap-4 text-xs">
+              <div>
+                <p className="font-medium text-muted-foreground">
+                  Última fatura fechada
+                </p>
+                <p className="mt-1 text-base font-semibold tabular-nums text-foreground">
+                  {formatCurrency(
+                    card.latestClosedBill.amount,
+                    card.currencyCode,
+                  )}
+                </p>
+              </div>
+              <div className="text-right text-muted-foreground">
+                <p>
+                  Fechou{" "}
+                  <strong className="font-medium text-foreground">
+                    {formatCreditCardDueDate(card.latestClosedBill.closingDate)}
+                  </strong>
+                </p>
+                <p className="mt-1">
+                  Vence{" "}
+                  <strong className="font-medium text-foreground">
+                    {formatCreditCardDueDate(card.latestClosedBill.dueDate)}
+                  </strong>
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {card.billError ? (
+          <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
+            {card.billError} A fatura exibida acima é apenas o saldo aberto
+            retornado pela instituição.
+          </p>
+        ) : null}
 
         <LimitProgress card={card} />
       </div>
@@ -297,13 +336,13 @@ function CardsContent({ result }: { result: CreditCardsResult }) {
               className="size-4"
               strokeWidth={2}
             />
-            Fatura atual
+            Saldos em aberto
           </div>
           <p className="mt-2 text-4xl font-semibold tracking-tight tabular-nums md:text-5xl">
-            {formatCurrency(result.totalStatementAmount, currencyCode)}
+            {formatCurrency(result.totalOpenBalance, currencyCode)}
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Soma estimada das faturas dos cartões conectados
+            Soma dos saldos em aberto dos cartões conectados
           </p>
         </div>
       </section>

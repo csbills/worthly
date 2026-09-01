@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getConnectedAccounts: vi.fn(),
   fetchItem: vi.fn(),
+  fetchCreditCardBills: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -10,7 +11,10 @@ vi.mock("@/actions/pluggy", () => ({
   getConnectedAccounts: mocks.getConnectedAccounts,
 }));
 vi.mock("@/lib/pluggy", () => ({
-  getPluggyClient: () => ({ fetchItem: mocks.fetchItem }),
+  getPluggyClient: () => ({
+    fetchItem: mocks.fetchItem,
+    fetchCreditCardBills: mocks.fetchCreditCardBills,
+  }),
 }));
 
 import { getCreditCards } from "./credit-cards";
@@ -59,6 +63,26 @@ describe("credit card action", () => {
       ],
     });
     mocks.fetchItem.mockResolvedValue({ connector: { name: "BANCO INTER" } });
+    mocks.fetchCreditCardBills.mockResolvedValue({
+      page: 1,
+      total: 1,
+      totalPages: 1,
+      results: [
+        {
+          id: "bill-inter-2026-08",
+          dueDate: new Date("2026-09-02T00:00:00.000Z"),
+          billClosingDate: new Date("2026-08-25T00:00:00.000Z"),
+          totalAmount: 1340.67,
+          totalAmountCurrencyCode: "BRL",
+          minimumPaymentAmount: 134.07,
+          allowsInstallments: true,
+          financeCharges: [],
+          payments: [],
+          createdAt: new Date("2026-08-26T00:00:00.000Z"),
+          updatedAt: new Date("2026-08-26T00:00:00.000Z"),
+        },
+      ],
+    });
 
     await expect(getCreditCards()).resolves.toEqual({
       cards: [
@@ -67,18 +91,27 @@ describe("credit card action", () => {
           bankName: "Inter",
           bankLogoPath: "/assets/banks/inter.svg",
           lastFourDigits: "8896",
-          statementAmount: 1169.94,
-          dueDate: "2026-09-02T00:00:00.000Z",
+          openBalanceAmount: 1169.94,
+          openDueDate: "2026-09-02T00:00:00.000Z",
+          latestClosedBill: {
+            id: "bill-inter-2026-08",
+            amount: 1340.67,
+            closingDate: "2026-08-25T00:00:00.000Z",
+            dueDate: "2026-09-02T00:00:00.000Z",
+          },
           creditLimit: 1405.05,
           usedAmount: 1169.94,
           availableAmount: 235.11,
         }),
       ],
-      totalStatementAmount: 1169.94,
+      totalOpenBalance: 1169.94,
       error: null,
     });
 
     expect(mocks.fetchItem).toHaveBeenCalledWith("item-inter");
+    expect(mocks.fetchCreditCardBills).toHaveBeenCalledWith("credit-card", {
+      pageSize: 500,
+    });
   });
 
   it("returns an empty result when no credit account is connected", async () => {
@@ -103,9 +136,51 @@ describe("credit card action", () => {
 
     await expect(getCreditCards()).resolves.toEqual({
       cards: [],
-      totalStatementAmount: 0,
+      totalOpenBalance: 0,
       error: null,
     });
     expect(mocks.fetchItem).not.toHaveBeenCalled();
+  });
+
+  it("keeps the open balance and marks the bill history when bills are unavailable", async () => {
+    mocks.getConnectedAccounts.mockResolvedValue({
+      itemCount: 1,
+      error: null,
+      accounts: [
+        {
+          id: "credit-card",
+          itemId: "item-inter",
+          type: "CREDIT",
+          subtype: "CREDIT_CARD",
+          number: "8896",
+          balance: 1169.94,
+          name: "GOLD",
+          marketingName: null,
+          currencyCode: "BRL",
+          creditData: {
+            level: "GOLD",
+            brand: "MASTERCARD",
+            balanceDueDate: new Date("2026-09-02T00:00:00.000Z"),
+            availableCreditLimit: 235.11,
+            creditLimit: 1405.05,
+            status: "ACTIVE",
+          },
+        },
+      ],
+    });
+    mocks.fetchItem.mockResolvedValue({ connector: { name: "BANCO INTER" } });
+    mocks.fetchCreditCardBills.mockRejectedValue(new Error("not available"));
+
+    await expect(getCreditCards()).resolves.toMatchObject({
+      cards: [
+        expect.objectContaining({
+          openBalanceAmount: 1169.94,
+          latestClosedBill: null,
+          billError: "Histórico de faturas não disponível para este cartão.",
+        }),
+      ],
+      totalOpenBalance: 1169.94,
+      error: null,
+    });
   });
 });
