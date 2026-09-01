@@ -8,7 +8,12 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import Image from "next/image";
 
 import { type CreditCardsResult, getCreditCards } from "@/actions/credit-cards";
+import {
+  getInstallments,
+  type InstallmentsResult,
+} from "@/actions/installments";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { InstallmentsView } from "@/components/installments-view";
 import {
   type CreditCardView,
   formatCreditCardDueDate,
@@ -314,7 +319,13 @@ function EmptyState({ hasError }: { hasError: boolean }) {
   );
 }
 
-function CardsContent({ result }: { result: CreditCardsResult }) {
+function CardsContent({
+  result,
+  installmentsResult,
+}: {
+  result: CreditCardsResult;
+  installmentsResult: InstallmentsResult;
+}) {
   const currencyCode = result.cards[0]?.currencyCode ?? "BRL";
 
   return (
@@ -371,12 +382,51 @@ function CardsContent({ result }: { result: CreditCardsResult }) {
       ) : (
         <EmptyState hasError={Boolean(result.error)} />
       )}
+
+      <section
+        aria-labelledby="credit-cards-installments-title"
+        className="space-y-4"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <HugeiconsIcon
+              icon={CreditCardIcon}
+              aria-hidden="true"
+              className="size-4"
+              strokeWidth={2}
+            />
+          </span>
+          <h2
+            id="credit-cards-installments-title"
+            className="text-lg font-semibold"
+          >
+            Parcelamentos{" "}
+            <span className="text-muted-foreground">
+              ({installmentsResult.installments.length})
+            </span>
+          </h2>
+        </div>
+
+        {installmentsResult.error ? (
+          <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+            {installmentsResult.error}
+          </p>
+        ) : null}
+
+        <InstallmentsView
+          installments={installmentsResult.installments}
+          summary={installmentsResult.summary}
+        />
+      </section>
     </>
   );
 }
 
 export default async function CreditCardsPage() {
-  const result = await getCreditCards();
+  const [result, installmentsResult] = await Promise.all([
+    getCreditCards(),
+    getInstallments(),
+  ]);
 
   return (
     <DashboardShell>
@@ -386,7 +436,7 @@ export default async function CreditCardsPage() {
         </p>
       ) : null}
 
-      <CardsContent result={result} />
+      <CardsContent result={result} installmentsResult={installmentsResult} />
     </DashboardShell>
   );
 }

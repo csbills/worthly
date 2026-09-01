@@ -3,7 +3,6 @@ export const dashboardNavigationItems = [
   { href: "/investments", label: "Investimentos", icon: "investments" },
   { href: "/accounts", label: "Contas", icon: "accounts" },
   { href: "/transactions", label: "Transações", icon: "transactions" },
-  { href: "/installments", label: "Parcelamentos", icon: "installments" },
   { href: "/subscriptions", label: "Assinaturas", icon: "subscriptions" },
   { href: "/categories", label: "Categorias", icon: "categories" },
   { href: "/credit-cards", label: "Cartões", icon: "credit-cards" },

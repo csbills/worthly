@@ -85,6 +85,10 @@ function isPositiveInteger(value: number | undefined): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
 }
 
+export function isInstallmentPaid(status: string | undefined) {
+  return (status ?? "POSTED") !== "PENDING";
+}
+
 function normalizeDescription(description: string) {
   return description
     .normalize("NFD")
@@ -341,11 +345,14 @@ export function buildInstallments(
         const records = [...recordsByNumber.entries()].sort(
           ([leftNumber], [rightNumber]) => leftNumber - rightNumber,
         );
+        const paidRecords = records.filter(([, transaction]) =>
+          isInstallmentPaid(transaction.status),
+        );
         const firstTransaction = transactionsInGroup[0];
         const lastTransaction = records.at(-1)?.[1] ?? firstTransaction;
         const metadata = lastTransaction.creditCardMetadata;
         const totalInstallments = metadata?.totalInstallments ?? 0;
-        const latestInstallmentNumber = records.at(-1)?.[0] ?? 0;
+        const latestInstallmentNumber = paidRecords.at(-1)?.[0] ?? 0;
         const installmentAmount = roundCurrency(
           Math.abs(lastTransaction.amount),
         );
@@ -355,14 +362,27 @@ export function buildInstallments(
             ? metadataTotalAmount
             : installmentAmount * totalInstallments,
         );
+        const observedInstallmentNumbers = new Set(
+          records.map(([number]) => number),
+        );
+        const paidAmountFromRecords = paidRecords.reduce(
+          (total, [, transaction]) => total + Math.abs(transaction.amount),
+          0,
+        );
+        const missingPaidInstallmentCount = Array.from(
+          { length: latestInstallmentNumber },
+          (_, index) => index + 1,
+        ).filter((number) => !observedInstallmentNumbers.has(number)).length;
         const paidAmount = roundCurrency(
-          Math.min(totalAmount, installmentAmount * latestInstallmentNumber),
+          Math.min(
+            totalAmount,
+            paidAmountFromRecords +
+              missingPaidInstallmentCount * installmentAmount,
+          ),
         );
         const remainingAmount = roundCurrency(totalAmount - paidAmount);
         const progressPercentage =
-          totalInstallments > 0
-            ? roundCurrency((latestInstallmentNumber / totalInstallments) * 100)
-            : 0;
+          totalAmount > 0 ? roundCurrency((paidAmount / totalAmount) * 100) : 0;
         const purchaseDate = transactionsInGroup.map(getPurchaseDate).sort()[0];
         const creditCardBilling =
           transactionsInGroup.find(

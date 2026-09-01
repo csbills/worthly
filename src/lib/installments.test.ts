@@ -142,8 +142,8 @@ describe("installment consolidation", () => {
       totalInstallments: 10,
       installmentAmount: 35.76,
       totalAmount: 357.6,
-      paidAmount: 107.28,
-      remainingAmount: 250.32,
+      paidAmount: 107.4,
+      remainingAmount: 250.2,
       status: "ACTIVE",
     });
     expect(installments[0]?.observedInstallments).toHaveLength(3);
@@ -173,8 +173,8 @@ describe("installment consolidation", () => {
       totalInstallments: 12,
       installmentAmount: 21.35,
       totalAmount: 256.2,
-      paidAmount: 149.45,
-      remainingAmount: 106.75,
+      paidAmount: 149.56,
+      remainingAmount: 106.64,
       status: "ACTIVE",
     });
     expect(installments[0]?.observedInstallments).toHaveLength(7);
@@ -257,6 +257,51 @@ describe("installment consolidation", () => {
       remainingAmount: 0,
       progressPercentage: 100,
       status: "COMPLETED",
+    });
+  });
+
+  it("keeps a purchase active when its final observed installment is pending", () => {
+    const [installment] = buildInstallments([
+      makeTransaction({
+        id: "purchase-pending-1",
+        amount: 99.99,
+        status: "POSTED",
+        creditCardMetadata: {
+          installmentNumber: 1,
+          totalInstallments: 3,
+          totalAmount: 300,
+        },
+      }),
+      makeTransaction({
+        id: "purchase-pending-2",
+        amount: 100,
+        status: "POSTED",
+        creditCardMetadata: {
+          installmentNumber: 2,
+          totalInstallments: 3,
+          totalAmount: 300,
+        },
+      }),
+      makeTransaction({
+        id: "purchase-pending-3",
+        amount: 100.01,
+        status: "PENDING",
+        creditCardMetadata: {
+          installmentNumber: 3,
+          totalInstallments: 3,
+          totalAmount: 300,
+        },
+      }),
+    ]);
+
+    expect(installment).toMatchObject({
+      latestInstallmentNumber: 2,
+      totalInstallments: 3,
+      totalAmount: 300,
+      paidAmount: 199.99,
+      remainingAmount: 100.01,
+      progressPercentage: 66.66,
+      status: "ACTIVE",
     });
   });
 

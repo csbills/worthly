@@ -14,7 +14,11 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 
-import type { InstallmentSummary, InstallmentView } from "@/lib/installments";
+import {
+  type InstallmentSummary,
+  type InstallmentView,
+  isInstallmentPaid,
+} from "@/lib/installments";
 
 type InstallmentTab = "active" | "completed";
 type InstallmentSort = "remaining" | "endDate" | "description";
@@ -198,7 +202,7 @@ function InstallmentRow({ installment }: { installment: InstallmentView }) {
           : (observed?.date ??
             addUtcMonths(installmentStartDate, Math.max(number - 1, 0))),
         amount: observed?.amount ?? installment.installmentAmount,
-        isPaid: Boolean(observed && observed.status !== "PENDING"),
+        isPaid: Boolean(observed && isInstallmentPaid(observed.status)),
       };
     },
   );

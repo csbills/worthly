@@ -56,11 +56,6 @@ const data = {
       icon: <HugeiconsIcon icon={ArrowLeftRightIcon} strokeWidth={2} />,
     },
     {
-      title: "Parcelamentos",
-      url: "/installments",
-      icon: <HugeiconsIcon icon={CreditCardIcon} strokeWidth={2} />,
-    },
-    {
       title: "Assinaturas",
       url: "/subscriptions",
       icon: <HugeiconsIcon icon={CreditCardChangeIcon} strokeWidth={2} />,

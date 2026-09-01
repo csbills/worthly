@@ -23,7 +23,6 @@ const navigationIcons = {
   investments: BriefcaseDollarIcon,
   accounts: BankIcon,
   transactions: ArrowLeftRightIcon,
-  installments: CreditCardIcon,
   subscriptions: CreditCardChangeIcon,
   categories: TagsIcon,
   "credit-cards": CreditCardIcon,

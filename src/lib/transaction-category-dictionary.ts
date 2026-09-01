@@ -385,7 +385,7 @@ const categoryEntries: readonly CategoryEntry[] = [
   {
     id: "08040000",
     name: "Clothing",
-    label: "Vestiário",
+    label: "Vestuário",
     parentId: "08000000",
   },
   {
