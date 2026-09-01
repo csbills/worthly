@@ -46,11 +46,6 @@ const data = {
       icon: <HugeiconsIcon icon={BriefcaseDollarIcon} strokeWidth={2} />,
     },
     {
-      title: "Contas",
-      url: "/accounts",
-      icon: <HugeiconsIcon icon={BankIcon} strokeWidth={2} />,
-    },
-    {
       title: "Transações",
       url: "/transactions",
       icon: <HugeiconsIcon icon={ArrowLeftRightIcon} strokeWidth={2} />,
