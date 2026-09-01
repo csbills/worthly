@@ -114,3 +114,16 @@ model PortfolioSnapshotCategory {
   @@unique([snapshotId, categoryKey])
   @@index([snapshotId])
 }
+
+model NetWorthSnapshot {
+  id                String   @id @default(cuid())
+  snapshotDate      String   @unique
+  capturedAt        DateTime @default(now())
+  currencyCode      String   @default("BRL")
+  accountBalance    Float
+  investmentBalance Float
+  creditUsed        Float
+  netWorth          Float
+
+  @@index([snapshotDate])
+}

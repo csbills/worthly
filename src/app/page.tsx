@@ -1,6 +1,7 @@
-import { getSpendingPace } from "@/actions/overview";
+import { getDashboardOverview } from "@/actions/dashboard";
 import { CashFlowCard } from "@/components/cash-flow-card";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { NetWorthCard } from "@/components/net-worth-card";
 import {
   AccountsBalanceCard,
   AvailableCreditCard,
@@ -10,7 +11,7 @@ import { SpendingPaceCard } from "@/components/spending-pace-card";
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const result = await getSpendingPace();
+  const result = await getDashboardOverview();
 
   return (
     <DashboardShell>
@@ -27,16 +28,20 @@ export default async function Page() {
           points={result.points}
           error={result.error}
         />
-
+        <AccountsBalanceCard overviewBalances={result.overviewBalances} />
+        <AvailableCreditCard overviewBalances={result.overviewBalances} />
         <CashFlowCard
           current={result.cashFlow.current}
           previous={result.cashFlow.previous}
           currentMonthLabel={result.currentMonth.label}
           previousMonthLabel={result.previousMonth.label}
         />
-
-        <AccountsBalanceCard overviewBalances={result.overviewBalances} />
-        <AvailableCreditCard overviewBalances={result.overviewBalances} />
+        <NetWorthCard
+          current={result.netWorth.current}
+          history={result.netWorth.history}
+          currencyCode={result.netWorth.currencyCode}
+          error={result.netWorth.error}
+        />
       </div>
     </DashboardShell>
   );
