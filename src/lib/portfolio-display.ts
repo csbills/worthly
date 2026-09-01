@@ -1,4 +1,9 @@
 import { getBankDisplayName } from "./bank-assets";
+import { getMarketAssetLogo } from "./market-asset-logos";
+import {
+  type ManualMarketAssetType,
+  supportedMarketAssets,
+} from "./market-assets";
 import type { PortfolioAsset } from "./portfolio";
 
 type PortfolioAssetDisplayInput = Pick<
@@ -11,7 +16,9 @@ type PortfolioAssetDisplayInput = Pick<
   | "name"
   | "institutionName"
   | "issuer"
->;
+> & {
+  logoPath?: PortfolioAsset["logoPath"];
+};
 
 type PortfolioAllocationTooltipAssetInput = PortfolioAssetDisplayInput & {
   id: string;
@@ -52,9 +59,75 @@ function abbreviate(value: string) {
   return `${normalized.slice(0, 31).trimEnd()}…`;
 }
 
+function normalizeIdentity(value: string | null | undefined) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleUpperCase("pt-BR");
+}
+
+function getAutomaticMarketAssetType(
+  asset: PortfolioAssetDisplayInput,
+): ManualMarketAssetType | null {
+  if (asset.source !== "pluggy") {
+    return null;
+  }
+
+  if (asset.categoryKey === "ETF" || asset.subtype === "ETF") {
+    return "ETF";
+  }
+
+  if (asset.subtype === "REAL_ESTATE_FUND") {
+    return "FII";
+  }
+
+  if (asset.subtype === "STOCK") {
+    return "STOCK";
+  }
+
+  return null;
+}
+
+function getAutomaticMarketTicker(asset: PortfolioAssetDisplayInput) {
+  if (!getAutomaticMarketAssetType(asset)) {
+    return null;
+  }
+
+  const identity = normalizeIdentity(
+    [asset.name, asset.issuer, asset.symbol].filter(Boolean).join(" "),
+  );
+  const catalogAsset = supportedMarketAssets.find(({ symbol, name }) => {
+    const normalizedSymbol = normalizeIdentity(symbol);
+    const normalizedName = normalizeIdentity(name);
+
+    return (
+      identity.includes(normalizedSymbol) ||
+      (normalizedName.length > 0 && identity.includes(normalizedName))
+    );
+  });
+
+  if (catalogAsset) {
+    return catalogAsset.symbol;
+  }
+
+  return (
+    identity.match(/\b(?:[A-Z]{4,5}\d{1,2}|[A-Z]\d[A-Z]\d{3})\b/u)?.[0] ?? null
+  );
+}
+
 export function getPortfolioAssetLabel(asset: PortfolioAssetDisplayInput) {
   if (asset.source === "manual") {
     return asset.symbol;
+  }
+
+  const marketTicker = getAutomaticMarketTicker(asset);
+
+  if (marketTicker) {
+    return marketTicker;
+  }
+
+  if (getAutomaticMarketAssetType(asset)) {
+    return abbreviate(asset.name);
   }
 
   const subtype = formatSubtype(asset.subtype);
@@ -69,6 +142,19 @@ export function getPortfolioAssetLabel(asset: PortfolioAssetDisplayInput) {
   }
 
   return abbreviate(asset.name);
+}
+
+export function getPortfolioAssetLogoPath(asset: PortfolioAssetDisplayInput) {
+  const marketAssetType = getAutomaticMarketAssetType(asset);
+
+  if (marketAssetType) {
+    return getMarketAssetLogo(
+      getAutomaticMarketTicker(asset) ?? asset.symbol,
+      marketAssetType,
+    );
+  }
+
+  return asset.logoPath ?? null;
 }
 
 export function getPortfolioAssetQuantityLabel(

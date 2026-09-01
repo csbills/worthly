@@ -25,6 +25,7 @@ import {
 } from "@/lib/portfolio";
 import {
   getPortfolioAssetLabel,
+  getPortfolioAssetLogoPath,
   getPortfolioAssetQuantityLabel,
   getPortfolioCategoryToggleLabel,
 } from "@/lib/portfolio-display";
@@ -105,6 +106,14 @@ function getStatusMessage(status: string | undefined) {
     };
   }
 
+  if (status === "order-deleted") {
+    return {
+      className:
+        "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
+      text: "Ordem excluída. A posição, o custo médio e o resultado foram recalculados.",
+    };
+  }
+
   if (status === "invalid-order") {
     return {
       className:
@@ -116,7 +125,7 @@ function getStatusMessage(status: string | undefined) {
   if (status === "order-error") {
     return {
       className: "border-destructive/30 bg-destructive/10 text-destructive",
-      text: "Não foi possível salvar a ordem. Tente novamente.",
+      text: "Não foi possível salvar ou excluir a ordem. Tente novamente.",
     };
   }
 
@@ -173,11 +182,13 @@ function PortfolioMetric({
 }
 
 function AssetAvatar({ asset }: { asset: PortfolioAssetSummary }) {
-  if (asset.logoPath) {
+  const logoPath = getPortfolioAssetLogoPath(asset);
+
+  if (logoPath) {
     return (
       <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-background">
         <Image
-          src={asset.logoPath}
+          src={logoPath}
           alt={`${getPortfolioAssetLabel(asset)} logo`}
           width={24}
           height={24}

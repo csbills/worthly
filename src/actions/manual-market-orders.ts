@@ -283,3 +283,68 @@ export async function saveManualMarketOrder(
   revalidatePath(investmentsPath);
   redirect(`${investmentsPath}?market=order-saved`);
 }
+
+export async function deleteManualMarketOrder(
+  formData: FormData,
+): Promise<never> {
+  const orderId = getFormString(formData, "orderId");
+
+  if (!orderId) {
+    redirect(`${investmentsPath}?market=invalid-order`);
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const existingOrder = await tx.manualMarketOrder.findUnique({
+        where: { id: orderId },
+        include: {
+          asset: {
+            include: {
+              orders: {
+                orderBy: [{ orderDate: "asc" }, { createdAt: "asc" }],
+              },
+            },
+          },
+        },
+      });
+
+      if (!existingOrder) {
+        throw new InvalidMarketOrderError();
+      }
+
+      const remainingOrders = getStoredAssetOrders(existingOrder.asset).filter(
+        (order) => order.id !== orderId,
+      );
+
+      await tx.manualMarketOrder.delete({
+        where: { id: orderId },
+      });
+
+      if (remainingOrders.length === 0) {
+        await tx.manualMarketAsset.delete({
+          where: { id: existingOrder.assetId },
+        });
+        return;
+      }
+
+      const position = calculateCryptoPosition(remainingOrders);
+
+      await tx.manualMarketAsset.update({
+        where: { id: existingOrder.assetId },
+        data: {
+          quantity: position.quantity,
+          averagePrice: position.averagePrice,
+        },
+      });
+    });
+  } catch (error) {
+    if (error instanceof InvalidMarketOrderError) {
+      redirect(`${investmentsPath}?market=invalid-order`);
+    }
+
+    redirect(`${investmentsPath}?market=order-error`);
+  }
+
+  revalidatePath(investmentsPath);
+  redirect(`${investmentsPath}?market=order-deleted`);
+}

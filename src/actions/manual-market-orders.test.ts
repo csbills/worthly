@@ -6,11 +6,13 @@ const mocks = vi.hoisted(() => ({
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
     manualMarketOrder: {
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
     $transaction: vi.fn(),
   },
@@ -27,7 +29,10 @@ vi.mock("@/lib/crypto-orders", async () => import("../lib/crypto-orders"));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
-import { saveManualMarketOrder } from "./manual-market-orders";
+import {
+  deleteManualMarketOrder,
+  saveManualMarketOrder,
+} from "./manual-market-orders";
 
 function createFormData(values: Record<string, string>) {
   const formData = new FormData();
@@ -55,6 +60,7 @@ function createAssetWithBuyOrder() {
     orders: [
       {
         id: "order-buy",
+        assetId: "market-petr4",
         side: "BUY",
         orderDate: createdAt,
         total: 1000,
@@ -63,6 +69,49 @@ function createAssetWithBuyOrder() {
         quantity: 49.5,
         createdAt,
         updatedAt: createdAt,
+      },
+    ],
+  };
+}
+
+function createAssetWithTwoBuyOrders() {
+  const firstOrderDate = new Date("2026-08-01T12:00:00.000Z");
+  const secondOrderDate = new Date("2026-08-15T12:00:00.000Z");
+
+  return {
+    id: "market-petr4",
+    symbol: "PETR4",
+    name: "Petrobras PN",
+    assetType: "STOCK",
+    quantity: 49.5 + 24.75,
+    averagePrice: 1600 / (49.5 + 24.75),
+    currentPrice: null,
+    currencyCode: "BRL",
+    createdAt: firstOrderDate,
+    orders: [
+      {
+        id: "order-buy-first",
+        assetId: "market-petr4",
+        side: "BUY",
+        orderDate: firstOrderDate,
+        total: 1000,
+        brokerFee: 10,
+        unitPrice: 20,
+        quantity: 49.5,
+        createdAt: firstOrderDate,
+        updatedAt: firstOrderDate,
+      },
+      {
+        id: "order-buy-second",
+        assetId: "market-petr4",
+        side: "BUY",
+        orderDate: secondOrderDate,
+        total: 600,
+        brokerFee: 6,
+        unitPrice: 24,
+        quantity: 24.75,
+        createdAt: secondOrderDate,
+        updatedAt: secondOrderDate,
       },
     ],
   };
@@ -208,5 +257,48 @@ describe("Manual market order action", () => {
         quantity: expect.closeTo(1188 / 24),
       }),
     });
+  });
+
+  it("deletes an order and recalculates the remaining position", async () => {
+    const asset = createAssetWithTwoBuyOrders();
+    mocks.prisma.manualMarketOrder.findUnique.mockResolvedValue({
+      ...asset.orders[1],
+      asset,
+    });
+
+    await expect(
+      deleteManualMarketOrder(createFormData({ orderId: "order-buy-second" })),
+    ).rejects.toThrow("REDIRECT:/investments?market=order-deleted");
+
+    expect(mocks.prisma.manualMarketOrder.delete).toHaveBeenCalledWith({
+      where: { id: "order-buy-second" },
+    });
+    expect(mocks.prisma.manualMarketAsset.update).toHaveBeenCalledWith({
+      where: { id: "market-petr4" },
+      data: {
+        quantity: 49.5,
+        averagePrice: 1000 / 49.5,
+      },
+    });
+  });
+
+  it("removes the manual asset when its last order is deleted", async () => {
+    const asset = createAssetWithBuyOrder();
+    mocks.prisma.manualMarketOrder.findUnique.mockResolvedValue({
+      ...asset.orders[0],
+      asset,
+    });
+
+    await expect(
+      deleteManualMarketOrder(createFormData({ orderId: "order-buy" })),
+    ).rejects.toThrow("REDIRECT:/investments?market=order-deleted");
+
+    expect(mocks.prisma.manualMarketOrder.delete).toHaveBeenCalledWith({
+      where: { id: "order-buy" },
+    });
+    expect(mocks.prisma.manualMarketAsset.delete).toHaveBeenCalledWith({
+      where: { id: "market-petr4" },
+    });
+    expect(mocks.prisma.manualMarketAsset.update).not.toHaveBeenCalled();
   });
 });
