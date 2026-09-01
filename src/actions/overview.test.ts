@@ -137,6 +137,51 @@ describe("Spending pace action", () => {
         total: 200,
         daysInMonth: 31,
       },
+      cashFlow: {
+        current: {
+          receipts: 900,
+          expenses: 250,
+          balance: 650,
+          savingsRate: (650 / 900) * 100,
+          estimatedInvestmentCapacity: 650,
+        },
+        previous: {
+          receipts: 0,
+          expenses: 200,
+          balance: -200,
+          savingsRate: null,
+          estimatedInvestmentCapacity: 0,
+        },
+      },
+      overviewBalances: {
+        accounts: [
+          {
+            id: "Conta A-BRL",
+            bankName: "Conta A",
+            bankLogoPath: null,
+            accountLabel: "Conta corrente",
+            accountCount: 1,
+            balance: 1000,
+            currencyCode: "BRL",
+          },
+          {
+            id: "Conta B-BRL",
+            bankName: "Conta B",
+            bankLogoPath: null,
+            accountLabel: "Conta corrente",
+            accountCount: 1,
+            balance: 2000,
+            currencyCode: "BRL",
+          },
+        ],
+        totalAccountBalance: 3000,
+        totalAccountCount: 2,
+        accountCurrencyCode: "BRL",
+        cards: [],
+        totalAvailableCredit: 0,
+        totalCreditLimit: 0,
+        creditCurrencyCode: "BRL",
+      },
       accountCount: 2,
       points: [
         { day: 1, current: 100, previous: 80 },
@@ -263,6 +308,227 @@ describe("Spending pace action", () => {
       day: 10,
       current: 175,
       previous: 0,
+    });
+  });
+
+  it("returns the monthly cash flow excluding non-financial movements", async () => {
+    mocks.getConnectedAccounts.mockResolvedValue({
+      itemCount: 1,
+      error: null,
+      accounts: [
+        {
+          id: "account-a",
+          itemId: "item-a",
+          type: "BANK",
+          subtype: "CHECKING_ACCOUNT",
+          number: "0001",
+          balance: 1000,
+          name: "Conta A",
+          marketingName: "Conta principal",
+          currencyCode: "BRL",
+        },
+      ],
+    });
+    mocks.fetchAllTransactions.mockResolvedValue([
+      {
+        id: "salary",
+        accountId: "account-a",
+        date: new Date("2026-08-05T12:00:00.000Z"),
+        type: "CREDIT",
+        amount: 1000,
+        category: "Salary",
+        categoryId: "01010000",
+      },
+      {
+        id: "expense",
+        accountId: "account-a",
+        date: new Date("2026-08-10T12:00:00.000Z"),
+        type: "DEBIT",
+        amount: 300,
+        category: "Groceries",
+        categoryId: "10000000",
+      },
+      {
+        id: "investment",
+        accountId: "account-a",
+        date: new Date("2026-08-12T12:00:00.000Z"),
+        type: "DEBIT",
+        amount: 500,
+        category: "Investments",
+        categoryId: "03000000",
+        operationType: "APLIC_FINANCEIRA",
+      },
+      {
+        id: "previous-salary",
+        accountId: "account-a",
+        date: new Date("2026-07-05T12:00:00.000Z"),
+        type: "CREDIT",
+        amount: 800,
+        category: "Salary",
+        categoryId: "01010000",
+      },
+    ]);
+
+    const result = await getSpendingPace();
+
+    expect(result.cashFlow).toEqual({
+      current: {
+        receipts: 1000,
+        expenses: 300,
+        balance: 700,
+        savingsRate: 70,
+        estimatedInvestmentCapacity: 700,
+      },
+      previous: {
+        receipts: 800,
+        expenses: 0,
+        balance: 800,
+        savingsRate: 100,
+        estimatedInvestmentCapacity: 800,
+      },
+    });
+  });
+
+  it("returns connected account balances and available credit for overview cards", async () => {
+    mocks.getConnectedAccounts.mockResolvedValue({
+      itemCount: 2,
+      error: null,
+      accounts: [
+        {
+          id: "bank-nu",
+          itemId: "item-nu",
+          type: "BANK",
+          subtype: "CHECKING_ACCOUNT",
+          number: "0001",
+          balance: 1460.26,
+          name: "Conta corrente",
+          marketingName: "Nu Pagamentos S.A.",
+          currencyCode: "BRL",
+          creditData: null,
+        },
+        {
+          id: "bank-inter",
+          itemId: "item-inter",
+          type: "BANK",
+          subtype: "SAVINGS_ACCOUNT",
+          number: "0002",
+          balance: 1489.46,
+          name: "Poupança",
+          marketingName: "BANCO INTER",
+          currencyCode: "BRL",
+          creditData: null,
+        },
+        {
+          id: "card-inter",
+          itemId: "item-inter",
+          type: "CREDIT",
+          subtype: "CREDIT_CARD",
+          number: "****8896",
+          balance: 1340.67,
+          name: "GOLD",
+          marketingName: null,
+          currencyCode: "BRL",
+          creditData: {
+            availableCreditLimit: 64.38,
+            creditLimit: 1405.05,
+          },
+        },
+      ],
+    });
+    mocks.fetchAllTransactions.mockResolvedValue([]);
+
+    const result = await getSpendingPace();
+
+    expect(result).toMatchObject({
+      overviewBalances: {
+        totalAccountBalance: 2949.72,
+        accountCurrencyCode: "BRL",
+        accounts: [
+          {
+            id: "Nubank-BRL",
+            bankName: "Nubank",
+            bankLogoPath: "/assets/banks/nubank.svg",
+            accountLabel: "Conta corrente",
+            balance: 1460.26,
+            currencyCode: "BRL",
+          },
+          {
+            id: "Inter-BRL",
+            bankName: "Inter",
+            bankLogoPath: "/assets/banks/inter.svg",
+            accountLabel: "Poupança",
+            balance: 1489.46,
+            currencyCode: "BRL",
+          },
+        ],
+        totalAvailableCredit: 64.38,
+        totalCreditLimit: 1405.05,
+        creditCurrencyCode: "BRL",
+        cards: [
+          {
+            id: "card-inter",
+            bankName: "Inter",
+            bankLogoPath: "/assets/banks/inter.svg",
+            name: "GOLD",
+            lastFourDigits: "8896",
+            availableAmount: 64.38,
+            creditLimit: 1405.05,
+            currencyCode: "BRL",
+          },
+        ],
+      },
+    });
+  });
+
+  it("aggregates connected account balances by bank", async () => {
+    mocks.getConnectedAccounts.mockResolvedValue({
+      itemCount: 1,
+      error: null,
+      accounts: [
+        {
+          id: "checking-nu",
+          itemId: "item-nu",
+          type: "BANK",
+          subtype: "CHECKING_ACCOUNT",
+          number: "0001",
+          balance: 1000,
+          name: "Conta corrente",
+          marketingName: "Nu Pagamentos S.A.",
+          currencyCode: "BRL",
+          creditData: null,
+        },
+        {
+          id: "savings-nu",
+          itemId: "item-nu",
+          type: "BANK",
+          subtype: "SAVINGS_ACCOUNT",
+          number: "0002",
+          balance: 500,
+          name: "Poupança",
+          marketingName: "Nubank",
+          currencyCode: "BRL",
+          creditData: null,
+        },
+      ],
+    });
+    mocks.fetchAllTransactions.mockResolvedValue([]);
+
+    const result = await getSpendingPace();
+
+    expect(result.overviewBalances).toMatchObject({
+      accounts: [
+        {
+          id: "Nubank-BRL",
+          bankName: "Nubank",
+          bankLogoPath: "/assets/banks/nubank.svg",
+          accountLabel: "2 contas",
+          accountCount: 2,
+          balance: 1500,
+          currencyCode: "BRL",
+        },
+      ],
+      totalAccountBalance: 1500,
+      totalAccountCount: 2,
     });
   });
 

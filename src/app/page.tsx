@@ -2,7 +2,12 @@ import { ArrowUpRight02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { getSpendingPace } from "@/actions/overview";
+import { CashFlowCard } from "@/components/cash-flow-card";
 import { DashboardShell } from "@/components/dashboard-shell";
+import {
+  AccountsBalanceCard,
+  AvailableCreditCard,
+} from "@/components/overview-balance-cards";
 import { SpendingPaceChart } from "@/components/spending-pace-chart";
 import { getSpendingComparison } from "@/lib/spending-comparison";
 
@@ -83,9 +88,9 @@ export default async function Page() {
       ) : null}
 
       <div className="grid grid-cols-12 gap-4">
-        <section className="col-span-12 min-w-0 rounded-2xl border bg-card p-4 lg:col-span-6 md:p-5">
+        <section className="col-span-12 min-w-0 rounded-2xl border bg-card p-4 lg:col-span-12 md:p-5">
           <div className="flex items-start justify-between gap-4">
-            <h2 className="text-sm font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+            <h2 className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">
               Ritmo de gastos
             </h2>
             <a
@@ -102,8 +107,8 @@ export default async function Page() {
             </a>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <p className="text-3xl font-semibold tracking-[-0.03em] tabular-nums md:text-4xl">
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <p className="text-2xl font-semibold tracking-[-0.03em] tabular-nums md:text-3xl">
               {formatCurrency(comparison.difference)}
             </p>
             <p className={`text-sm font-medium ${comparison.className}`}>
@@ -150,6 +155,16 @@ export default async function Page() {
             </div>
           )}
         </section>
+
+        <CashFlowCard
+          current={result.cashFlow.current}
+          previous={result.cashFlow.previous}
+          currentMonthLabel={result.currentMonth.label}
+          previousMonthLabel={result.previousMonth.label}
+        />
+
+        <AccountsBalanceCard overviewBalances={result.overviewBalances} />
+        <AvailableCreditCard overviewBalances={result.overviewBalances} />
       </div>
     </DashboardShell>
   );

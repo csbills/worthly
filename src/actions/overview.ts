@@ -3,6 +3,15 @@
 import { getConnectedAccounts } from "@/actions/pluggy";
 import { getPluggyClient } from "@/lib/pluggy";
 import {
+  type CashFlowSummary,
+  type CashFlowTransactionInput,
+  summarizeCashFlow,
+} from "../lib/cash-flow";
+import {
+  type OverviewBalances,
+  summarizeOverviewBalances,
+} from "../lib/overview-balances";
+import {
   getConnectedAccountNumbers,
   getInternalTransferTransactionIds,
   isExcludedFromFinancialReporting,
@@ -46,6 +55,11 @@ export type SpendingPaceResult = {
     total: number;
     daysInMonth: number;
   };
+  cashFlow: {
+    current: CashFlowSummary;
+    previous: CashFlowSummary;
+  };
+  overviewBalances: OverviewBalances;
   accountCount: number;
   points: SpendingPacePoint[];
   error: string | null;
@@ -170,10 +184,11 @@ function collectMonthlyAmounts(
 ) {
   const currentDailyAmounts = new Map<number, number>();
   const previousDailyAmounts = new Map<number, number>();
+  const currentCashFlowTransactions: CashFlowTransactionInput[] = [];
+  const previousCashFlowTransactions: CashFlowTransactionInput[] = [];
 
   for (const transaction of transactions) {
     if (
-      transaction.type !== "DEBIT" ||
       isExcludedFromFinancialReporting(
         transaction,
         internalTransferIds,
@@ -189,17 +204,31 @@ function collectMonthlyAmounts(
     const amount = Math.abs(transaction.amount);
 
     if (monthKey === currentMonth.key && date.day <= currentElapsedDays) {
-      addDailyAmount(currentDailyAmounts, date.day, amount);
+      if (transaction.type === "DEBIT") {
+        addDailyAmount(currentDailyAmounts, date.day, amount);
+      }
+      currentCashFlowTransactions.push({
+        type: transaction.type,
+        amount: transaction.amount,
+      });
     }
 
     if (monthKey === previousMonth.key) {
-      addDailyAmount(previousDailyAmounts, date.day, amount);
+      if (transaction.type === "DEBIT") {
+        addDailyAmount(previousDailyAmounts, date.day, amount);
+      }
+      previousCashFlowTransactions.push({
+        type: transaction.type,
+        amount: transaction.amount,
+      });
     }
   }
 
   return {
     currentDailyAmounts,
     previousDailyAmounts,
+    currentCashFlow: summarizeCashFlow(currentCashFlowTransactions),
+    previousCashFlow: summarizeCashFlow(previousCashFlowTransactions),
   };
 }
 
@@ -220,11 +249,18 @@ export async function getSpendingPace(): Promise<SpendingPaceResult> {
       daysInMonth: previousMonth.daysInMonth,
     },
   };
+  const emptyCashFlow = {
+    current: summarizeCashFlow([]),
+    previous: summarizeCashFlow([]),
+  };
   const accountResult = await getConnectedAccounts();
+  const overviewBalances = summarizeOverviewBalances(accountResult.accounts);
 
   if (accountResult.accounts.length === 0) {
     return {
       ...emptyMonths,
+      cashFlow: emptyCashFlow,
+      overviewBalances,
       accountCount: 0,
       points: [],
       error: accountResult.error,
@@ -252,7 +288,12 @@ export async function getSpendingPace(): Promise<SpendingPaceResult> {
     const connectedAccountNumbers = getConnectedAccountNumbers(
       accountResult.accounts,
     );
-    const { currentDailyAmounts, previousDailyAmounts } = collectMonthlyAmounts(
+    const {
+      currentDailyAmounts,
+      previousDailyAmounts,
+      currentCashFlow,
+      previousCashFlow,
+    } = collectMonthlyAmounts(
       transactions,
       currentMonth,
       previousMonth,
@@ -270,6 +311,11 @@ export async function getSpendingPace(): Promise<SpendingPaceResult> {
         ...emptyMonths.previousMonth,
         total: getCumulativeTotal(previousDailyAmounts),
       },
+      cashFlow: {
+        current: currentCashFlow,
+        previous: previousCashFlow,
+      },
+      overviewBalances,
       accountCount: accountResult.accounts.length,
       points: buildPoints(
         currentMonth,
@@ -287,6 +333,8 @@ export async function getSpendingPace(): Promise<SpendingPaceResult> {
   } catch {
     return {
       ...emptyMonths,
+      cashFlow: emptyCashFlow,
+      overviewBalances,
       accountCount: accountResult.accounts.length,
       points: [],
       error: "Não foi possível consultar as transações na Pluggy.",
