@@ -102,22 +102,32 @@ export async function getCreditCards(): Promise<CreditCardsResult> {
     const cards = await Promise.all(
       creditAccounts.map(async (account) => {
         const bankDetails = await getBankDetailsForAccount(account);
-
-        try {
-          const bills = await client.fetchCreditCardBills(account.id, {
+        const [billsResult, transactionsResult] = await Promise.allSettled([
+          client.fetchCreditCardBills(account.id, {
             pageSize: 500,
-          });
+          }),
+          client.fetchAllTransactions(account.id),
+        ]);
+        const bills =
+          billsResult.status === "fulfilled" ? billsResult.value.results : [];
+        const transactions =
+          transactionsResult.status === "fulfilled"
+            ? transactionsResult.value
+            : [];
 
-          return normalizeCreditCard(account, bankDetails, bills.results, now);
-        } catch {
-          return normalizeCreditCard(
-            account,
-            bankDetails,
-            [],
-            now,
-            "Histórico de faturas não disponível para este cartão.",
-          );
-        }
+        return normalizeCreditCard(
+          account,
+          bankDetails,
+          bills,
+          now,
+          billsResult.status === "rejected"
+            ? "Histórico de faturas não disponível para este cartão."
+            : null,
+          transactions,
+          transactionsResult.status === "rejected"
+            ? "Compras da próxima fatura não disponíveis para este cartão."
+            : null,
+        );
       }),
     );
 

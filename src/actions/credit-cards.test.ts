@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getConnectedAccounts: vi.fn(),
   fetchItem: vi.fn(),
   fetchCreditCardBills: vi.fn(),
+  fetchAllTransactions: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -14,6 +15,7 @@ vi.mock("@/lib/pluggy", () => ({
   getPluggyClient: () => ({
     fetchItem: mocks.fetchItem,
     fetchCreditCardBills: mocks.fetchCreditCardBills,
+    fetchAllTransactions: mocks.fetchAllTransactions,
   }),
 }));
 
@@ -22,6 +24,7 @@ import { getCreditCards } from "./credit-cards";
 describe("credit card action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.fetchAllTransactions.mockResolvedValue([]);
   });
 
   it("filters credit accounts and resolves the bank from the Pluggy item", async () => {
@@ -83,6 +86,15 @@ describe("credit card action", () => {
         },
       ],
     });
+    mocks.fetchAllTransactions.mockResolvedValue([
+      {
+        id: "transaction-next-bill",
+        date: new Date("2026-08-26T03:00:00.000Z"),
+        type: "DEBIT",
+        amount: 245,
+        creditCardMetadata: null,
+      },
+    ]);
 
     await expect(getCreditCards()).resolves.toEqual({
       cards: [
@@ -99,6 +111,12 @@ describe("credit card action", () => {
             closingDate: "2026-08-25T00:00:00.000Z",
             dueDate: "2026-09-02T00:00:00.000Z",
           },
+          nextBillInProgress: {
+            amount: 245,
+            transactionCount: 1,
+            closingDate: "2026-09-25T00:00:00.000Z",
+            dueDate: "2026-10-02T00:00:00.000Z",
+          },
           creditLimit: 1405.05,
           usedAmount: 1169.94,
           availableAmount: 235.11,
@@ -112,6 +130,7 @@ describe("credit card action", () => {
     expect(mocks.fetchCreditCardBills).toHaveBeenCalledWith("credit-card", {
       pageSize: 500,
     });
+    expect(mocks.fetchAllTransactions).toHaveBeenCalledWith("credit-card");
   });
 
   it("returns an empty result when no credit account is connected", async () => {

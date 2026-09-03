@@ -1,11 +1,14 @@
 "use client";
 
-import { PlusSignIcon } from "@hugeicons/core-free-icons";
+import { Delete02Icon, PlusSignIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { saveManualCryptoOrder } from "@/actions/manual-crypto-orders";
+import {
+  deleteManualCryptoOrder,
+  saveManualCryptoOrder,
+} from "@/actions/manual-crypto-orders";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -104,6 +107,23 @@ function SaveOrderButton() {
   );
 }
 
+function DeleteOrderButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button
+      type="submit"
+      variant="ghost"
+      size="sm"
+      disabled={pending}
+      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+    >
+      <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} aria-hidden="true" />
+      <span>{pending ? "Excluindo…" : "Excluir"}</span>
+    </Button>
+  );
+}
+
 function OrderList({
   orders,
   onEdit,
@@ -152,14 +172,31 @@ function OrderList({
                     {formatCurrency(order.brokerFee)}
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onEdit(order)}
-                >
-                  Editar
-                </Button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEdit(order)}
+                  >
+                    Editar
+                  </Button>
+                  <form
+                    action={deleteManualCryptoOrder}
+                    onSubmit={(event) => {
+                      if (
+                        !window.confirm(
+                          "Excluir esta ordem? A posição será recalculada e essa ação não poderá ser desfeita.",
+                        )
+                      ) {
+                        event.preventDefault();
+                      }
+                    }}
+                  >
+                    <input type="hidden" name="orderId" value={order.id} />
+                    <DeleteOrderButton />
+                  </form>
+                </div>
               </div>
             </div>
           ))}

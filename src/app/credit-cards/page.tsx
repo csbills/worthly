@@ -215,10 +215,10 @@ function CreditCardItem({ card }: { card: CreditCardView }) {
 
         <div className="mt-6">
           <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <span>Fatura em aberto</span>
+            <span>Fatura a pagar</span>
             <HugeiconsIcon
               icon={InformationCircleIcon}
-              aria-label="O valor representa o saldo aberto atual do cartão"
+              aria-label="O valor representa a fatura aberta que vence mais próximo"
               className="size-3.5"
               strokeWidth={2}
             />
@@ -242,6 +242,52 @@ function CreditCardItem({ card }: { card: CreditCardView }) {
             </strong>
           </span>
         </div>
+
+        {card.nextBillInProgress ? (
+          <div className="mt-5 border-t pt-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Próxima fatura em formação
+                </p>
+                <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
+                  {formatCurrency(
+                    card.nextBillInProgress.amount,
+                    card.currencyCode,
+                  )}
+                </p>
+              </div>
+              <div className="text-right text-xs text-muted-foreground">
+                <p>
+                  Fecha{" "}
+                  <strong className="font-medium text-foreground">
+                    {formatCreditCardDueDate(
+                      card.nextBillInProgress.closingDate,
+                    )}
+                  </strong>
+                </p>
+                <p className="mt-1">
+                  Vence{" "}
+                  <strong className="font-medium text-foreground">
+                    {formatCreditCardDueDate(card.nextBillInProgress.dueDate)}
+                  </strong>
+                </p>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {card.nextBillInProgress.transactionCount}{" "}
+              {card.nextBillInProgress.transactionCount === 1
+                ? "compra após o último fechamento"
+                : "compras após o último fechamento"}
+            </p>
+          </div>
+        ) : null}
+
+        {card.nextBillError ? (
+          <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
+            {card.nextBillError}
+          </p>
+        ) : null}
 
         {card.latestClosedBill ? (
           <div className="mt-4 border-t pt-3">

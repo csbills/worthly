@@ -336,3 +336,71 @@ export async function saveManualCryptoOrder(
   revalidatePath(investmentsPath);
   redirect(`${investmentsPath}?crypto=order-saved`);
 }
+
+export async function deleteManualCryptoOrder(
+  formData: FormData,
+): Promise<never> {
+  const orderId = getFormString(formData, "orderId");
+
+  if (!orderId) {
+    redirect(`${investmentsPath}?crypto=invalid-order`);
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const existingOrder = await tx.manualCryptoOrder.findUnique({
+        where: { id: orderId },
+        include: {
+          asset: {
+            include: {
+              orders: {
+                orderBy: [{ orderDate: "asc" }, { createdAt: "asc" }],
+              },
+            },
+          },
+        },
+      });
+
+      if (!existingOrder) {
+        throw new InvalidCryptoOrderError();
+      }
+
+      const remainingOrders = getStoredAssetOrders(existingOrder.asset).filter(
+        (order) => order.id !== orderId,
+      );
+
+      await tx.manualCryptoOrder.delete({
+        where: { id: orderId },
+      });
+
+      if (remainingOrders.length === 0) {
+        await tx.manualCryptoAsset.delete({
+          where: { id: existingOrder.assetId },
+        });
+        return;
+      }
+
+      const position = calculateCryptoPosition(remainingOrders);
+
+      await tx.manualCryptoAsset.update({
+        where: { id: existingOrder.assetId },
+        data: {
+          quantity: position.quantity,
+          averagePrice: position.averagePrice,
+        },
+      });
+    });
+  } catch (error) {
+    if (
+      error instanceof InsufficientCryptoQuantityError ||
+      error instanceof InvalidCryptoOrderError
+    ) {
+      redirect(`${investmentsPath}?crypto=invalid-order`);
+    }
+
+    redirect(`${investmentsPath}?crypto=order-error`);
+  }
+
+  revalidatePath(investmentsPath);
+  redirect(`${investmentsPath}?crypto=order-deleted`);
+}

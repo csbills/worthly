@@ -54,4 +54,46 @@ describe("CreditCardsPage", () => {
     expect(markup).toContain('data-testid="installments-section"');
     expect(markup).toContain("Parcelamentos integrados");
   });
+
+  it("separates the open invoice from the next invoice in progress", async () => {
+    mocks.getCreditCards.mockResolvedValue({
+      cards: [
+        {
+          id: "credit-card",
+          itemId: "item-inter",
+          name: "GOLD",
+          level: "GOLD",
+          brand: "MASTERCARD",
+          bankName: "Inter",
+          bankLogoPath: null,
+          lastFourDigits: "8896",
+          openBalanceAmount: 1169.94,
+          openDueDate: "2026-09-02T00:00:00.000Z",
+          latestClosedBill: null,
+          nextBillInProgress: {
+            amount: 245,
+            transactionCount: 2,
+            closingDate: "2026-09-25T00:00:00.000Z",
+            dueDate: "2026-10-02T00:00:00.000Z",
+          },
+          billError: null,
+          nextBillError: null,
+          creditLimit: 1405.05,
+          usedAmount: 1169.94,
+          availableAmount: 235.11,
+          currencyCode: "BRL",
+          status: "ACTIVE",
+        },
+      ],
+      totalOpenBalance: 1169.94,
+      error: null,
+    });
+
+    const page = await CreditCardsPage();
+    const markup = renderToStaticMarkup(page);
+
+    expect(markup).toContain("Fatura a pagar");
+    expect(markup).toContain("Próxima fatura em formação");
+    expect(markup).toContain("2 compras");
+  });
 });

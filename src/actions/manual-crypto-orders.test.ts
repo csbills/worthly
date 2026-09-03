@@ -6,11 +6,13 @@ const mocks = vi.hoisted(() => ({
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
     manualCryptoOrder: {
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
     $transaction: vi.fn(),
   },
@@ -42,7 +44,10 @@ vi.mock("@/lib/crypto-assets", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
-import { saveManualCryptoOrder } from "./manual-crypto-orders";
+import {
+  deleteManualCryptoOrder,
+  saveManualCryptoOrder,
+} from "./manual-crypto-orders";
 
 function createFormData(values: Record<string, string>) {
   const formData = new FormData();
@@ -57,6 +62,7 @@ function createFormData(values: Record<string, string>) {
 function createStoredOrder(overrides: Record<string, unknown> = {}) {
   return {
     id: "order-buy",
+    assetId: "asset-btc",
     side: "BUY",
     orderDate: new Date("2026-08-01T15:00:00.000Z"),
     total: 1000,
@@ -85,6 +91,27 @@ function createStoredAsset(orders = [createStoredOrder()]) {
     createdAt: new Date("2026-08-01T15:00:00.000Z"),
     updatedAt: new Date("2026-08-01T15:00:00.000Z"),
     orders,
+  };
+}
+
+function createAssetWithTwoBuyOrders() {
+  const firstOrder = createStoredOrder();
+  const secondOrder = createStoredOrder({
+    id: "order-buy-second",
+    orderDate: new Date("2026-08-15T15:00:00.000Z"),
+    createdAt: new Date("2026-08-15T15:00:00.000Z"),
+    updatedAt: new Date("2026-08-15T15:00:00.000Z"),
+    total: 500,
+    unitPrice: 50,
+    quantity: 10,
+  });
+
+  return {
+    ...createStoredAsset([firstOrder, secondOrder]),
+    quantity: 20,
+    averagePrice: 75,
+    purchaseTotal: 1500,
+    purchasePrice: 75,
   };
 }
 
@@ -194,5 +221,49 @@ describe("Manual crypto order action", () => {
         orderDate: expect.any(Date),
       }),
     });
+  });
+
+  it("deletes an order and recalculates the remaining crypto position", async () => {
+    const asset = createAssetWithTwoBuyOrders();
+    mocks.prisma.manualCryptoOrder.findUnique.mockResolvedValue({
+      ...asset.orders[1],
+      asset,
+    });
+
+    await expect(
+      deleteManualCryptoOrder(createFormData({ orderId: "order-buy-second" })),
+    ).rejects.toThrow("REDIRECT:/investments?crypto=order-deleted");
+
+    expect(mocks.prisma.manualCryptoOrder.delete).toHaveBeenCalledWith({
+      where: { id: "order-buy-second" },
+    });
+    expect(mocks.prisma.manualCryptoAsset.update).toHaveBeenCalledWith({
+      where: { id: "asset-btc" },
+      data: {
+        quantity: 10,
+        averagePrice: 100,
+      },
+    });
+    expect(mocks.prisma.manualCryptoAsset.delete).not.toHaveBeenCalled();
+  });
+
+  it("removes the manual crypto asset when its last order is deleted", async () => {
+    const asset = createStoredAsset();
+    mocks.prisma.manualCryptoOrder.findUnique.mockResolvedValue({
+      ...asset.orders[0],
+      asset,
+    });
+
+    await expect(
+      deleteManualCryptoOrder(createFormData({ orderId: "order-buy" })),
+    ).rejects.toThrow("REDIRECT:/investments?crypto=order-deleted");
+
+    expect(mocks.prisma.manualCryptoOrder.delete).toHaveBeenCalledWith({
+      where: { id: "order-buy" },
+    });
+    expect(mocks.prisma.manualCryptoAsset.delete).toHaveBeenCalledWith({
+      where: { id: "asset-btc" },
+    });
+    expect(mocks.prisma.manualCryptoAsset.update).not.toHaveBeenCalled();
   });
 });
