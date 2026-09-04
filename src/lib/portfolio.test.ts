@@ -283,4 +283,37 @@ describe("Portfolio aggregation", () => {
       },
     ]);
   });
+
+  it("carries investment income into currency and category totals", () => {
+    const assets = buildPortfolioAssets(
+      [
+        {
+          id: "pluggy-equity",
+          itemId: "item-a",
+          name: "PETR4",
+          type: "EQUITY",
+          subtype: "STOCK",
+          currencyCode: "BRL",
+          balance: 1100,
+          amountOriginal: 1000,
+          amountProfit: 125,
+          income: 25,
+          quantity: 10,
+          institutionName: "Corretora",
+          issuer: null,
+          positionCount: 1,
+          dueDate: null,
+        },
+      ],
+      [],
+    );
+
+    const [currency] = summarizePortfolioAssets(assets);
+
+    expect(assets[0]).toMatchObject({ income: 25 });
+    expect(currency).toMatchObject({
+      income: 25,
+      categories: [expect.objectContaining({ income: 25 })],
+    });
+  });
 });

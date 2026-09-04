@@ -47,6 +47,7 @@ export type SerializedInvestment = {
   amountWithdrawal: number | null;
   amountProfit: number | null;
   amountOriginal: number | null;
+  income: number | null;
   quantity: number | null;
   value: number | null;
   rate: number | null;
@@ -68,6 +69,7 @@ export type InvestmentCategorySummary = {
   balance: number;
   amountOriginal: number | null;
   amountProfit: number | null;
+  income: number | null;
 };
 
 export type InvestmentCurrencySummary = {
@@ -76,6 +78,7 @@ export type InvestmentCurrencySummary = {
   balance: number;
   amountOriginal: number | null;
   amountProfit: number | null;
+  income: number | null;
   categories: InvestmentCategorySummary[];
 };
 
@@ -90,7 +93,105 @@ function serializeDate(date: Date | null | undefined) {
   return date?.toISOString() ?? null;
 }
 
-function serializeInvestment(investment: Investment): SerializedInvestment {
+type InvestmentTransactionRecord = {
+  type: string | null;
+  amount: number | null;
+  netAmount: number | null;
+};
+
+function getTransactionAmount(transaction: InvestmentTransactionRecord) {
+  const amount = transaction.netAmount ?? transaction.amount;
+
+  return typeof amount === "number" && Number.isFinite(amount)
+    ? Math.abs(amount)
+    : null;
+}
+
+function sumTransactionAmounts(
+  transactions: InvestmentTransactionRecord[],
+  type: string,
+) {
+  let total = 0;
+  let hasValue = false;
+
+  for (const transaction of transactions) {
+    if (transaction.type !== type) {
+      continue;
+    }
+
+    const amount = getTransactionAmount(transaction);
+
+    if (amount === null) {
+      continue;
+    }
+
+    total += amount;
+    hasValue = true;
+  }
+
+  return hasValue ? total : null;
+}
+
+function getInvestmentPerformance(
+  investment: Investment,
+  transactions: InvestmentTransactionRecord[] | null,
+) {
+  const income =
+    transactions === null
+      ? null
+      : (sumTransactionAmounts(transactions, "INTEREST") ?? 0);
+  const bought =
+    transactions === null ? null : sumTransactionAmounts(transactions, "BUY");
+  const sold =
+    transactions === null
+      ? null
+      : (sumTransactionAmounts(transactions, "SELL") ?? 0);
+  const amortized =
+    transactions === null
+      ? null
+      : (sumTransactionAmounts(transactions, "AMORTIZATION") ?? 0);
+  const taxes =
+    transactions === null
+      ? null
+      : (sumTransactionAmounts(transactions, "TAX") ?? 0);
+  const amountOriginal = investment.amountOriginal ?? bought;
+
+  if (investment.amountProfit !== null) {
+    return {
+      amountOriginal,
+      amountProfit: investment.amountProfit,
+      income,
+    };
+  }
+
+  if (transactions !== null && bought !== null) {
+    return {
+      amountOriginal,
+      amountProfit:
+        investment.balance +
+        (sold ?? 0) +
+        (income ?? 0) +
+        (amortized ?? 0) -
+        bought -
+        (taxes ?? 0),
+      income,
+    };
+  }
+
+  return {
+    amountOriginal,
+    amountProfit:
+      amountOriginal === null ? null : investment.balance - amountOriginal,
+    income,
+  };
+}
+
+function serializeInvestment(
+  investment: Investment,
+  transactions: InvestmentTransactionRecord[] | null = null,
+): SerializedInvestment {
+  const performance = getInvestmentPerformance(investment, transactions);
+
   return {
     id: investment.id,
     itemId: investment.itemId,
@@ -104,8 +205,9 @@ function serializeInvestment(investment: Investment): SerializedInvestment {
     hasMultipleRates: false,
     amount: investment.amount ?? null,
     amountWithdrawal: investment.amountWithdrawal ?? null,
-    amountProfit: investment.amountProfit ?? null,
-    amountOriginal: investment.amountOriginal ?? null,
+    amountProfit: performance.amountProfit,
+    amountOriginal: performance.amountOriginal,
+    income: performance.income,
     quantity: investment.quantity ?? null,
     value: investment.value ?? null,
     rate: investment.rate ?? null,
@@ -118,6 +220,23 @@ function serializeInvestment(investment: Investment): SerializedInvestment {
     institutionName: investment.institution?.name ?? null,
     issuer: investment.issuer ?? null,
   };
+}
+
+async function fetchInvestmentTransactions(
+  client: ReturnType<typeof getPluggyClient>,
+  investment: Investment,
+) {
+  if (investment.balance <= 0) {
+    return null;
+  }
+
+  try {
+    return (await client.fetchAllInvestmentTransactions(
+      investment.id,
+    )) as InvestmentTransactionRecord[];
+  } catch {
+    return null;
+  }
 }
 
 async function fetchAllInvestments(
@@ -196,6 +315,7 @@ function consolidateInvestments(
       current.amountOriginal,
       investment.amountOriginal,
     );
+    current.income = addNullableValue(current.income, investment.income);
     current.quantity = addNullableValue(current.quantity, investment.quantity);
 
     if (
@@ -248,6 +368,7 @@ function summarizeInvestments(
       balance: number;
       amountOriginal: number | null;
       amountProfit: number | null;
+      income: number | null;
       categories: Map<InvestmentType, InvestmentCategorySummary>;
     }
   >();
@@ -261,6 +382,7 @@ function summarizeInvestments(
         balance: 0,
         amountOriginal: null,
         amountProfit: null,
+        income: null,
         categories: new Map(),
       };
       currencies.set(investment.currencyCode, currency);
@@ -276,6 +398,7 @@ function summarizeInvestments(
       currency.amountProfit,
       investment.amountProfit,
     );
+    currency.income = addNullableValue(currency.income, investment.income);
 
     let category = currency.categories.get(investment.type);
 
@@ -288,6 +411,7 @@ function summarizeInvestments(
         balance: 0,
         amountOriginal: null,
         amountProfit: null,
+        income: null,
       };
       currency.categories.set(investment.type, category);
     }
@@ -303,6 +427,7 @@ function summarizeInvestments(
       category.amountProfit,
       investment.amountProfit,
     );
+    category.income = addNullableValue(category.income, investment.income);
   }
 
   return [...currencies.entries()]
@@ -317,6 +442,7 @@ function summarizeInvestments(
       balance: summary.balance,
       amountOriginal: summary.amountOriginal,
       amountProfit: summary.amountProfit,
+      income: summary.income,
       categories: [...summary.categories.values()].sort(
         (left, right) =>
           investmentCategoryOrder.indexOf(left.key) -
@@ -345,13 +471,18 @@ export async function getInvestments(): Promise<InvestmentsResult> {
     const investmentResults = await Promise.allSettled(
       items.map(({ itemId }) => fetchAllInvestments(client, itemId)),
     );
-    const investments = consolidateInvestments(
-      investmentResults
-        .flatMap((result) =>
-          result.status === "fulfilled" ? result.value : [],
-        )
-        .map(serializeInvestment),
-    ).sort(
+    const fetchedInvestments = investmentResults.flatMap((result) =>
+      result.status === "fulfilled" ? result.value : [],
+    );
+    const serializedInvestments = await Promise.all(
+      fetchedInvestments.map(async (investment) =>
+        serializeInvestment(
+          investment,
+          await fetchInvestmentTransactions(client, investment),
+        ),
+      ),
+    );
+    const investments = consolidateInvestments(serializedInvestments).sort(
       (left, right) =>
         right.balance - left.balance || left.name.localeCompare(right.name),
     );

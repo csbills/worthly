@@ -237,6 +237,11 @@ function PortfolioAssetResult({ asset }: { asset: PortfolioAssetSummary }) {
           {formatSignedCurrency(asset.amountProfit, asset.currencyCode)}
         </span>
       </div>
+      {asset.income !== null ? (
+        <p className="mt-0.5 truncate text-xs text-muted-foreground tabular-nums">
+          Proventos {formatSignedCurrency(asset.income, asset.currencyCode)}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -322,6 +327,13 @@ function PortfolioCategory({
   category: PortfolioCategorySummary;
   currencyCode: CurrencyCode;
 }) {
+  const categoryProfitPercentage =
+    category.amountOriginal !== null &&
+    category.amountOriginal > 0 &&
+    category.amountProfit !== null
+      ? (category.amountProfit / category.amountOriginal) * 100
+      : null;
+
   return (
     <Collapsible
       defaultOpen={false}
@@ -347,13 +359,33 @@ function PortfolioCategory({
             </div>
           </div>
 
-          <div className="flex items-center gap-3 sm:text-right">
-            <div className="flex items-baseline gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 sm:text-right">
+            <div>
+              <p className="text-[11px] text-muted-foreground">Saldo atual</p>
               <p className="text-sm font-semibold tabular-nums">
                 {formatCurrency(category.balance, currencyCode)}
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                  {formatPercentage(category.percentageOfPortfolio)}
+                </span>
               </p>
-              <p className="text-xs text-muted-foreground tabular-nums">
-                {formatPercentage(category.percentageOfPortfolio)}
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Resultado</p>
+              <p
+                className={`text-sm font-semibold tabular-nums ${getProfitClassName(category.amountProfit)}`}
+              >
+                {formatSignedCurrency(category.amountProfit, currencyCode)}
+                <span className="ml-1.5 text-xs font-normal">
+                  {formatPercentage(categoryProfitPercentage)}
+                </span>
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Proventos</p>
+              <p
+                className={`text-sm font-semibold tabular-nums ${getProfitClassName(category.income)}`}
+              >
+                {formatSignedCurrency(category.income, currencyCode)}
               </p>
             </div>
             <HugeiconsIcon
@@ -387,7 +419,7 @@ function PortfolioCurrencyView({
 
   return (
     <section className="space-y-4">
-      <div className="grid gap-px overflow-hidden rounded-2xl border bg-border shadow-xs sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-px overflow-hidden rounded-2xl border bg-border shadow-xs sm:grid-cols-2 xl:grid-cols-5">
         <PortfolioMetric
           label="Patrimônio atual"
           value={formatCurrency(currency.balance, currency.currencyCode)}
@@ -416,6 +448,12 @@ function PortfolioCurrencyView({
           )}
           supportingText="Sobre o custo total"
           valueClassName={profitClassName}
+        />
+        <PortfolioMetric
+          label="Proventos"
+          value={formatSignedCurrency(currency.income, currency.currencyCode)}
+          supportingText="Dividendos, JCP e juros"
+          valueClassName={getProfitClassName(currency.income)}
         />
       </div>
 

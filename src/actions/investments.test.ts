@@ -7,12 +7,16 @@ const mocks = vi.hoisted(() => ({
     },
   },
   fetchInvestments: vi.fn(),
+  fetchAllInvestmentTransactions: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
 vi.mock("@/lib/pluggy", () => ({
-  getPluggyClient: () => ({ fetchInvestments: mocks.fetchInvestments }),
+  getPluggyClient: () => ({
+    fetchInvestments: mocks.fetchInvestments,
+    fetchAllInvestmentTransactions: mocks.fetchAllInvestmentTransactions,
+  }),
 }));
 
 import { getInvestments } from "./investments";
@@ -20,6 +24,7 @@ import { getInvestments } from "./investments";
 describe("Investments action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.fetchAllInvestmentTransactions.mockResolvedValue([]);
   });
 
   it("fetches every investment page and groups positions by currency and category", async () => {
@@ -188,6 +193,81 @@ describe("Investments action", () => {
             },
           ],
         },
+      ],
+    });
+  });
+
+  it("fills missing result and proventos from investment transactions", async () => {
+    mocks.prisma.pluggyItem.findMany.mockResolvedValue([
+      { itemId: "pluggy-item-a" },
+    ]);
+    mocks.fetchInvestments.mockResolvedValue({
+      page: 1,
+      total: 1,
+      totalPages: 1,
+      results: [
+        {
+          id: "investment-equity",
+          itemId: "pluggy-item-a",
+          name: "PETR4",
+          type: "EQUITY",
+          subtype: "STOCK",
+          currencyCode: "BRL",
+          balance: 1100,
+          amount: 1100,
+          amountOriginal: null,
+          amountProfit: null,
+          amountWithdrawal: 1125,
+          quantity: 10,
+          value: 110,
+          rate: null,
+          rateType: null,
+          annualRate: null,
+          lastTwelveMonthsRate: null,
+          date: null,
+          dueDate: null,
+          institution: { name: "Corretora", number: null },
+          issuer: null,
+        },
+      ],
+    });
+    mocks.fetchAllInvestmentTransactions.mockResolvedValue([
+      {
+        type: "BUY",
+        amount: 1000,
+        netAmount: 1000,
+        quantity: 10,
+        value: 100,
+      },
+      {
+        type: "INTEREST",
+        amount: 25,
+        netAmount: 25,
+        quantity: null,
+        value: null,
+      },
+    ]);
+
+    const result = await getInvestments();
+
+    expect(mocks.fetchAllInvestmentTransactions).toHaveBeenCalledWith(
+      "investment-equity",
+    );
+    expect(result.investments[0]).toMatchObject({
+      amountOriginal: 1000,
+      amountProfit: 125,
+      income: 25,
+    });
+    expect(result.currencies[0]).toMatchObject({
+      amountOriginal: 1000,
+      amountProfit: 125,
+      income: 25,
+      categories: [
+        expect.objectContaining({
+          amountOriginal: 1000,
+          amountProfit: 125,
+          income: 25,
+        }),
       ],
     });
   });

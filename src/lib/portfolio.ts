@@ -20,6 +20,7 @@ export type PortfolioInvestmentInput = {
   balance: number;
   amountOriginal: number | null;
   amountProfit: number | null;
+  income?: number | null;
   quantity: number | null;
   institutionName: string | null;
   issuer: string | null;
@@ -59,6 +60,7 @@ export type PortfolioManualMarketInput = {
   balance: number | null;
   amountOriginal: number | null;
   amountProfit: number | null;
+  income?: number | null;
   amountProfitPercentage: number | null;
   currencyCode: CurrencyCode;
   priceSource: "Yahoo Finance" | "Último preço salvo" | null;
@@ -84,6 +86,7 @@ export type PortfolioAsset = {
   balance: number | null;
   amountOriginal: number | null;
   amountProfit: number | null;
+  income: number | null;
   amountProfitPercentage: number | null;
   quantity: number | null;
   unitPrice: number | null;
@@ -114,6 +117,7 @@ export type PortfolioCategorySummary = {
   balance: number;
   amountOriginal: number | null;
   amountProfit: number | null;
+  income: number | null;
   percentageOfPortfolio: number;
   assets: PortfolioAssetSummary[];
 };
@@ -125,6 +129,7 @@ export type PortfolioCurrencySummary = {
   balance: number;
   amountOriginal: number | null;
   amountProfit: number | null;
+  income: number | null;
   categories: PortfolioCategorySummary[];
   assets: PortfolioAssetSummary[];
 };
@@ -248,6 +253,7 @@ export function buildPortfolioAssets(
       balance: investment.balance,
       amountOriginal: investment.amountOriginal,
       amountProfit: investment.amountProfit,
+      income: investment.income ?? null,
       amountProfitPercentage: getProfitPercentage(
         investment.amountProfit,
         investment.amountOriginal,
@@ -295,6 +301,7 @@ export function buildPortfolioAssets(
             : asset.currentPrice * asset.quantity,
         amountOriginal,
         amountProfit: asset.amountProfit,
+        income: null,
         amountProfitPercentage:
           asset.amountProfitPercentage ??
           getProfitPercentage(asset.amountProfit, amountOriginal),
@@ -330,6 +337,7 @@ export function buildPortfolioAssets(
       balance: asset.balance,
       amountOriginal: asset.amountOriginal,
       amountProfit: asset.amountProfit,
+      income: asset.income ?? null,
       amountProfitPercentage: asset.amountProfitPercentage,
       quantity: asset.quantity,
       unitPrice: asset.currentPrice,
@@ -366,6 +374,7 @@ export function summarizePortfolioAssets(
       balance: number;
       amountOriginal: number | null;
       amountProfit: number | null;
+      income: number | null;
       categories: Map<PortfolioCategoryKey, PortfolioCategorySummary>;
     }
   >();
@@ -377,6 +386,7 @@ export function summarizePortfolioAssets(
       balance: 0,
       amountOriginal: null,
       amountProfit: null,
+      income: null,
       categories: new Map<PortfolioCategoryKey, PortfolioCategorySummary>(),
     };
     currencies.set(asset.currencyCode, currency);
@@ -392,6 +402,7 @@ export function summarizePortfolioAssets(
       currency.amountProfit,
       asset.amountProfit,
     );
+    currency.income = addNullableValue(currency.income, asset.income);
 
     const category = currency.categories.get(asset.categoryKey) ?? {
       key: asset.categoryKey,
@@ -401,6 +412,7 @@ export function summarizePortfolioAssets(
       balance: 0,
       amountOriginal: null,
       amountProfit: null,
+      income: null,
       percentageOfPortfolio: 0,
       assets: [],
     };
@@ -417,6 +429,7 @@ export function summarizePortfolioAssets(
       category.amountProfit,
       asset.amountProfit,
     );
+    category.income = addNullableValue(category.income, asset.income);
     category.assets.push({
       ...asset,
       percentageOfCategory: 0,
@@ -474,6 +487,7 @@ export function summarizePortfolioAssets(
         balance: currency.balance,
         amountOriginal: currency.amountOriginal,
         amountProfit: currency.amountProfit,
+        income: currency.income,
         categories,
         assets: categories.flatMap((category) => category.assets),
       };
