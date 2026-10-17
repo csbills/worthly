@@ -15,6 +15,13 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   type InstallmentSummary,
   type InstallmentView,
   isInstallmentPaid,
@@ -22,6 +29,12 @@ import {
 
 type InstallmentTab = "active" | "completed";
 type InstallmentSort = "remaining" | "endDate" | "description";
+
+const installmentSortOptions: { value: InstallmentSort; label: string }[] = [
+  { value: "remaining", label: "Maior restante" },
+  { value: "endDate", label: "Última parcela" },
+  { value: "description", label: "Descrição" },
+];
 
 function formatCurrency(value: number, currencyCode: string) {
   return new Intl.NumberFormat("pt-BR", {
@@ -160,7 +173,7 @@ function InstallmentBank({ installment }: { installment: InstallmentView }) {
       ) : (
         <span
           aria-hidden="true"
-          className="flex size-4 shrink-0 items-center justify-center rounded-full border bg-muted text-[7px] font-semibold"
+          className="flex size-4 shrink-0 items-center justify-center rounded-full border bg-muted text-[7px] font-medium"
         >
           {getInitials(installment.bankName)}
         </span>
@@ -208,7 +221,7 @@ function InstallmentRow({ installment }: { installment: InstallmentView }) {
   );
 
   return (
-    <article className="overflow-hidden rounded-2xl border bg-card shadow-xs">
+    <article className="overflow-hidden surface">
       <button
         type="button"
         aria-controls={panelId}
@@ -227,14 +240,14 @@ function InstallmentRow({ installment }: { installment: InstallmentView }) {
 
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="truncate font-semibold text-foreground">
+            <span className="truncate font-medium text-foreground">
               {installment.description}
             </span>
             <span
               className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${
                 installment.status === "COMPLETED"
                   ? "bg-muted text-muted-foreground"
-                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                  : "bg-success/10 text-success-foreground"
               }`}
             >
               {statusLabel}
@@ -258,7 +271,7 @@ function InstallmentRow({ installment }: { installment: InstallmentView }) {
           </span>
           <span className="mt-3 block h-1.5 overflow-hidden rounded-full bg-muted">
             <span
-              className="block h-full rounded-full bg-emerald-500 transition-[width] duration-200"
+              className="block h-full rounded-full bg-success transition-[width] duration-200"
               style={{
                 width: `${Math.min(installment.progressPercentage, 100)}%`,
               }}
@@ -267,7 +280,7 @@ function InstallmentRow({ installment }: { installment: InstallmentView }) {
         </span>
 
         <span className="hidden shrink-0 text-right sm:block">
-          <span className="block font-semibold text-foreground">
+          <span className="block font-medium text-foreground">
             {formatCurrency(
               installment.status === "COMPLETED"
                 ? installment.totalAmount
@@ -295,7 +308,7 @@ function InstallmentRow({ installment }: { installment: InstallmentView }) {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="rounded-xl bg-muted/45 p-3">
               <p className="text-xs text-muted-foreground">Total estimado</p>
-              <p className="mt-1 text-base font-semibold">
+              <p className="mt-1 text-base font-medium">
                 {formatCurrency(
                   installment.totalAmount,
                   installment.currencyCode,
@@ -304,7 +317,7 @@ function InstallmentRow({ installment }: { installment: InstallmentView }) {
             </div>
             <div className="rounded-xl bg-muted/45 p-3">
               <p className="text-xs text-muted-foreground">Pago</p>
-              <p className="mt-1 text-base font-semibold text-emerald-600 dark:text-emerald-400">
+              <p className="mt-1 text-base font-medium text-success-foreground">
                 {formatCurrency(
                   installment.paidAmount,
                   installment.currencyCode,
@@ -313,7 +326,7 @@ function InstallmentRow({ installment }: { installment: InstallmentView }) {
             </div>
             <div className="rounded-xl bg-muted/45 p-3">
               <p className="text-xs text-muted-foreground">Restante</p>
-              <p className="mt-1 text-base font-semibold text-amber-600 dark:text-amber-400">
+              <p className="mt-1 text-base font-medium text-warning-foreground">
                 {formatCurrency(
                   installment.remainingAmount,
                   installment.currencyCode,
@@ -322,7 +335,7 @@ function InstallmentRow({ installment }: { installment: InstallmentView }) {
             </div>
             <div className="rounded-xl bg-muted/45 p-3">
               <p className="text-xs text-muted-foreground">Última</p>
-              <p className="mt-1 text-sm font-semibold">
+              <p className="mt-1 text-sm font-medium">
                 {formatDetailMonth(installment.lastInstallmentDate)}
               </p>
             </div>
@@ -377,7 +390,7 @@ function InstallmentRow({ installment }: { installment: InstallmentView }) {
                   key={`${installment.id}-${parcel.number}`}
                   className={`grid grid-cols-[20px_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-lg px-3 py-2.5 text-sm sm:gap-3 ${
                     parcel.isPaid
-                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      ? "bg-success/10 text-success-foreground"
                       : "bg-muted/35 text-foreground"
                   }`}
                 >
@@ -402,7 +415,7 @@ function InstallmentRow({ installment }: { installment: InstallmentView }) {
                   <span className="text-right text-[11px] text-muted-foreground sm:text-xs">
                     {formatDetailDate(parcel.date)}
                   </span>
-                  <span className="min-w-[72px] text-right font-semibold">
+                  <span className="min-w-[72px] text-right font-medium">
                     {formatCurrency(parcel.amount, installment.currencyCode)}
                   </span>
                 </li>
@@ -435,7 +448,7 @@ function EmptyInstallments({ tab }: { tab: InstallmentTab }) {
           strokeWidth={1.8}
         />
       </span>
-      <h2 className="mt-4 text-base font-semibold">
+      <h2 className="mt-4 text-base font-medium">
         {isCompletedTab
           ? "Nenhum parcelamento finalizado"
           : "Nenhum parcelamento em andamento"}
@@ -455,7 +468,7 @@ function InstallmentSummaryPanel({ summary }: { summary: InstallmentSummary }) {
   return (
     <section
       aria-labelledby="installments-summary-title"
-      className="rounded-2xl border bg-card p-5 shadow-xs md:p-6"
+      className="surface p-5 md:p-6"
     >
       <h2 id="installments-summary-title" className="sr-only">
         Resumo dos parcelamentos em andamento
@@ -472,7 +485,7 @@ function InstallmentSummaryPanel({ summary }: { summary: InstallmentSummary }) {
             />
             <span>Em andamento</span>
           </div>
-          <p className="mt-2 text-3xl font-semibold tracking-tight">
+          <p className="mt-2 text-3xl font-normal tracking-[-0.03em]">
             {summary.activeCount}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -484,21 +497,21 @@ function InstallmentSummaryPanel({ summary }: { summary: InstallmentSummary }) {
 
         <div>
           <p className="text-sm text-muted-foreground">Valor total estimado</p>
-          <p className="mt-2 text-xl font-semibold">
+          <p className="mt-2 text-xl font-normal tracking-[-0.03em]">
             {formatCurrency(summary.totalAmount, summary.currencyCode)}
           </p>
         </div>
 
         <div>
           <p className="text-sm text-muted-foreground">Já pago</p>
-          <p className="mt-2 text-xl font-semibold text-emerald-600 dark:text-emerald-400">
+          <p className="mt-2 text-xl font-normal tracking-[-0.03em] text-success-foreground">
             {formatCurrency(summary.paidAmount, summary.currencyCode)}
           </p>
         </div>
 
         <div>
           <p className="text-sm text-muted-foreground">Restante</p>
-          <p className="mt-2 text-xl font-semibold text-amber-600 dark:text-amber-400">
+          <p className="mt-2 text-xl font-normal tracking-[-0.03em] text-warning-foreground">
             {formatCurrency(summary.remainingAmount, summary.currencyCode)}
           </p>
         </div>
@@ -507,7 +520,7 @@ function InstallmentSummaryPanel({ summary }: { summary: InstallmentSummary }) {
       <div className="mt-6">
         <div className="flex items-center justify-between gap-3 text-sm">
           <span className="text-muted-foreground">Progresso geral</span>
-          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="font-medium text-success-foreground">
             {formatPercentage(summary.progressPercentage)}% pago
           </span>
         </div>
@@ -520,7 +533,7 @@ function InstallmentSummaryPanel({ summary }: { summary: InstallmentSummary }) {
           aria-valuenow={progressWidth}
         >
           <div
-            className="h-full rounded-full bg-emerald-500 transition-[width] duration-300"
+            className="h-full rounded-full bg-success transition-[width] duration-300"
             style={{ width: `${progressWidth}%` }}
           />
         </div>
@@ -585,73 +598,76 @@ export function InstallmentsView({
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div
-          className="flex items-center gap-1 rounded-xl border bg-card p-1"
+          className="inline-flex h-9 items-center gap-0.5 self-start rounded-xl bg-foreground/[0.06] p-0.5"
           role="tablist"
           aria-label="Status dos parcelamentos"
         >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "active"}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-              tab === "active"
-                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-            }`}
-            onClick={() => setTab("active")}
-          >
-            Em andamento ({summary.activeCount})
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "completed"}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-              tab === "completed"
-                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-            }`}
-            onClick={() => setTab("completed")}
-          >
-            Finalizadas ({summary.completedCount})
-          </button>
+          {(
+            [
+              ["active", "Em andamento", summary.activeCount],
+              ["completed", "Finalizadas", summary.completedCount],
+            ] as const
+          ).map(([key, label, count]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              className={`flex h-full cursor-pointer items-center gap-1.5 rounded-[10px] px-3 text-sm font-medium transition-[background-color,color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 ${
+                tab === key
+                  ? "bg-card text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_0.5px_rgb(0_0_0/0.06)] dark:bg-secondary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => setTab(key)}
+            >
+              {label}
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {count}
+              </span>
+            </button>
+          ))}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-[13px] text-muted-foreground transition-colors hover:text-foreground">
             <input
               type="checkbox"
               checked={showCompleted}
               className="peer sr-only"
               onChange={(event) => setShowCompleted(event.target.checked)}
             />
-            <span className="relative h-6 w-10 rounded-full bg-muted transition-colors peer-checked:bg-emerald-500/70 peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring">
-              <span className="absolute left-1 top-1 size-4 rounded-full bg-background shadow-sm transition-transform peer-checked:translate-x-4" />
+            <span className="relative h-[18px] w-8 rounded-full bg-foreground/15 transition-colors peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring [&>span]:peer-checked:translate-x-3.5">
+              <span className="absolute top-0.5 left-0.5 size-3.5 rounded-full bg-white shadow-sm transition-transform" />
             </span>
             <span>Mostrar ocultos</span>
           </label>
 
-          <label className="inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm text-muted-foreground">
-            <HugeiconsIcon
-              icon={ArrowDown01Icon}
-              aria-hidden="true"
-              className="size-4"
-              strokeWidth={2}
-            />
-            <span className="sr-only">Ordenar por</span>
-            <select
+          <Select
+            value={sort}
+            onValueChange={(value) => setSort(value as InstallmentSort)}
+            items={installmentSortOptions}
+          >
+            <SelectTrigger
+              size="sm"
               aria-label="Ordenar por"
-              value={sort}
-              className="bg-transparent font-medium text-foreground outline-none"
-              onChange={(event) =>
-                setSort(event.target.value as InstallmentSort)
-              }
+              className="w-auto min-w-44 rounded-full"
             >
-              <option value="remaining">Maior restante</option>
-              <option value="endDate">Última parcela</option>
-              <option value="description">Descrição</option>
-            </select>
-          </label>
+              <HugeiconsIcon
+                icon={ArrowDown01Icon}
+                aria-hidden="true"
+                className="size-3.5 text-muted-foreground"
+                strokeWidth={2}
+              />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {installmentSortOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

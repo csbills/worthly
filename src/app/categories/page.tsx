@@ -4,6 +4,7 @@ import {
   ChevronDownIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import type { Metadata } from "next";
 import type { CurrencyCode } from "pluggy-sdk";
 
 import {
@@ -13,8 +14,11 @@ import {
 } from "@/actions/categories";
 import { CategorySpendingChart } from "@/components/category-spending-chart";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { Notice, PageHeader } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Categorias" };
 
 type CategoriesPageProps = {
   searchParams: Promise<{
@@ -134,13 +138,13 @@ function CategoryGroup({
           {group.icon}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-semibold">{group.label}</span>
+          <span className="block font-medium">{group.label}</span>
           <span className="mt-1 block text-xs text-muted-foreground">
             {formatCount(group.categoryCount, "categoria", "categorias")} ·{" "}
             {formatCount(group.transactionCount, "lançamento", "lançamentos")}
           </span>
         </span>
-        <span className="w-28 shrink-0 text-right font-semibold tabular-nums">
+        <span className="w-28 shrink-0 text-right font-medium tabular-nums">
           {formatCurrency(group.amount, currencyCode)}
         </span>
         <span className="hidden w-28 shrink-0 sm:block">
@@ -179,15 +183,17 @@ export default async function CategoriesPage({
 
   return (
     <DashboardShell>
-      {result.error ? (
-        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
-          {result.error}
-        </p>
-      ) : null}
+      <PageHeader
+        eyebrow="Gastos"
+        title="Categorias"
+        description="Para onde vai o seu dinheiro, agrupado por categoria."
+      />
 
-      <section className="grid items-center gap-6 rounded-2xl border bg-card p-5 shadow-xs md:grid-cols-[minmax(0,1fr)_220px_minmax(0,1fr)] md:p-6">
+      {result.error ? <Notice tone="warning">{result.error}</Notice> : null}
+
+      <section className="grid items-center gap-6 surface p-5 md:grid-cols-[minmax(0,1fr)_220px_minmax(0,1fr)] md:p-6">
         <div>
-          <p className="text-4xl font-semibold tracking-[-0.03em] tabular-nums">
+          <p className="text-4xl font-normal tracking-[-0.03em] tabular-nums">
             {formatCurrency(result.total, result.currencyCode)}
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -216,7 +222,7 @@ export default async function CategoriesPage({
               className="size-5"
             />
           </a>
-          <span className="min-w-36 text-center text-sm font-semibold">
+          <span className="min-w-36 text-center text-sm font-medium">
             {result.month.label}
           </span>
           {result.month.isCurrent ? (
@@ -247,11 +253,9 @@ export default async function CategoriesPage({
         </nav>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border bg-card shadow-xs">
+      <section className="overflow-hidden surface">
         <div className="border-b px-5 py-4 md:px-6">
-          <h2 className="text-sm font-semibold tracking-[0.08em] text-muted-foreground uppercase">
-            Categorias
-          </h2>
+          <h2 className="text-sm text-muted-foreground">Categorias</h2>
         </div>
 
         {result.groups.length > 0 ? (
@@ -274,7 +278,7 @@ export default async function CategoriesPage({
             </p>
             <a
               href="/transactions"
-              className="mt-5 inline-flex h-9 items-center justify-center rounded-4xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+              className="mt-5 inline-flex h-9 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
             >
               Ver transações
             </a>

@@ -82,7 +82,7 @@ export function InvestmentsAllocationChart({
       </ResponsiveContainer>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-xs text-muted-foreground">Saldo atual</span>
-        <span className="mt-1 text-lg font-semibold tabular-nums">
+        <span className="mt-1 text-lg font-medium tabular-nums">
           {formatCurrency(totalBalance, currencyCode)}
         </span>
       </div>

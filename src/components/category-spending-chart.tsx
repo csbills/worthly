@@ -76,7 +76,7 @@ export function CategorySpendingChart({
       </ResponsiveContainer>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-xs text-muted-foreground">Total</span>
-        <span className="mt-1 text-lg font-semibold tabular-nums">
+        <span className="mt-1 text-lg font-medium tabular-nums">
           {formatCurrency(total, currencyCode)}
         </span>
       </div>

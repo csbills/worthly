@@ -57,7 +57,7 @@ function NetWorthTooltip({
   return (
     <div className="w-[216px] overflow-hidden rounded-2xl border border-zinc-700/80 bg-zinc-900 text-zinc-100 shadow-[0_16px_36px_rgb(0_0_0_/_0.28)]">
       <div className="px-4 pb-4 pt-3.5">
-        <p className="text-base font-semibold">
+        <p className="text-base font-medium">
           {label ? formatDate(String(label)) : formatDate(point.date)}
         </p>
         <div className="mt-4 flex items-center gap-2.5">
@@ -66,7 +66,7 @@ function NetWorthTooltip({
             className="size-3 shrink-0 rounded-full bg-emerald-500"
           />
           <span className="text-sm text-zinc-300">Patrimônio líquido</span>
-          <span className="ml-auto text-base font-semibold tabular-nums">
+          <span className="ml-auto text-base font-medium tabular-nums">
             {formatCurrency(point.netWorth, currencyCode)}
           </span>
         </div>
@@ -140,12 +140,12 @@ export function NetWorthChart({
           <Line
             type="monotone"
             dataKey="netWorth"
-            stroke="#10b981"
+            stroke="var(--success)"
             strokeWidth={2.5}
             dot={false}
             activeDot={{
               r: 4,
-              fill: "#10b981",
+              fill: "var(--success)",
               stroke: "var(--card)",
               strokeWidth: 2,
             }}

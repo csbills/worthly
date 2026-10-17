@@ -36,14 +36,14 @@ function formatPercentage(value: number | null) {
 
 function getChangeClassName(direction: "increase" | "decrease" | "unchanged") {
   if (direction === "increase") {
-    return "bg-emerald-950/50 text-emerald-400";
+    return "bg-success/10 text-success-foreground";
   }
 
   if (direction === "decrease") {
-    return "bg-red-950/50 text-red-400";
+    return "bg-destructive/10 text-destructive-foreground";
   }
 
-  return "bg-zinc-800/70 text-zinc-300";
+  return "bg-muted text-muted-foreground";
 }
 
 function getChangeLabel(direction: "increase" | "decrease" | "unchanged") {
@@ -62,9 +62,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 truncate text-sm font-semibold tabular-nums">
-        {value}
-      </p>
+      <p className="mt-1 truncate text-sm font-medium tabular-nums">{value}</p>
     </div>
   );
 }
@@ -95,14 +93,12 @@ export function NetWorthCard({
       : null;
 
   return (
-    <section className="col-span-12 min-w-0 rounded-2xl border bg-card p-4 md:p-5 lg:col-span-12">
+    <section className="col-span-12 min-w-0 surface p-5 md:p-6 lg:col-span-7">
       <div className="flex items-start justify-between gap-4">
-        <h2 className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">
-          Patrimônio líquido
-        </h2>
+        <h2 className="text-sm text-muted-foreground">Patrimônio líquido</h2>
         <Link
           href="/investments"
-          className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-emerald-700 transition-colors hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+          className="inline-flex shrink-0 items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           ver carteira
           <HugeiconsIcon
@@ -117,7 +113,7 @@ export function NetWorthCard({
       {current ? (
         <>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <p className="text-2xl font-semibold tracking-[-0.03em] tabular-nums md:text-3xl">
+            <p className="text-[1.75rem] leading-none font-normal tracking-[-0.035em] tabular-nums md:text-[2rem]">
               {formatCurrency(current.netWorth, currencyCode)}
             </p>
             <p className="text-sm font-medium text-muted-foreground">
@@ -129,7 +125,7 @@ export function NetWorthCard({
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span
                 className={[
-                  "rounded-md px-2 py-0.5 text-[11px] font-semibold tabular-nums",
+                  "rounded-md px-2 py-0.5 text-[11px] font-medium tabular-nums",
                   getChangeClassName(change.direction),
                 ].join(" ")}
               >

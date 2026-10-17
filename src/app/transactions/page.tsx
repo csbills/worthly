@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 
 import {
@@ -9,6 +10,8 @@ import {
   TransactionsFilters,
   TransactionsSearch,
 } from "@/components/transactions-filters";
+import { buttonVariants } from "@/components/ui/button";
+import { Notice, PageHeader } from "@/components/ui/card";
 import { getBankDisplayName } from "@/lib/bank-assets";
 import {
   normalizeTransactionFilters,
@@ -17,6 +20,8 @@ import {
 import { summarizeTransactions } from "@/lib/transaction-summary";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Transações" };
 
 const timeZone = "America/Sao_Paulo";
 
@@ -70,27 +75,27 @@ function TransactionRow({
 }) {
   const amountClassName =
     transaction.type === "CREDIT"
-      ? "text-emerald-600 dark:text-emerald-400"
-      : "text-red-600 dark:text-red-400";
+      ? "text-success-foreground"
+      : "text-destructive-foreground";
   const bankName = getBankDisplayName(transaction.bankName);
 
   return (
-    <tr className="border-b last:border-0 hover:bg-muted/30">
-      <td className="min-w-64 px-4 py-4 align-top">
-        <p className="font-medium">{transaction.description}</p>
+    <tr className="border-b transition-colors last:border-0 hover:bg-muted">
+      <td className="min-w-64 px-5 py-3 align-middle">
+        <p className="text-sm font-medium">{transaction.description}</p>
       </td>
-      <td className="min-w-40 px-4 py-4 align-top text-sm text-muted-foreground">
-        <span className="inline-flex items-center gap-2">
-          <span aria-hidden="true" className="text-base leading-none">
+      <td className="min-w-40 px-4 py-3 align-middle text-sm text-muted-foreground">
+        <span className="inline-flex items-center gap-2 rounded-full bg-muted py-0.5 pr-2.5 pl-1.5 text-xs">
+          <span aria-hidden="true" className="text-sm leading-none">
             {transaction.categoryIcon}
           </span>
           <span>{transaction.categoryLabel}</span>
         </span>
       </td>
-      <td className="min-w-64 px-4 py-4 align-top">
-        <div className="flex min-w-0 items-center gap-3">
+      <td className="min-w-56 px-4 py-3 align-middle">
+        <div className="flex min-w-0 items-center gap-2.5">
           {transaction.bankLogoPath ? (
-            <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-background">
+            <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-background">
               <Image
                 src={transaction.bankLogoPath}
                 alt=""
@@ -102,21 +107,21 @@ function TransactionRow({
           ) : (
             <span
               aria-hidden="true"
-              className="flex size-9 shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground"
+              className="flex size-7 shrink-0 items-center justify-center rounded-full border bg-muted text-[10px] font-medium text-muted-foreground"
             >
               {getInitials(bankName)}
             </span>
           )}
           <div className="min-w-0">
-            <p className="truncate font-medium">{bankName}</p>
+            <p className="truncate text-sm">{bankName}</p>
           </div>
         </div>
       </td>
-      <td className="w-36 px-4 py-4 align-top text-sm whitespace-nowrap text-muted-foreground">
+      <td className="w-36 px-4 py-3 align-middle text-sm whitespace-nowrap text-muted-foreground tabular-nums">
         {formatDate(transaction.date)}
       </td>
-      <td className="w-40 px-4 py-4 text-right align-top whitespace-nowrap">
-        <p className={`font-semibold ${amountClassName}`}>
+      <td className="w-40 px-5 py-3 text-right align-middle whitespace-nowrap">
+        <p className={`text-sm font-medium tabular-nums ${amountClassName}`}>
           {formatAmount(transaction)}
         </p>
       </td>
@@ -138,37 +143,43 @@ export default async function TransactionsPage({
 
   return (
     <DashboardShell>
-      <h1 className="sr-only">Transações</h1>
+      <PageHeader
+        eyebrow={result.period.label}
+        title="Transações"
+        description="Tudo o que entrou e saiu das suas contas e cartões, categorizado automaticamente."
+      />
 
       <TransactionsFilters filters={filters} options={result.filterOptions} />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border bg-card p-5 shadow-xs">
-          <p className="text-sm text-muted-foreground">Total</p>
-          <p className="mt-2 text-2xl font-semibold">{summary.total}</p>
+      <div className="surface grid grid-cols-2 divide-border xl:grid-cols-4 [&>div]:p-5 max-xl:[&>div:nth-child(-n+2)]:border-b xl:[&>div:not(:first-child)]:border-l max-xl:[&>div:nth-child(even)]:border-l">
+        <div>
+          <p className="text-sm text-muted-foreground">Transações</p>
+          <p className="mt-2 text-2xl font-normal tracking-[-0.03em] tabular-nums">
+            {summary.total}
+          </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {summary.total === 1 ? "transação" : "transações"} no mês
+            {summary.total === 1 ? "lançamento" : "lançamentos"} no período
           </p>
         </div>
-        <div className="rounded-2xl border bg-card p-5 shadow-xs">
+        <div>
           <p className="text-sm text-muted-foreground">Receitas</p>
-          <p className="mt-2 text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
+          <p className="mt-2 text-2xl font-normal tracking-[-0.03em] tabular-nums text-success-foreground">
             {formatCurrency(summary.receipts, summaryCurrency)}
           </p>
         </div>
-        <div className="rounded-2xl border bg-card p-5 shadow-xs">
+        <div>
           <p className="text-sm text-muted-foreground">Despesas</p>
-          <p className="mt-2 text-2xl font-semibold text-red-600 dark:text-red-400">
+          <p className="mt-2 text-2xl font-normal tracking-[-0.03em] tabular-nums text-destructive-foreground">
             {formatCurrency(summary.expenses, summaryCurrency)}
           </p>
         </div>
-        <div className="rounded-2xl border bg-card p-5 shadow-xs">
+        <div>
           <p className="text-sm text-muted-foreground">Saldo</p>
           <p
-            className={`mt-2 text-2xl font-semibold ${
+            className={`mt-2 text-2xl font-normal tracking-[-0.03em] tabular-nums ${
               summary.balance < 0
-                ? "text-red-600 dark:text-red-400"
-                : "text-emerald-600 dark:text-emerald-400"
+                ? "text-destructive-foreground"
+                : "text-success-foreground"
             }`}
           >
             {formatSignedCurrency(summary.balance, summaryCurrency)}
@@ -176,14 +187,10 @@ export default async function TransactionsPage({
         </div>
       </div>
 
-      {result.error ? (
-        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
-          {result.error}
-        </p>
-      ) : null}
+      {result.error ? <Notice tone="warning">{result.error}</Notice> : null}
 
-      <section className="min-w-0 rounded-2xl border bg-card shadow-xs">
-        <div className="flex flex-col justify-between gap-3 border-b p-4 md:flex-row md:items-center md:p-5">
+      <section className="min-w-0 overflow-hidden surface">
+        <div className="flex flex-col justify-between gap-3 border-b px-5 py-4 md:flex-row md:items-center">
           <TransactionsSearch initialValue={filters.search} />
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span>
@@ -199,20 +206,23 @@ export default async function TransactionsPage({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[980px] border-collapse text-left">
               <thead>
-                <tr className="border-b text-xs tracking-wide text-muted-foreground uppercase">
-                  <th scope="col" className="px-4 py-3 font-medium">
+                <tr className="border-b bg-muted text-xs text-muted-foreground">
+                  <th scope="col" className="px-5 py-2.5 font-normal">
                     Descrição
                   </th>
-                  <th scope="col" className="px-4 py-3 font-medium">
+                  <th scope="col" className="px-4 py-2.5 font-normal">
                     Categoria
                   </th>
-                  <th scope="col" className="px-4 py-3 font-medium">
+                  <th scope="col" className="px-4 py-2.5 font-normal">
                     Conta
                   </th>
-                  <th scope="col" className="px-4 py-3 font-medium">
+                  <th scope="col" className="px-4 py-2.5 font-normal">
                     Data
                   </th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium">
+                  <th
+                    scope="col"
+                    className="px-5 py-2.5 text-right font-normal"
+                  >
                     Valor
                   </th>
                 </tr>
@@ -236,9 +246,9 @@ export default async function TransactionsPage({
             </p>
             <a
               href="/accounts"
-              className="mt-5 inline-flex h-9 items-center justify-center rounded-4xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+              className={buttonVariants({ className: "mt-5" })}
             >
-              Gerenciar contas
+              Gerenciar conexões
             </a>
           </div>
         )}

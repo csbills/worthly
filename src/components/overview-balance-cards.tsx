@@ -59,7 +59,7 @@ function BankLogo({
   ) : (
     <span
       aria-hidden="true"
-      className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted text-[10px] font-semibold text-muted-foreground"
+      className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted text-[10px] font-medium text-muted-foreground"
     >
       {getInitials(bankName)}
     </span>
@@ -82,13 +82,13 @@ function AccountRow({ account }: { account: OverviewAccountBalance }) {
         bankLogoPath={account.bankLogoPath}
       />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{account.bankName}</p>
+        <p className="truncate text-sm font-medium">{account.bankName}</p>
         <p className="truncate text-xs text-muted-foreground">
           {account.accountLabel}
         </p>
       </div>
       <p
-        className={`shrink-0 text-sm font-semibold tabular-nums ${getAmountClassName(account.balance)}`}
+        className={`shrink-0 text-sm font-medium tabular-nums ${getAmountClassName(account.balance)}`}
       >
         {formatCurrency(account.balance, account.currencyCode)}
       </p>
@@ -121,13 +121,13 @@ function CreditCardRow({ card }: { card: OverviewCreditCardLimit }) {
     <div className="flex items-center gap-3">
       <BankLogo bankName={card.bankName} bankLogoPath={card.bankLogoPath} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{getCardTitle(card)}</p>
+        <p className="truncate text-sm font-medium">{getCardTitle(card)}</p>
         <p className="text-xs text-muted-foreground">
           •••• {card.lastFourDigits}
         </p>
       </div>
       <div className="shrink-0 text-right">
-        <p className="text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+        <p className="text-sm font-medium tabular-nums text-success-foreground">
           {card.availableAmount === null
             ? "Não informado"
             : formatCurrency(card.availableAmount, card.currencyCode)}
@@ -158,12 +158,10 @@ export function AccountsBalanceCard({
   const visibleAccounts = overviewBalances.accounts.slice(0, 4);
 
   return (
-    <section className="col-span-12 flex min-w-0 min-h-[20rem] flex-col rounded-2xl border bg-card p-4 md:p-5 lg:col-span-6">
+    <section className="col-span-12 flex min-w-0 min-h-[20rem] flex-col surface p-5 md:p-6 lg:col-span-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">
-            Contas correntes
-          </h2>
+          <h2 className="text-sm text-muted-foreground">Contas correntes</h2>
         </div>
         <HugeiconsIcon
           icon={Wallet01Icon}
@@ -175,7 +173,7 @@ export function AccountsBalanceCard({
 
       <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <p
-          className={`text-2xl font-semibold tracking-[-0.03em] tabular-nums md:text-3xl ${getAmountClassName(overviewBalances.totalAccountBalance)}`}
+          className={`text-[1.75rem] leading-none font-normal tracking-[-0.035em] tabular-nums md:text-[2rem] ${getAmountClassName(overviewBalances.totalAccountBalance)}`}
         >
           {formatCurrency(
             overviewBalances.totalAccountBalance,
@@ -221,10 +219,10 @@ export function AvailableCreditCard({
   const totalCreditLimit = overviewBalances.totalCreditLimit;
 
   return (
-    <section className="col-span-12 flex min-w-0 min-h-[20rem] flex-col rounded-2xl border bg-card p-4 md:p-5 lg:col-span-6">
+    <section className="col-span-12 flex min-w-0 min-h-[20rem] flex-col surface p-5 md:p-6 lg:col-span-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+          <h2 className="text-sm text-muted-foreground">
             Limite total disponível
           </h2>
         </div>
@@ -237,7 +235,7 @@ export function AvailableCreditCard({
       </div>
 
       <div className="mt-2">
-        <p className="text-2xl font-semibold tracking-[-0.03em] tabular-nums md:text-3xl">
+        <p className="text-[1.75rem] leading-none font-normal tracking-[-0.035em] tabular-nums md:text-[2rem]">
           {totalAvailableCredit === null
             ? "Não informado"
             : formatCurrency(

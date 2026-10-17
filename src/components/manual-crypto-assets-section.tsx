@@ -96,20 +96,20 @@ function getProfitClassName(value: number | null) {
     return "text-muted-foreground";
   }
 
-  return value >= 0 ? "text-emerald-700" : "text-destructive";
+  return value >= 0 ? "text-success-foreground" : "text-destructive";
 }
 
 function getStatusMessage(status: string | undefined) {
   if (status === "saved") {
     return {
-      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-800",
+      className: "border-success/20 bg-success/[0.07] text-success-foreground",
       text: "Criptoativo salvo. Quantidade e preço médio foram calculados; preço e histórico serão atualizados pela CoinGecko.",
     };
   }
 
   if (status === "invalid") {
     return {
-      className: "border-amber-500/30 bg-amber-500/10 text-amber-800",
+      className: "border-warning/25 bg-warning/[0.08] text-warning-foreground",
       text: "Selecione um ativo e informe valores válidos para total da compra, taxa e preço por unidade.",
     };
   }
@@ -136,7 +136,7 @@ export function ManualCryptoAssetsSection({
   const statusMessage = getStatusMessage(status);
 
   return (
-    <section className="overflow-hidden rounded-2xl border bg-card shadow-xs">
+    <section className="overflow-hidden surface">
       <div className="flex flex-col justify-between gap-3 border-b p-5 md:flex-row md:items-center md:p-6">
         <div className="flex items-start gap-3">
           <span
@@ -150,7 +150,7 @@ export function ManualCryptoAssetsSection({
             />
           </span>
           <div>
-            <h2 className="text-lg font-semibold">Criptoativos manuais</h2>
+            <h2 className="text-lg font-medium">Criptoativos manuais</h2>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
               Cadastre posições que não foram disponibilizadas pela Pluggy e
               acompanhe o preço de mercado automaticamente.
@@ -176,7 +176,7 @@ export function ManualCryptoAssetsSection({
                 name="assetId"
                 required
                 defaultValue="bitcoin"
-                className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="h-9 w-full rounded-full border border-input bg-background px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 {supportedCryptoAssets.map((asset) => (
                   <option key={asset.coingeckoId} value={asset.coingeckoId}>
@@ -204,7 +204,7 @@ export function ManualCryptoAssetsSection({
                 step="0.01"
                 inputMode="decimal"
                 placeholder="0,00"
-                className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="h-9 w-full rounded-full border border-input bg-background px-3 text-sm tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               />
             </div>
             <div className="space-y-2">
@@ -224,7 +224,7 @@ export function ManualCryptoAssetsSection({
                 inputMode="decimal"
                 defaultValue="0"
                 placeholder="0,00"
-                className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="h-9 w-full rounded-full border border-input bg-background px-3 text-sm tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               />
             </div>
             <div className="space-y-2">
@@ -243,7 +243,7 @@ export function ManualCryptoAssetsSection({
                 step="any"
                 inputMode="decimal"
                 placeholder="0,00"
-                className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="h-9 w-full rounded-full border border-input bg-background px-3 text-sm tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               />
             </div>
           </div>
@@ -269,7 +269,7 @@ export function ManualCryptoAssetsSection({
       ) : null}
 
       {error ? (
-        <p className="border-b border-amber-500/30 bg-amber-500/10 px-5 py-3 text-sm text-amber-800 md:px-6">
+        <p className="border-b border-warning/25 bg-warning/[0.08] px-5 py-3 text-sm text-warning-foreground md:px-6">
           {error}
         </p>
       ) : null}
@@ -278,7 +278,7 @@ export function ManualCryptoAssetsSection({
         <div className="overflow-x-auto">
           <table className="min-w-[900px] w-full border-collapse text-left">
             <thead>
-              <tr className="border-b text-xs tracking-wide text-muted-foreground uppercase">
+              <tr className="border-b text-xs text-muted-foreground">
                 <th scope="col" className="px-4 py-3 font-medium md:px-6">
                   Ativo
                 </th>
@@ -306,7 +306,7 @@ export function ManualCryptoAssetsSection({
                   className="border-b last:border-0 hover:bg-muted/30"
                 >
                   <td className="min-w-56 px-4 py-4 align-top md:px-6">
-                    <p className="font-semibold">{asset.symbol}</p>
+                    <p className="font-medium">{asset.symbol}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {asset.name}
                     </p>
@@ -346,7 +346,7 @@ export function ManualCryptoAssetsSection({
                         : ""}
                     </p>
                   </td>
-                  <td className="px-4 py-4 text-right align-top font-semibold tabular-nums whitespace-nowrap">
+                  <td className="px-4 py-4 text-right align-top font-medium tabular-nums whitespace-nowrap">
                     {formatNullableCurrency(asset.balance, asset.currencyCode)}
                   </td>
                   <td
@@ -375,7 +375,7 @@ export function ManualCryptoAssetsSection({
       {assets.some((asset) => asset.history.length > 0) ? (
         <div className="border-t p-5 md:p-6">
           <div>
-            <h3 className="font-semibold">Evolução das posições</h3>
+            <h3 className="font-medium">Evolução das posições</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Valor estimado dos últimos 30 dias usando o preço de mercado e a
               quantidade calculada a partir da compra.
@@ -391,7 +391,7 @@ export function ManualCryptoAssetsSection({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold">{asset.symbol}</p>
+                      <p className="font-medium">{asset.symbol}</p>
                       <p className="mt-1 text-sm text-muted-foreground">
                         {asset.name}
                       </p>

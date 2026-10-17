@@ -1,5 +1,6 @@
 import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import type { Metadata } from "next";
 import Image from "next/image";
 import type { CurrencyCode } from "pluggy-sdk";
 import {
@@ -11,6 +12,7 @@ import { ManualCryptoOrderModal } from "@/components/manual-crypto-order-modal";
 import { ManualMarketOrderModal } from "@/components/manual-market-order-modal";
 import { PortfolioAllocationChart } from "@/components/portfolio-allocation-chart";
 import { PortfolioEvolutionChart } from "@/components/portfolio-evolution-chart";
+import { PageHeader } from "@/components/ui/card";
 import {
   Collapsible,
   CollapsibleContent,
@@ -31,6 +33,8 @@ import {
 } from "@/lib/portfolio-display";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Investimentos" };
 
 type InvestmentsPageProps = {
   searchParams: Promise<{
@@ -92,32 +96,27 @@ function getProfitClassName(value: number | null) {
     return "text-muted-foreground";
   }
 
-  return value >= 0
-    ? "text-emerald-700 dark:text-emerald-400"
-    : "text-destructive";
+  return value >= 0 ? "text-success-foreground" : "text-destructive";
 }
 
 function getStatusMessage(status: string | undefined) {
   if (status === "order-saved") {
     return {
-      className:
-        "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
+      className: "border-success/20 bg-success/[0.07] text-success-foreground",
       text: "Ordem salva. A posição, o custo médio e o resultado foram recalculados.",
     };
   }
 
   if (status === "order-deleted") {
     return {
-      className:
-        "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
+      className: "border-success/20 bg-success/[0.07] text-success-foreground",
       text: "Ordem excluída. A posição, o custo médio e o resultado foram recalculados.",
     };
   }
 
   if (status === "invalid-order") {
     return {
-      className:
-        "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
+      className: "border-warning/25 bg-warning/[0.08] text-warning-foreground",
       text: "Informe dados válidos. Uma venda não pode exceder a quantidade disponível no histórico.",
     };
   }
@@ -131,16 +130,14 @@ function getStatusMessage(status: string | undefined) {
 
   if (status === "saved") {
     return {
-      className:
-        "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
+      className: "border-success/20 bg-success/[0.07] text-success-foreground",
       text: "Criptoativo salvo. A quantidade e o custo foram calculados; o preço de mercado será atualizado pela CoinGecko.",
     };
   }
 
   if (status === "invalid") {
     return {
-      className:
-        "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
+      className: "border-warning/25 bg-warning/[0.08] text-warning-foreground",
       text: "Selecione um ativo e informe valores válidos para total, taxa e preço de compra.",
     };
   }
@@ -170,7 +167,7 @@ function PortfolioMetric({
     <div className="bg-card p-5">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p
-        className={`mt-2 text-xl font-semibold tabular-nums ${valueClassName}`}
+        className={`mt-2 text-xl font-normal tracking-[-0.03em] tabular-nums ${valueClassName}`}
       >
         {value}
       </p>
@@ -202,7 +199,7 @@ function AssetAvatar({ asset }: { asset: PortfolioAssetSummary }) {
 
   return (
     <span
-      className="flex size-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold text-white"
+      className="flex size-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-medium text-white"
       style={{ backgroundColor: portfolioCategoryColors[asset.categoryKey] }}
       aria-hidden="true"
     >
@@ -217,8 +214,8 @@ function getProfitBadgeClassName(value: number | null) {
   }
 
   return value >= 0
-    ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
-    : "bg-rose-500/12 text-rose-700 dark:text-rose-300";
+    ? "bg-success/10 text-success-foreground"
+    : "bg-destructive/10 text-destructive-foreground";
 }
 
 function PortfolioAssetResult({ asset }: { asset: PortfolioAssetSummary }) {
@@ -232,7 +229,7 @@ function PortfolioAssetResult({ asset }: { asset: PortfolioAssetSummary }) {
           {formatPercentage(asset.amountProfitPercentage)}
         </span>
         <span
-          className={`whitespace-nowrap text-sm font-semibold tabular-nums ${getProfitClassName(asset.amountProfit)}`}
+          className={`whitespace-nowrap text-sm font-medium tabular-nums ${getProfitClassName(asset.amountProfit)}`}
         >
           {formatSignedCurrency(asset.amountProfit, asset.currencyCode)}
         </span>
@@ -311,7 +308,7 @@ function PortfolioAssetRow({ asset }: { asset: PortfolioAssetSummary }) {
       </div>
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">Saldo atual</p>
-        <p className="mt-1 truncate text-sm font-semibold tabular-nums">
+        <p className="mt-1 truncate text-sm font-medium tabular-nums">
           {formatCurrency(asset.balance, asset.currencyCode)}
         </p>
       </div>
@@ -352,7 +349,7 @@ function PortfolioCategory({
               style={{ backgroundColor: portfolioCategoryColors[category.key] }}
             />
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold">{category.label}</h3>
+              <h3 className="text-sm font-medium">{category.label}</h3>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {formatCount(category.assetCount, "ativo", "ativos")}
               </p>
@@ -362,7 +359,7 @@ function PortfolioCategory({
           <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 sm:text-right">
             <div>
               <p className="text-[11px] text-muted-foreground">Saldo atual</p>
-              <p className="text-sm font-semibold tabular-nums">
+              <p className="text-sm font-medium tabular-nums">
                 {formatCurrency(category.balance, currencyCode)}
                 <span className="ml-1.5 text-xs font-normal text-muted-foreground">
                   {formatPercentage(category.percentageOfPortfolio)}
@@ -372,7 +369,7 @@ function PortfolioCategory({
             <div>
               <p className="text-[11px] text-muted-foreground">Resultado</p>
               <p
-                className={`text-sm font-semibold tabular-nums ${getProfitClassName(category.amountProfit)}`}
+                className={`text-sm font-medium tabular-nums ${getProfitClassName(category.amountProfit)}`}
               >
                 {formatSignedCurrency(category.amountProfit, currencyCode)}
                 <span className="ml-1.5 text-xs font-normal">
@@ -383,7 +380,7 @@ function PortfolioCategory({
             <div>
               <p className="text-[11px] text-muted-foreground">Proventos</p>
               <p
-                className={`text-sm font-semibold tabular-nums ${getProfitClassName(category.income)}`}
+                className={`text-sm font-medium tabular-nums ${getProfitClassName(category.income)}`}
               >
                 {formatSignedCurrency(category.income, currencyCode)}
               </p>
@@ -419,7 +416,7 @@ function PortfolioCurrencyView({
 
   return (
     <section className="space-y-4">
-      <div className="grid gap-px overflow-hidden rounded-2xl border bg-border shadow-xs sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-px overflow-hidden rounded-2xl border bg-border sm:grid-cols-2 xl:grid-cols-5">
         <PortfolioMetric
           label="Patrimônio atual"
           value={formatCurrency(currency.balance, currency.currencyCode)}
@@ -458,10 +455,10 @@ function PortfolioCurrencyView({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-12">
-        <section className="min-w-0 rounded-2xl border bg-card p-5 shadow-xs md:p-6 lg:col-span-8">
+        <section className="min-w-0 surface p-5 md:p-6 lg:col-span-8">
           <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
             <div>
-              <h3 className="font-semibold">Evolução do patrimônio</h3>
+              <h3 className="font-medium">Evolução do patrimônio</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 Valor consolidado por snapshot diário em {currency.currencyCode}
                 .
@@ -481,9 +478,9 @@ function PortfolioCurrencyView({
           </div>
         </section>
 
-        <section className="min-w-0 rounded-2xl border bg-card p-5 shadow-xs md:p-6 lg:col-span-4">
+        <section className="min-w-0 surface p-5 md:p-6 lg:col-span-4">
           <div>
-            <h3 className="font-semibold">Alocação da carteira</h3>
+            <h3 className="font-medium">Alocação da carteira</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Distribuição do patrimônio por categoria.
             </p>
@@ -519,10 +516,10 @@ function PortfolioCurrencyView({
         </section>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border bg-card shadow-xs">
+      <section className="overflow-hidden surface">
         <div className="flex flex-col gap-4 border-b px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5">
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold">Ativos da carteira</h3>
+            <h3 className="text-sm font-medium">Ativos da carteira</h3>
             <p className="mt-1 text-xs text-muted-foreground">
               Posição, participação, saldo e resultado de cada ativo.
             </p>
@@ -548,8 +545,8 @@ function PortfolioCurrencyView({
 
 function EmptyPortfolio({ hasError }: { hasError: boolean }) {
   return (
-    <section className="rounded-2xl border border-dashed bg-card p-10 text-center shadow-xs">
-      <h2 className="font-semibold">
+    <section className="rounded-2xl border border-dashed bg-card p-10 text-center">
+      <h2 className="font-medium">
         {hasError
           ? "Não foi possível carregar o portfólio"
           : "Seu portfólio está vazio"}
@@ -561,7 +558,7 @@ function EmptyPortfolio({ hasError }: { hasError: boolean }) {
       </p>
       <a
         href="/accounts"
-        className="mt-5 inline-flex h-9 items-center justify-center rounded-4xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+        className="mt-5 inline-flex h-9 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
       >
         Gerenciar conexões
       </a>
@@ -583,6 +580,12 @@ export default async function InvestmentsPage({
 
   return (
     <DashboardShell>
+      <PageHeader
+        eyebrow="Carteira"
+        title="Investimentos"
+        description="Renda fixa, renda variável e cripto consolidados, com rentabilidade sobre o custo."
+      />
+
       {statusMessage ? (
         <p
           className={`rounded-xl border px-4 py-3 text-sm ${statusMessage.className}`}
@@ -593,7 +596,7 @@ export default async function InvestmentsPage({
       ) : null}
 
       {result.error ? (
-        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+        <p className="rounded-xl border border-warning/25 bg-warning/[0.08] px-4 py-3 text-sm text-warning-foreground">
           {result.error}
         </p>
       ) : null}

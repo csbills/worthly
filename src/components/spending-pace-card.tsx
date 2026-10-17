@@ -41,8 +41,8 @@ function getComparison(current: number, previous: number) {
     return {
       difference: spendingComparison.difference,
       label: "abaixo",
-      className: "text-emerald-700",
-      badgeClassName: "bg-emerald-500/10 text-emerald-700",
+      className: "text-success-foreground",
+      badgeClassName: "bg-success/10 text-success-foreground",
       delta:
         spendingComparison.percentage !== null
           ? `-${formatPercentage(spendingComparison.percentage)}%`
@@ -78,14 +78,12 @@ export function SpendingPaceCard({
   const comparison = getComparison(currentMonth.total, previousMonth.total);
 
   return (
-    <section className="col-span-12 min-w-0 rounded-2xl border bg-card p-4 md:p-5">
+    <section className="col-span-12 min-w-0 surface p-5 md:p-6">
       <div className="flex items-start justify-between gap-4">
-        <h2 className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">
-          Ritmo de gastos
-        </h2>
+        <h2 className="text-sm text-muted-foreground">Ritmo de gastos</h2>
         <a
           href="/transactions"
-          className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-emerald-700 transition-colors hover:text-emerald-800"
+          className="inline-flex shrink-0 items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           Ver todas
           <HugeiconsIcon
@@ -98,7 +96,7 @@ export function SpendingPaceCard({
       </div>
 
       <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <p className="text-2xl font-semibold tracking-[-0.03em] tabular-nums md:text-3xl">
+        <p className="text-[1.75rem] leading-none font-normal tracking-[-0.035em] tabular-nums md:text-[2rem]">
           {formatCurrency(comparison.difference)}
         </p>
         <p className={`text-sm font-medium ${comparison.className}`}>
@@ -108,7 +106,7 @@ export function SpendingPaceCard({
 
       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span
-          className={`rounded-md px-2 py-0.5 text-[11px] font-semibold tabular-nums ${comparison.badgeClassName}`}
+          className={`rounded-md px-2 py-0.5 text-[11px] font-medium tabular-nums ${comparison.badgeClassName}`}
         >
           {comparison.delta}
         </span>
@@ -136,7 +134,7 @@ export function SpendingPaceCard({
           </p>
           <a
             href="/accounts"
-            className="mt-4 inline-flex h-9 items-center justify-center rounded-4xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+            className="mt-4 inline-flex h-9 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
           >
             Gerenciar contas
           </a>

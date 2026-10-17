@@ -72,7 +72,7 @@ const periodOptions: Array<{
 ];
 
 const typeOptions = [
-  { key: "all", label: "Todas Transações" },
+  { key: "all", label: "Todos os tipos" },
   { key: "CREDIT", label: "Receitas" },
   { key: "DEBIT", label: "Despesas" },
 ] as const;
@@ -176,21 +176,21 @@ function FilterTrigger({
       aria-controls={controls}
       aria-expanded={expanded}
       aria-haspopup="menu"
-      className={`inline-flex h-10 min-w-40 items-center justify-between gap-3 rounded-xl border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+      className={`inline-flex h-8 cursor-pointer items-center gap-2 rounded-full border pr-2.5 pl-3 text-[13px] font-medium shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition-[background-color,border-color,color] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 ${
         active
-          ? "border-primary/50 bg-primary/5 text-foreground"
-          : "border-border/80 bg-background text-foreground hover:bg-muted/50"
-      }`}
+          ? "border-foreground/15 bg-foreground/[0.06] text-foreground"
+          : "border-input bg-card text-foreground/80 hover:border-foreground/20 hover:text-foreground dark:bg-input/30"
+      } ${expanded ? "border-foreground/25 text-foreground" : ""}`}
       onClick={onClick}
     >
-      <span className="flex min-w-0 items-center gap-2">
-        <span className="shrink-0 text-muted-foreground">{icon}</span>
-        <span className="truncate">{label}</span>
+      <span className="shrink-0 text-muted-foreground [&_svg]:size-3.5">
+        {icon}
       </span>
+      <span className="max-w-48 truncate">{label}</span>
       <HugeiconsIcon
         icon={ArrowDown01Icon}
         aria-hidden="true"
-        className={`size-4 shrink-0 text-muted-foreground transition-transform ${
+        className={`size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 ${
           expanded ? "rotate-180" : ""
         }`}
         strokeWidth={2}
@@ -204,7 +204,7 @@ function MenuPanel({ id, children, className = "" }: MenuPanelProps) {
     <div
       id={id}
       role="menu"
-      className={`absolute top-[calc(100%+0.5rem)] left-0 z-50 min-w-full overflow-hidden rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-xl shadow-black/10 ${className}`}
+      className={`absolute top-[calc(100%+0.375rem)] left-0 z-50 min-w-full origin-top-left animate-in fade-in-0 zoom-in-[0.97] overflow-hidden rounded-xl border bg-popover p-1 text-popover-foreground shadow-[0_12px_32px_-8px_rgb(0_0_0/0.18),0_2px_6px_rgb(0_0_0/0.04)] duration-150 ${className}`}
     >
       {children}
     </div>
@@ -217,7 +217,7 @@ function MenuOption({ checked, children, onClick }: MenuOptionProps) {
       type="button"
       role="menuitemradio"
       aria-checked={checked}
-      className="flex min-h-10 w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex min-h-8 w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors outline-none hover:bg-accent focus-visible:bg-accent"
       onClick={onClick}
     >
       <span className="min-w-0 truncate">{children}</span>
@@ -225,7 +225,7 @@ function MenuOption({ checked, children, onClick }: MenuOptionProps) {
         <HugeiconsIcon
           icon={CheckIcon}
           aria-hidden="true"
-          className="size-4 shrink-0 text-primary"
+          className="size-3.5 shrink-0 text-foreground"
           strokeWidth={2.5}
         />
       ) : null}
@@ -249,7 +249,7 @@ function AccountMenuOption({
       type="button"
       role="menuitemradio"
       aria-checked={checked}
-      className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-1.5 text-left transition-colors outline-none hover:bg-accent focus-visible:bg-accent"
       onClick={onClick}
     >
       {account.logoPath ? (
@@ -261,7 +261,7 @@ function AccountMenuOption({
           className="size-7 shrink-0 rounded-full object-cover"
         />
       ) : (
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
           {getInitials(account.name)}
         </span>
       )}
@@ -275,14 +275,14 @@ function AccountMenuOption({
           </span>
         ) : null}
       </span>
-      <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
         {account.typeLabel}
       </span>
       {checked ? (
         <HugeiconsIcon
           icon={CheckIcon}
           aria-hidden="true"
-          className="size-4 shrink-0 text-primary"
+          className="size-3.5 shrink-0 text-foreground"
           strokeWidth={2.5}
         />
       ) : null}
@@ -305,7 +305,7 @@ function CalendarMonthView({
 
   return (
     <div className="min-w-0">
-      <p className="mb-3 text-center text-sm font-semibold">
+      <p className="mb-3 text-center text-sm font-medium">
         {formatMonthLabel(month)}
       </p>
       <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-muted-foreground">
@@ -328,11 +328,11 @@ function CalendarMonthView({
               key={key}
               type="button"
               aria-label={formatDateLabel(key)}
-              className={`relative flex h-8 items-center justify-center rounded-lg text-xs transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                isInRange ? "bg-primary/10" : "hover:bg-muted"
+              className={`relative flex h-8 cursor-pointer items-center justify-center rounded-lg text-xs tabular-nums transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                isInRange ? "bg-foreground/[0.06]" : "hover:bg-accent"
               } ${
                 isStart || isEnd
-                  ? "bg-primary font-semibold text-primary-foreground hover:bg-primary"
+                  ? "bg-foreground font-medium text-background hover:bg-foreground"
                   : inMonth
                     ? "text-foreground"
                     : "text-muted-foreground/40"
@@ -441,7 +441,7 @@ function DateRangePanel({
         <button
           type="button"
           disabled={!draftFrom || !draftTo}
-          className="inline-flex h-9 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-foreground px-3.5 text-[13px] font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           onClick={() => {
             if (draftFrom && draftTo) {
               onApply(draftFrom, draftTo);
@@ -478,7 +478,7 @@ function getPeriodLabel(filters: TransactionFilters) {
 function getTypeLabel(filters: TransactionFilters) {
   return (
     typeOptions.find(({ key }) => key === filters.type)?.label ??
-    "Todas Transações"
+    "Todos os tipos"
   );
 }
 
@@ -556,7 +556,7 @@ export function TransactionsFilters({
 
   return (
     <div ref={containerRef} className="relative z-30">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative">
           <FilterTrigger
             icon={
@@ -586,10 +586,10 @@ export function TransactionsFilters({
                       type="button"
                       role="menuitemradio"
                       aria-checked={filters.period === key}
-                      className={`block w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      className={`block w-full cursor-pointer rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors outline-none hover:bg-accent focus-visible:bg-accent ${
                         filters.period === key
-                          ? "bg-muted font-medium text-foreground"
-                          : "text-muted-foreground"
+                          ? "bg-accent text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
                       }`}
                       onClick={() => selectPeriod(key)}
                     >
@@ -629,7 +629,7 @@ export function TransactionsFilters({
             label={
               options.accounts.find(
                 (account) => account.id === filters.accountId,
-              )?.name ?? "Todas Contas"
+              )?.name ?? "Todas as contas"
             }
             active={filters.accountId !== null}
             expanded={openMenu === "account"}
@@ -657,7 +657,7 @@ export function TransactionsFilters({
                       strokeWidth={2}
                     />
                   </span>
-                  Todas Contas
+                  Todas as contas
                 </span>
               </MenuOption>
               {options.accounts.map((account) => (
@@ -778,7 +778,7 @@ export function TransactionsFilters({
                   setOpenMenu(null);
                 }}
               >
-                Todas categorias
+                Todas as categorias
               </MenuOption>
               {options.categories.map((category) => (
                 <MenuOption
@@ -802,27 +802,27 @@ export function TransactionsFilters({
         <button
           type="button"
           aria-pressed={filters.showHidden}
-          className="inline-flex h-10 items-center gap-2 rounded-xl px-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-full px-2 text-[13px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={() =>
             updateQuery({ hidden: filters.showHidden ? null : "1" })
           }
         >
           <span
             aria-hidden="true"
-            className={`relative inline-flex h-6 w-11 items-center rounded-full p-1 transition-colors ${
-              filters.showHidden ? "bg-primary" : "bg-muted"
+            className={`relative inline-flex h-[18px] w-8 items-center rounded-full p-0.5 transition-colors ${
+              filters.showHidden ? "bg-primary" : "bg-foreground/15"
             }`}
           >
             <span
-              className={`size-4 rounded-full bg-background shadow-sm transition-transform ${
-                filters.showHidden ? "translate-x-5" : ""
+              className={`size-3.5 rounded-full bg-white shadow-sm transition-transform ${
+                filters.showHidden ? "translate-x-3.5" : ""
               }`}
             />
           </span>
           <HugeiconsIcon
             icon={EyeIcon}
             aria-hidden="true"
-            className="size-4"
+            className="size-3.5"
             strokeWidth={2}
           />
           <span>Mostrar ocultos</span>
@@ -850,15 +850,15 @@ export function TransactionsSearch({ initialValue }: { initialValue: string }) {
       <HugeiconsIcon
         icon={Search01Icon}
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+        className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground"
         strokeWidth={2}
       />
       <input
         type="search"
         value={value}
         aria-label="Buscar transações"
-        placeholder="Buscar transações..."
-        className="h-10 w-full rounded-xl border border-border bg-input/30 pr-3 pl-10 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+        placeholder="Buscar transações…"
+        className="h-9 w-full rounded-full border border-input bg-card pr-3 pl-9 text-sm shadow-[0_1px_2px_rgb(0_0_0/0.04)] outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/25 dark:bg-input/30"
         onChange={(event) => setValue(event.target.value)}
       />
     </form>

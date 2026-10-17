@@ -10,6 +10,14 @@ import {
   saveManualCryptoOrder,
 } from "@/actions/manual-crypto-orders";
 import { Button } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetClose,
@@ -39,6 +47,11 @@ type OrderForm = {
   brokerFee: string;
   unitPrice: string;
 };
+
+const orderSideOptions = [
+  { value: "BUY", label: "Compra" },
+  { value: "SELL", label: "Venda" },
+] as const satisfies readonly { value: OrderForm["side"]; label: string }[];
 
 function getTodayDate() {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -151,10 +164,10 @@ function OrderList({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                         order.side === "BUY"
-                          ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
-                          : "bg-rose-500/12 text-rose-700 dark:text-rose-300"
+                          ? "bg-success/10 text-success-foreground"
+                          : "bg-destructive/10 text-destructive-foreground"
                       }`}
                     >
                       {order.side === "BUY" ? "Compra" : "Venda"}
@@ -318,49 +331,45 @@ export function ManualCryptoOrderModal({
                 >
                   Ativo
                 </label>
-                <select
-                  id={`${formPrefix}-asset`}
+                <Select
                   name="assetId"
                   required
                   value={form.assetId}
-                  onChange={(event) =>
-                    updateField("assetId", event.target.value)
+                  onValueChange={(value) =>
+                    updateField("assetId", String(value ?? ""))
                   }
-                  className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  items={catalog.map((catalogAsset) => ({
+                    value: catalogAsset.coingeckoId,
+                    label: `${catalogAsset.symbol} · ${catalogAsset.name}`,
+                  }))}
                 >
-                  {catalog.map((catalogAsset) => (
-                    <option
-                      key={catalogAsset.coingeckoId}
-                      value={catalogAsset.coingeckoId}
-                    >
-                      {catalogAsset.symbol} · {catalogAsset.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id={`${formPrefix}-asset`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {catalog.map((catalogAsset) => (
+                      <SelectItem
+                        key={catalogAsset.coingeckoId}
+                        value={catalogAsset.coingeckoId}
+                      >
+                        {catalogAsset.symbol} · {catalogAsset.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             ) : null}
 
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-2">
-                <label
-                  htmlFor={`${formPrefix}-side`}
-                  className="text-sm font-medium"
-                >
-                  Operação
-                </label>
-                <select
-                  id={`${formPrefix}-side`}
+                <span className="block text-sm font-medium">Operação</span>
+                <SegmentedControl
                   name="side"
-                  required
+                  aria-label="Operação"
                   value={form.side}
-                  onChange={(event) =>
-                    updateField("side", event.target.value as OrderForm["side"])
-                  }
-                  className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  <option value="BUY">Compra</option>
-                  <option value="SELL">Venda</option>
-                </select>
+                  options={orderSideOptions}
+                  onValueChange={(value) => updateField("side", value)}
+                />
               </div>
 
               <div className="space-y-2">
@@ -379,7 +388,7 @@ export function ManualCryptoOrderModal({
                   onChange={(event) =>
                     updateField("orderDate", event.target.value)
                   }
-                  className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 text-sm tabular-nums outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  className="h-9 w-full rounded-xl border border-input bg-card px-3 text-base tabular-nums shadow-[0_1px_2px_rgb(0_0_0/0.04)] outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/70 hover:border-[color-mix(in_srgb,var(--ink)_20%,transparent)] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/25 md:text-sm dark:bg-input/30"
                 />
               </div>
             </div>
@@ -402,7 +411,7 @@ export function ManualCryptoOrderModal({
                 placeholder="0,00"
                 value={form.total}
                 onChange={(event) => updateField("total", event.target.value)}
-                className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 text-base tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                className="h-9 w-full rounded-xl border border-input bg-card px-3 text-base tabular-nums shadow-[0_1px_2px_rgb(0_0_0/0.04)] outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/70 hover:border-[color-mix(in_srgb,var(--ink)_20%,transparent)] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/25 md:text-sm dark:bg-input/30"
               />
             </div>
 
@@ -425,7 +434,7 @@ export function ManualCryptoOrderModal({
                 onChange={(event) =>
                   updateField("brokerFee", event.target.value)
                 }
-                className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 text-base tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                className="h-9 w-full rounded-xl border border-input bg-card px-3 text-base tabular-nums shadow-[0_1px_2px_rgb(0_0_0/0.04)] outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/70 hover:border-[color-mix(in_srgb,var(--ink)_20%,transparent)] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/25 md:text-sm dark:bg-input/30"
               />
             </div>
 
@@ -449,7 +458,7 @@ export function ManualCryptoOrderModal({
                 onChange={(event) =>
                   updateField("unitPrice", event.target.value)
                 }
-                className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 text-base tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                className="h-9 w-full rounded-xl border border-input bg-card px-3 text-base tabular-nums shadow-[0_1px_2px_rgb(0_0_0/0.04)] outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/70 hover:border-[color-mix(in_srgb,var(--ink)_20%,transparent)] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/25 md:text-sm dark:bg-input/30"
               />
             </div>
           </div>

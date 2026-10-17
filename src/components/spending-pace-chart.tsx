@@ -17,7 +17,7 @@ import type { SpendingPacePoint } from "@/actions/overview";
 import { summarizeSpendingPaceTooltip } from "@/lib/spending-pace-tooltip";
 
 const currentAboveColor = "var(--destructive)";
-const currentBelowColor = "#15803d";
+const currentBelowColor = "var(--success)";
 
 function formatAxisValue(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -77,7 +77,7 @@ function SpendingPaceTooltip({ active, label, payload }: TooltipContentProps) {
   return (
     <div className="w-[232px] overflow-hidden rounded-2xl border border-zinc-700/80 bg-zinc-900 text-zinc-100 shadow-[0_16px_36px_rgb(0_0_0_/_0.28)]">
       <div className="px-4 pb-4 pt-3.5">
-        <p className="text-base font-semibold">Dia {label ?? point.day}</p>
+        <p className="text-base font-medium">Dia {label ?? point.day}</p>
         <div className="mt-4 space-y-3">
           <div className="flex items-center gap-2.5">
             <span
@@ -85,7 +85,7 @@ function SpendingPaceTooltip({ active, label, payload }: TooltipContentProps) {
               className="size-3 shrink-0 rounded-full bg-emerald-500"
             />
             <span className="text-sm text-zinc-300">Este mês</span>
-            <span className="ml-auto text-base font-semibold tabular-nums">
+            <span className="ml-auto text-base font-medium tabular-nums">
               {formatTooltipCurrency(currentValue)}
             </span>
           </div>
@@ -95,7 +95,7 @@ function SpendingPaceTooltip({ active, label, payload }: TooltipContentProps) {
               className="size-3 shrink-0 rounded-full bg-zinc-500"
             />
             <span className="text-sm text-zinc-300">Mês passado</span>
-            <span className="ml-auto text-base font-semibold text-zinc-400 tabular-nums">
+            <span className="ml-auto text-base font-medium text-zinc-400 tabular-nums">
               {formatTooltipCurrency(previousValue)}
             </span>
           </div>
@@ -114,7 +114,7 @@ function SpendingPaceTooltip({ active, label, payload }: TooltipContentProps) {
           />
           <p className="min-w-0 text-sm leading-5">
             <span className="font-medium">{comparisonLabel}</span>
-            <span className="font-semibold">
+            <span className="font-medium">
               {formatTooltipDifference(summary.difference)}
             </span>
             {summary.percentage !== null ? (

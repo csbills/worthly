@@ -59,12 +59,12 @@ function PortfolioAllocationTooltip({
             className="size-3 shrink-0 rounded-full"
             style={{ backgroundColor: categoryColor }}
           />
-          <p className="truncate text-base font-semibold">{category.label}</p>
+          <p className="truncate text-base font-medium">{category.label}</p>
         </div>
         <div className="mt-4 space-y-2">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm text-zinc-400">Saldo</span>
-            <span className="text-base font-semibold tabular-nums">
+            <span className="text-base font-medium tabular-nums">
               {formatCurrency(category.balance, currencyCode)}
             </span>
           </div>
@@ -103,7 +103,7 @@ function PortfolioAllocationTooltip({
                     {formatPercentage(asset.percentageOfCategory)} da categoria
                   </p>
                 </div>
-                <span className="shrink-0 text-sm font-semibold text-zinc-100 tabular-nums">
+                <span className="shrink-0 text-sm font-medium text-zinc-100 tabular-nums">
                   {formatCurrency(asset.balance, currencyCode)}
                 </span>
               </div>
@@ -174,7 +174,7 @@ export function PortfolioAllocationChart({
       </ResponsiveContainer>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-xs text-muted-foreground">Patrimônio</span>
-        <span className="mt-1 text-lg font-semibold tabular-nums">
+        <span className="mt-1 text-lg font-medium tabular-nums">
           {formatCurrency(totalBalance, currencyCode)}
         </span>
       </div>

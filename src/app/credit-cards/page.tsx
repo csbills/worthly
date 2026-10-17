@@ -5,6 +5,7 @@ import {
   Wallet01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import type { Metadata } from "next";
 import Image from "next/image";
 
 import { type CreditCardsResult, getCreditCards } from "@/actions/credit-cards";
@@ -14,12 +15,15 @@ import {
 } from "@/actions/installments";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { InstallmentsView } from "@/components/installments-view";
+import { Notice, PageHeader } from "@/components/ui/card";
 import {
   type CreditCardView,
   formatCreditCardDueDate,
 } from "@/lib/credit-cards";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Cartões" };
 
 function formatCurrency(value: number, currencyCode: string) {
   return new Intl.NumberFormat("pt-BR", {
@@ -97,7 +101,7 @@ function CardBrand({ card }: { card: CreditCardView }) {
   return (
     <div className="flex items-center gap-3">
       {card.bankLogoPath ? (
-        <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-background shadow-xs">
+        <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-background">
           <Image
             src={card.bankLogoPath}
             alt=""
@@ -109,13 +113,13 @@ function CardBrand({ card }: { card: CreditCardView }) {
       ) : (
         <span
           aria-hidden="true"
-          className="flex size-11 shrink-0 items-center justify-center rounded-xl border bg-muted text-xs font-semibold text-muted-foreground"
+          className="flex size-11 shrink-0 items-center justify-center rounded-xl border bg-muted text-xs font-medium text-muted-foreground"
         >
           {getInitials(card.bankName)}
         </span>
       )}
       <div className="min-w-0">
-        <p className="truncate text-base font-semibold">{getCardTitle(card)}</p>
+        <p className="truncate text-base font-medium">{getCardTitle(card)}</p>
         <p className="mt-0.5 text-sm text-muted-foreground">
           {card.bankName} · •••• {card.lastFourDigits}
         </p>
@@ -146,7 +150,7 @@ function LimitProgress({ card }: { card: CreditCardView }) {
           />
           Limite total
         </span>
-        <span className="font-semibold text-foreground">
+        <span className="font-medium text-foreground">
           {card.creditLimit === null
             ? "Não informado"
             : formatCompactCurrency(card.creditLimit, card.currencyCode)}
@@ -163,11 +167,11 @@ function LimitProgress({ card }: { card: CreditCardView }) {
           aria-valuenow={Math.round(usagePercentage)}
         >
           <span
-            className="bg-blue-600 transition-[width] dark:bg-blue-500"
+            className="bg-primary transition-[width]"
             style={{ width: `${usagePercentage}%` }}
           />
           <span
-            className="bg-emerald-600 transition-[width] dark:bg-emerald-500"
+            className="bg-success transition-[width]"
             style={{ width: `${availablePercentage}%` }}
           />
         </div>
@@ -177,22 +181,16 @@ function LimitProgress({ card }: { card: CreditCardView }) {
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs">
         <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-          <span
-            aria-hidden="true"
-            className="size-2 rounded-full bg-blue-600 dark:bg-blue-500"
-          />
+          <span aria-hidden="true" className="size-2 rounded-full bg-primary" />
           Usado
           <strong className="ml-1 text-foreground">
             {formatCompactCurrency(card.usedAmount, card.currencyCode)}
           </strong>
         </span>
         <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-          <span
-            aria-hidden="true"
-            className="size-2 rounded-full bg-emerald-600 dark:bg-emerald-500"
-          />
+          <span aria-hidden="true" className="size-2 rounded-full bg-success" />
           Disponível
-          <strong className="ml-1 text-emerald-700 dark:text-emerald-400">
+          <strong className="ml-1 text-success-foreground">
             {card.availableAmount === null
               ? "Não informado"
               : formatCompactCurrency(card.availableAmount, card.currencyCode)}
@@ -205,7 +203,7 @@ function LimitProgress({ card }: { card: CreditCardView }) {
 
 function CreditCardItem({ card }: { card: CreditCardView }) {
   return (
-    <article className="relative overflow-hidden rounded-2xl border bg-card p-5 shadow-xs transition-shadow hover:shadow-md">
+    <article className="relative overflow-hidden surface p-5 transition-shadow hover:shadow-md">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full border-[20px] border-muted/35"
@@ -223,7 +221,7 @@ function CreditCardItem({ card }: { card: CreditCardView }) {
               strokeWidth={2}
             />
           </div>
-          <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">
+          <p className="mt-1 text-3xl font-normal tracking-[-0.03em] tabular-nums">
             {formatCurrency(card.openBalanceAmount, card.currencyCode)}
           </p>
         </div>
@@ -250,7 +248,7 @@ function CreditCardItem({ card }: { card: CreditCardView }) {
                 <p className="text-xs font-medium text-muted-foreground">
                   Próxima fatura em formação
                 </p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
+                <p className="mt-1 text-2xl font-normal tracking-[-0.03em] tabular-nums text-foreground">
                   {formatCurrency(
                     card.nextBillInProgress.amount,
                     card.currencyCode,
@@ -284,7 +282,7 @@ function CreditCardItem({ card }: { card: CreditCardView }) {
         ) : null}
 
         {card.nextBillError ? (
-          <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
+          <p className="mt-3 text-xs text-warning-foreground">
             {card.nextBillError}
           </p>
         ) : null}
@@ -296,7 +294,7 @@ function CreditCardItem({ card }: { card: CreditCardView }) {
                 <p className="font-medium text-muted-foreground">
                   Última fatura fechada
                 </p>
-                <p className="mt-1 text-base font-semibold tabular-nums text-foreground">
+                <p className="mt-1 text-base font-medium tabular-nums text-foreground">
                   {formatCurrency(
                     card.latestClosedBill.amount,
                     card.currencyCode,
@@ -322,7 +320,7 @@ function CreditCardItem({ card }: { card: CreditCardView }) {
         ) : null}
 
         {card.billError ? (
-          <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
+          <p className="mt-3 text-xs text-warning-foreground">
             {card.billError} A fatura exibida acima é apenas o saldo aberto
             retornado pela instituição.
           </p>
@@ -336,7 +334,7 @@ function CreditCardItem({ card }: { card: CreditCardView }) {
 
 function EmptyState({ hasError }: { hasError: boolean }) {
   return (
-    <section className="rounded-2xl border border-dashed bg-card p-10 text-center shadow-xs">
+    <section className="rounded-2xl border border-dashed bg-card p-10 text-center">
       <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
         <HugeiconsIcon
           icon={CreditCardIcon}
@@ -345,7 +343,7 @@ function EmptyState({ hasError }: { hasError: boolean }) {
           strokeWidth={2}
         />
       </div>
-      <h2 className="mt-4 text-lg font-semibold">
+      <h2 className="mt-4 text-lg font-medium">
         {hasError
           ? "Não foi possível carregar os cartões"
           : "Nenhum cartão conectado"}
@@ -357,7 +355,7 @@ function EmptyState({ hasError }: { hasError: boolean }) {
       </p>
       <a
         href="/accounts"
-        className="mt-5 inline-flex h-9 items-center justify-center rounded-4xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+        className="mt-5 inline-flex h-9 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
       >
         Gerenciar contas
       </a>
@@ -376,7 +374,7 @@ function CardsContent({
 
   return (
     <>
-      <section className="relative overflow-hidden rounded-3xl border bg-card px-6 py-9 shadow-xs md:px-10 md:py-11">
+      <section className="relative overflow-hidden rounded-3xl border bg-card px-6 py-9 md:px-10 md:py-11">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -left-16 -top-28 size-64 rounded-full border-[36px] border-muted/20"
@@ -395,7 +393,7 @@ function CardsContent({
             />
             Saldos em aberto
           </div>
-          <p className="mt-2 text-4xl font-semibold tracking-tight tabular-nums md:text-5xl">
+          <p className="mt-2 text-4xl font-normal tracking-[-0.03em] tabular-nums md:text-5xl">
             {formatCurrency(result.totalOpenBalance, currencyCode)}
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -413,7 +411,7 @@ function CardsContent({
             strokeWidth={2}
           />
         </span>
-        <h2 className="text-lg font-semibold">
+        <h2 className="text-lg font-medium">
           Seus cartões{" "}
           <span className="text-muted-foreground">({result.cards.length})</span>
         </h2>
@@ -444,7 +442,7 @@ function CardsContent({
           </span>
           <h2
             id="credit-cards-installments-title"
-            className="text-lg font-semibold"
+            className="text-lg font-medium"
           >
             Parcelamentos{" "}
             <span className="text-muted-foreground">
@@ -454,7 +452,7 @@ function CardsContent({
         </div>
 
         {installmentsResult.error ? (
-          <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+          <p className="rounded-xl border border-warning/25 bg-warning/[0.08] px-4 py-3 text-sm text-warning-foreground">
             {installmentsResult.error}
           </p>
         ) : null}
@@ -476,11 +474,13 @@ export default async function CreditCardsPage() {
 
   return (
     <DashboardShell>
-      {result.error ? (
-        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
-          {result.error}
-        </p>
-      ) : null}
+      <PageHeader
+        eyebrow="Crédito"
+        title="Cartões"
+        description="Faturas, limites e parcelamentos de todos os seus cartões em um só lugar."
+      />
+
+      {result.error ? <Notice tone="warning">{result.error}</Notice> : null}
 
       <CardsContent result={result} installmentsResult={installmentsResult} />
     </DashboardShell>
