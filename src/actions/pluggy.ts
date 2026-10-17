@@ -1,13 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import type { Account } from "pluggy-sdk";
 
 import { getPluggyClient } from "@/lib/pluggy";
 import { prisma } from "@/lib/prisma";
-
-const accountsPath = "/accounts";
 
 export type ConnectedAccount = Pick<
   Account,
@@ -28,29 +24,6 @@ export type ConnectedAccountsResult = {
   accounts: ConnectedAccount[];
   error: string | null;
 };
-
-export async function savePluggyItem(formData: FormData): Promise<never> {
-  const itemIdValue = formData.get("itemId");
-
-  if (typeof itemIdValue !== "string" || itemIdValue.trim().length === 0) {
-    redirect(`${accountsPath}?status=invalid-item`);
-  }
-
-  const itemId = itemIdValue.trim();
-
-  try {
-    await prisma.pluggyItem.upsert({
-      where: { itemId },
-      create: { itemId },
-      update: {},
-    });
-  } catch {
-    redirect(`${accountsPath}?status=save-error`);
-  }
-
-  revalidatePath(accountsPath);
-  redirect(`${accountsPath}?status=saved`);
-}
 
 function serializeAccount(account: Account): ConnectedAccount {
   return {
@@ -78,7 +51,7 @@ export async function getConnectedAccounts(): Promise<ConnectedAccountsResult> {
   }
 
   try {
-    const client = getPluggyClient();
+    const client = await getPluggyClient();
     const accountResults = await Promise.allSettled(
       items.map(async ({ itemId }) => {
         const response = await client.fetchAccounts(itemId);

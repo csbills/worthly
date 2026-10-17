@@ -4,14 +4,9 @@ const mocks = vi.hoisted(() => ({
   prisma: {
     pluggyItem: {
       findMany: vi.fn(),
-      upsert: vi.fn(),
     },
   },
   fetchAccounts: vi.fn(),
-  revalidatePath: vi.fn(),
-  redirect: vi.fn((path: string) => {
-    throw new Error(`REDIRECT:${path}`);
-  }),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -19,35 +14,12 @@ vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
 vi.mock("@/lib/pluggy", () => ({
   getPluggyClient: () => ({ fetchAccounts: mocks.fetchAccounts }),
 }));
-vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
-vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
-import { getConnectedAccounts, savePluggyItem } from "./pluggy";
+import { getConnectedAccounts } from "./pluggy";
 
 describe("Pluggy account actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("saves an item id and refreshes the accounts page", async () => {
-    mocks.prisma.pluggyItem.upsert.mockResolvedValue({
-      id: "local-item-id",
-      itemId: "pluggy-item-id",
-    });
-
-    const formData = new FormData();
-    formData.set("itemId", "  pluggy-item-id  ");
-
-    await expect(savePluggyItem(formData)).rejects.toThrow(
-      "REDIRECT:/accounts?status=saved",
-    );
-
-    expect(mocks.prisma.pluggyItem.upsert).toHaveBeenCalledWith({
-      where: { itemId: "pluggy-item-id" },
-      create: { itemId: "pluggy-item-id" },
-      update: {},
-    });
-    expect(mocks.revalidatePath).toHaveBeenCalledWith("/accounts");
   });
 
   it("returns an empty result without calling Pluggy when no item is saved", async () => {
