@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://tryhangar.io/schema/hangar.v1.json
+version: 1
+name: bytewave
+description: Organizador de finanças pessoais open source com Open Finance (Meu Pluggy), patrimônio, faturas, gastos e investimentos.
+
+services:
+  web:
+    # Next.js 16 com o builder automático (railpack). O `npm start` aplica as
+    # migrations do Prisma antes de subir o servidor: com SQLite no volume, as
+    # migrations precisam rodar no `start`, não no `preDeploy`.
+    buildCommand: npm run build
+    start: npm start
+    port: 3000
+    # O SQLite mora aqui e sobrevive aos deploys. Mantenha 1 réplica.
+    volume:
+      path: /data
+    env:
+      NODE_ENV: production
+      DATABASE_URL: file:/data/bytewave.db
+      # Domínio das chaves de acesso (Face ID/biometria). Não troque depois.
+      APP_URL: ${{ web.url }}
+      PLUGGY_CLIENT_ID:
+        prompt: Pluggy Client ID (opcional)
+        description: Pode deixar em branco e colar depois no onboarding em /onboarding.
+        required: false
+      PLUGGY_CLIENT_SECRET:
+        prompt: Pluggy Client Secret (opcional)
+        description: Pode deixar em branco e colar depois no onboarding em /onboarding.
+        secret: true
+        required: false
+      COINGECKO_API_KEY:
+        prompt: Chave Demo da CoinGecko (opcional)
+        description: Melhora as cotações de cripto. Sem ela, o app usa a API pública.
+        secret: true
+        required: false
