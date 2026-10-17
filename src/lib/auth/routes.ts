@@ -1,3 +1,5 @@
+export const SESSION_COOKIE = "bw_session";
+
 /** Reachable without a session: the auth screens and what installs the PWA. */
 const publicPaths = new Set([
   "/login",

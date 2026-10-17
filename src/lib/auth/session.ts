@@ -3,9 +3,10 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 
+import { SESSION_COOKIE } from "@/lib/auth/routes";
 import { prisma } from "@/lib/prisma";
 
-export const SESSION_COOKIE = "bw_session";
+export { SESSION_COOKIE };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SESSION_TTL_MS = 30 * DAY_MS;

@@ -4,14 +4,18 @@ import type { ReactNode } from "react";
 import { DeployOnHangarButton, GithubLink, Wordmark } from "@/components/brand";
 import { DashboardTabBar } from "@/components/dashboard-tab-bar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserMenu } from "@/components/user-menu";
+import { verifySession } from "@/lib/auth/dal";
 
-export function DashboardHeader() {
+export async function DashboardHeader() {
+  const user = await verifySession();
+
   return (
-    <header className="fixed inset-x-0 top-0 z-40">
+    <header className="fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)]">
       {/* Progressive blur, no tint: sharpness itself fades out. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-22"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[calc(5.5rem+env(safe-area-inset-top))]"
       >
         <div className="absolute inset-0 mask-[linear-gradient(to_bottom,black_55%,transparent_84%)] backdrop-blur-[2px]" />
         <div className="absolute inset-0 mask-[linear-gradient(to_bottom,black_42%,transparent_70%)] backdrop-blur-[6px]" />
@@ -27,8 +31,9 @@ export function DashboardHeader() {
         </Link>
         <div className="flex items-center gap-1">
           <ThemeToggle />
-          <GithubLink />
-          <DeployOnHangarButton className="ml-1.5 hidden sm:inline-flex" />
+          <GithubLink className="hidden sm:flex" />
+          <DeployOnHangarButton className="mx-1.5 hidden md:inline-flex" />
+          <UserMenu user={user} />
         </div>
       </div>
     </header>
@@ -37,9 +42,9 @@ export function DashboardHeader() {
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-dvh flex-col bg-background">
       <DashboardHeader />
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 pt-20 pb-32 md:px-6 md:pt-24">
+      <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-1 flex-col gap-5 px-4 pt-[calc(4.5rem+env(safe-area-inset-top))] pb-[calc(7rem+env(safe-area-inset-bottom))] md:px-6 md:pt-24">
         {children}
       </main>
       <DashboardTabBar />
