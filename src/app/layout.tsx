@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter_Tight } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
+import { ServiceWorkerRegister } from "@/components/pwa";
 import { cn } from "@/lib/utils";
 
 const interTight = Inter_Tight({
@@ -24,6 +25,12 @@ export const metadata: Metadata = {
   description:
     "Organizador de finanças open source. Conecte seus bancos via Open Finance com o Meu Pluggy e acompanhe gastos, cartões e investimentos.",
   applicationName: "Bytewave",
+  appleWebApp: {
+    capable: true,
+    title: "Bytewave",
+    statusBarStyle: "default",
+  },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
@@ -52,7 +59,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         geistMono.variable,
       )}
     >
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        {children}
+        <ServiceWorkerRegister />
+      </body>
     </html>
   );
 }
