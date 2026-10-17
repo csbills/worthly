@@ -20,12 +20,22 @@ Bytewave lê contas, cartões e investimentos dos seus bancos via Open Finance, 
    ```
 
    Sem o volume, o SQLite é recriado a cada deploy e você perde as conexões salvas.
-3. Abra a URL publicada. Na primeira visita você cai no onboarding em `/onboarding`.
+3. Abra a URL publicada, crie sua conta e siga o onboarding em `/onboarding`.
 
 O `npm start` já roda `prisma migrate deploy` antes de subir o Next.js, então o banco é criado e atualizado sozinho.
 
-> [!WARNING]
-> O Bytewave ainda não tem login. Qualquer pessoa com a URL vê seus dados financeiros e pode trocar as credenciais. Até existir autenticação, proteja a instância (domínio privado, rede interna ou um proxy com senha) antes de conectar bancos reais.
+### Conta e acesso
+
+No primeiro acesso, a instância pede **nome, sobrenome, e-mail e senha** para criar a conta da pessoa dona. Depois disso o cadastro é fechado e só existe login.
+
+- Senhas guardadas com scrypt (sal aleatório); nunca em texto puro.
+- Sessões no banco, com cookie `httpOnly` e `SameSite=Lax`, válidas por 30 dias e renovadas com o uso.
+- Toda página e toda Server Action verificam a sessão no servidor; o Proxy só faz a checagem rápida do cookie.
+- Bloqueio de 15 minutos após 5 tentativas de login erradas.
+
+### Instale como app
+
+O Bytewave é um PWA: no Android/Chrome use **Instalar app** no menu do avatar; no iPhone, **Compartilhar → Adicionar à Tela de Início**. Os dados financeiros nunca ficam em cache no aparelho — offline, o app mostra apenas um aviso.
 
 ## O onboarding
 
@@ -49,7 +59,7 @@ npm run db:migrate
 npm run dev
 ```
 
-Abra [http://localhost:3000](http://localhost:3000) e siga o onboarding.
+Abra [http://localhost:3000](http://localhost:3000), crie sua conta e siga o onboarding.
 
 ### Variáveis de ambiente
 
