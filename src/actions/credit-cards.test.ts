@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getConnectedAccounts: vi.fn(),
@@ -25,6 +25,14 @@ describe("credit card action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.fetchAllTransactions.mockResolvedValue([]);
+    // The action reads "today" to hide bills already due; pin it so the
+    // fixtures' 2026-09-02 due date stays open.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-01T12:00:00.000Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("filters credit accounts and resolves the bank from the Pluggy item", async () => {

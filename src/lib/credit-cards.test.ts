@@ -207,10 +207,16 @@ describe("credit card normalization", () => {
     } as never;
 
     expect(
-      normalizeCreditCard(account, {
-        bankName: "Inter",
-        bankLogoPath: "/assets/banks/inter.svg",
-      }),
+      normalizeCreditCard(
+        account,
+        {
+          bankName: "Inter",
+          bankLogoPath: "/assets/banks/inter.svg",
+        },
+        [],
+        // Before the open bill's due date, so it is still reported.
+        new Date("2026-09-01T12:00:00.000Z"),
+      ),
     ).toEqual({
       id: "credit-card-a",
       itemId: "item-a",
