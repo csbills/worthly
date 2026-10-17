@@ -96,8 +96,8 @@ export default async function SecurityPage() {
           </div>
           <CardDescription>
             {hasPasskeys
-              ? `Depois de ${lockMinutes} minutos em segundo plano, o Bytewave pede Face ID ou biometria para abrir de novo. Num aparelho sem chave de acesso, dá para desbloquear com a senha.`
-              : `Cadastre uma chave de acesso para ativar: depois de ${lockMinutes} minutos em segundo plano, o Bytewave vai pedir Face ID ou biometria para abrir de novo.`}
+              ? `Depois de ${lockMinutes} minutos em segundo plano, o Worthly pede Face ID ou biometria para abrir de novo. Num aparelho sem chave de acesso, dá para desbloquear com a senha.`
+              : `Cadastre uma chave de acesso para ativar: depois de ${lockMinutes} minutos em segundo plano, o Worthly vai pedir Face ID ou biometria para abrir de novo.`}
           </CardDescription>
         </Card>
       </div>

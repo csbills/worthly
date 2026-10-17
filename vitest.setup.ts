@@ -7,7 +7,7 @@ vi.mock("@/lib/auth/dal", () => {
   const user = {
     id: "test-user",
     firstName: "Teste",
-    lastName: "Bytewave",
+    lastName: "Worthly",
     email: "teste@example.com",
     hasPasskeys: false,
   };

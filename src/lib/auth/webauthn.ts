@@ -3,7 +3,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { cookies, headers } from "next/headers";
 
-export const RP_NAME = "Bytewave";
+export const RP_NAME = "Worthly";
 
 const CHALLENGE_COOKIE = "bw_webauthn";
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
@@ -77,10 +77,10 @@ type PendingChallenge = {
 // challenges live in memory. Kept on globalThis so every route bundle and
 // dev reload shares the same map. The browser only holds a random handle.
 const globalStore = globalThis as typeof globalThis & {
-  bytewaveWebAuthnChallenges?: Map<string, PendingChallenge>;
+  worthlyWebAuthnChallenges?: Map<string, PendingChallenge>;
 };
-globalStore.bytewaveWebAuthnChallenges ??= new Map();
-const pending = globalStore.bytewaveWebAuthnChallenges;
+globalStore.worthlyWebAuthnChallenges ??= new Map();
+const pending = globalStore.worthlyWebAuthnChallenges;
 
 export async function saveChallenge(
   challenge: string,

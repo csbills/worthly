@@ -37,7 +37,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
 vi.mock("@simplewebauthn/server", () => mocks.webauthn);
 vi.mock("@/lib/auth/webauthn", () => ({
-  RP_NAME: "Bytewave",
+  RP_NAME: "Worthly",
   getRelyingParty: async () => ({
     rpID: "localhost",
     origin: "http://localhost:3000",

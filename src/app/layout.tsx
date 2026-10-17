@@ -19,15 +19,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Bytewave — suas finanças em um só lugar",
-    template: "%s · Bytewave",
+    default: "Worthly — suas finanças em um só lugar",
+    template: "%s · Worthly",
   },
   description:
     "Organizador de finanças open source. Conecte seus bancos via Open Finance com o Meu Pluggy e acompanhe gastos, cartões e investimentos.",
-  applicationName: "Bytewave",
+  applicationName: "Worthly",
   appleWebApp: {
     capable: true,
-    title: "Bytewave",
+    title: "Worthly",
     statusBarStyle: "default",
   },
   formatDetection: { telephone: false },

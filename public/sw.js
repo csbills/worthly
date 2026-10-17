@@ -1,9 +1,9 @@
-// Bytewave service worker.
+// Worthly service worker.
 //
 // Financial data is private and always fresh from the server, so pages and
 // Server Action responses are never cached. Only immutable build assets and
 // the offline fallback live in the cache.
-const VERSION = "bytewave-v1";
+const VERSION = "worthly-v1";
 const OFFLINE_URL = "/offline";
 const PRECACHE = [OFFLINE_URL, "/icon-192.png", "/icon-512.png", "/icon.svg"];
 

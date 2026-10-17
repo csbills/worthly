@@ -13,13 +13,14 @@ export function LogoMark({ className }: { className?: string }) {
       fill="none"
     >
       <rect width="32" height="32" rx="9" fill="currentColor" />
+      {/* A W whose last stroke climbs past the first, like a chart going up. */}
       <path
-        d="M7 18.5c2.2 0 2.9-5 5.1-5s2.9 5 5.1 5 2.9-5 5.1-5"
+        d="M7.5 12.5 11.6 22 16 15.3l4.4 6.7 4.1-12"
         stroke="white"
-        strokeWidth="2.4"
+        strokeWidth="3.6"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      <circle cx="24.8" cy="13.5" r="1.6" fill="white" />
     </svg>
   );
 }
@@ -33,7 +34,7 @@ export function Wordmark({ className }: { className?: string }) {
       )}
     >
       <LogoMark className="text-primary" />
-      Bytewave
+      Worthly
     </span>
   );
 }

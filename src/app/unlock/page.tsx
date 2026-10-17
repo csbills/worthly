@@ -28,7 +28,7 @@ export default async function UnlockPage({
   return (
     <AuthShell
       title={`Olá, ${session.user.firstName}`}
-      description="O Bytewave foi bloqueado enquanto estava em segundo plano. Confirme que é você para continuar."
+      description="O Worthly foi bloqueado enquanto estava em segundo plano. Confirme que é você para continuar."
     >
       <UnlockPanel next={nextPath} />
     </AuthShell>

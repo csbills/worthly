@@ -329,7 +329,7 @@ export function OnboardingFlow({
               icon={Shield01Icon}
               eyebrow="Configuração · ~10 minutos"
               title="Suas finanças, no seu servidor."
-              description="O Bytewave lê contas, cartões e investimentos dos seus bancos via Open Finance, usando o Meu Pluggy. Você configura uma vez e o painel se atualiza sozinho."
+              description="O Worthly lê contas, cartões e investimentos dos seus bancos via Open Finance, usando o Meu Pluggy. Você configura uma vez e o painel se atualiza sozinho."
             />
             <ul className="mt-7 grid gap-3 sm:grid-cols-3">
               {[
@@ -424,7 +424,7 @@ export function OnboardingFlow({
               icon={Key01Icon}
               eyebrow="Etapa 2 · Dashboard da Pluggy"
               title="Crie sua aplicação e copie as chaves"
-              description="É por essa aplicação que o Bytewave lê os dados que você autorizou no Meu Pluggy."
+              description="É por essa aplicação que o Worthly lê os dados que você autorizou no Meu Pluggy."
             />
             <div className="mt-7">
               <Instructions>
@@ -446,7 +446,7 @@ export function OnboardingFlow({
                 </Instruction>
                 <Instruction title="Copie o Client ID e o Client Secret">
                   Eles aparecem na página da aplicação. Cole os dois abaixo — o
-                  Bytewave valida com a Pluggy antes de salvar.
+                  Worthly valida com a Pluggy antes de salvar.
                 </Instruction>
               </Instructions>
             </div>
@@ -478,7 +478,7 @@ export function OnboardingFlow({
               icon={Plug01Icon}
               eyebrow="Etapa 3 · Demo da Pluggy"
               title="Autorize o MeuPluggy e cole o Item ID"
-              description="Cada banco autorizado vira um Item ID. É ele que diz ao Bytewave quais dados importar."
+              description="Cada banco autorizado vira um Item ID. É ele que diz ao Worthly quais dados importar."
             />
             <div className="mt-7 grid gap-6 md:grid-cols-[minmax(0,1fr)_15rem]">
               <Instructions>

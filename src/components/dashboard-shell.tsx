@@ -24,7 +24,7 @@ export async function DashboardHeader() {
       <div className="relative mx-auto flex h-14 w-full max-w-6.5xl items-center justify-between px-4 sm:px-6">
         <Link
           href="/"
-          aria-label="Bytewave — visão geral"
+          aria-label="Worthly — visão geral"
           className="-ml-1 rounded-lg p-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Wordmark />

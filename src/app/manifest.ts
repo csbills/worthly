@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "Bytewave — suas finanças",
-    short_name: "Bytewave",
+    name: "Worthly — suas finanças",
+    short_name: "Worthly",
     description:
       "Organizador de finanças open source: contas, cartões e investimentos via Open Finance.",
     lang: "pt-BR",

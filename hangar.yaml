@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://tryhangar.io/schema/hangar.v1.json
 version: 1
-name: bytewave
+name: worthly
 description: Organizador de finanças pessoais open source com Open Finance (Meu Pluggy), patrimônio, faturas, gastos e investimentos.
 
 services:
@@ -16,7 +16,7 @@ services:
       path: /data
     env:
       NODE_ENV: production
-      DATABASE_URL: file:/data/bytewave.db
+      DATABASE_URL: file:/data/worthly.db
       # Domínio das chaves de acesso (Face ID/biometria). Não troque depois.
       APP_URL: ${{ web.url }}
       PLUGGY_CLIENT_ID:

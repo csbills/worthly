@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="src/app/icon.svg" alt="Bytewave" width="88" height="88" />
+<img src="public/brand/worthly-icon.svg" alt="Worthly" width="88" height="88" />
 
-# Bytewave
+# Worthly
 
 **Suas finanças em um só lugar. Open source, no seu servidor, sem planilha.**
 
@@ -10,7 +10,7 @@ Contas, cartões, faturas e investimentos de todos os seus bancos, lidos via Ope
 
 <br />
 
-[![Deploy on Hangar](https://tryhangar.io/deploy-on-hangar.svg)](https://tryhangar.io/deploy?repo=https://github.com/csbills/bytewave-finance)
+[![Deploy on Hangar](https://tryhangar.io/deploy-on-hangar.svg)](https://tryhangar.io/deploy?repo=https://github.com/csbills/worthly)
 
 <sub>Sua instância no ar em poucos minutos, com HTTPS, banco persistente e migrations automáticas. Sem configurar servidor.</sub>
 
@@ -39,38 +39,38 @@ Contas, cartões, faturas e investimentos de todos os seus bancos, lidos via Ope
 | 📈 **Investimentos** | Carteira consolidada, mais ações, FIIs, ETFs e cripto que você adiciona à mão, com cotações automáticas. |
 | 🔐 **Face ID e biometria** | Login sem senha com passkeys e bloqueio do app quando ele fica em segundo plano. |
 | 📱 **Instala como app** | PWA no iPhone, Android e desktop, sem passar por loja. |
-| 🛡️ **Somente leitura** | O Bytewave só consulta saldos e lançamentos. Nenhum dinheiro é movimentado. |
+| 🛡️ **Somente leitura** | O Worthly só consulta saldos e lançamentos. Nenhum dinheiro é movimentado. |
 | 🏠 **Seus dados, sua instância** | Credenciais e banco de dados ficam no servidor que você controla. Nada passa por terceiros além do seu banco e da Pluggy. |
 
 ## 🚀 Suba sua instância
 
-O jeito mais rápido (e o que a gente usa e recomenda) é a **Hangar**:
+O jeito mais rápido (e o que a gente usa e recomenda) é o **Hangar**:
 
-[![Deploy on Hangar](https://tryhangar.io/deploy-on-hangar.svg)](https://tryhangar.io/deploy?repo=https://github.com/csbills/bytewave-finance)
+[![Deploy on Hangar](https://tryhangar.io/deploy-on-hangar.svg)](https://tryhangar.io/deploy?repo=https://github.com/csbills/worthly)
 
-1. **Clique no botão.** A Hangar lê o [`hangar.yaml`](hangar.yaml) deste repositório e mostra o que vai criar antes de começar.
+1. **Clique no botão.** O Hangar lê o [`hangar.yaml`](hangar.yaml) deste repositório e mostra o que vai criar antes de começar.
 2. **Revise as variáveis.** As chaves da Pluggy e da CoinGecko são opcionais: dá para deixar em branco e colar depois, no onboarding.
-3. **Confirme.** A Hangar faz o build, cria o volume persistente em `/data`, configura o domínio com HTTPS e publica.
+3. **Confirme.** O Hangar faz o build, cria o volume persistente em `/data`, configura o domínio com HTTPS e publica.
 4. **Abra a URL**, crie sua conta e siga o onboarding em `/onboarding`.
 
 O `hangar.yaml` já resolve o que costuma dar trabalho num deploy manual:
 
-- **Volume persistente** para o SQLite (`DATABASE_URL=file:/data/bytewave.db`). Seus dados sobrevivem a todo deploy.
+- **Volume persistente** para o SQLite (`DATABASE_URL=file:/data/worthly.db`). Seus dados sobrevivem a todo deploy.
 - **Migrations automáticas**: o `npm start` roda `prisma migrate deploy` antes de subir o Next.js.
 - **`APP_URL` preenchida** com o endereço HTTPS da instância, que é o que o Face ID e a biometria precisam.
 - **Deploy a cada push**: atualizar sua instância é só dar `git pull` no seu fork e enviar.
 
 > [!TIP]
-> Faça um fork antes de clicar no botão (troque `csbills/bytewave-finance` pelo seu repositório no link). Assim você controla quando puxar novidades daqui e pode personalizar o app à vontade.
+> Faça um fork antes de clicar no botão (troque `csbills/worthly` pelo seu repositório no link). Assim você controla quando puxar novidades daqui e pode personalizar o app à vontade.
 
 <details>
 <summary><b>Prefere hospedar em outro lugar?</b></summary>
 
 <br />
 
-O Bytewave é um app Next.js comum e roda em qualquer host Node.js com disco persistente:
+O Worthly é um app Next.js comum e roda em qualquer host Node.js com disco persistente:
 
-1. Defina `DATABASE_URL` apontando para um arquivo num volume persistente, por exemplo `file:/data/bytewave.db`. Sem volume, o SQLite é recriado a cada deploy e você perde suas conexões.
+1. Defina `DATABASE_URL` apontando para um arquivo num volume persistente, por exemplo `file:/data/worthly.db`. Sem volume, o SQLite é recriado a cada deploy e você perde suas conexões.
 2. Defina `APP_URL` com a URL pública da instância.
 3. Rode `npm run build` e depois `npm start`.
 4. Mantenha **uma única réplica**, porque o SQLite não é compartilhado entre instâncias.
@@ -83,18 +83,18 @@ O Bytewave é um app Next.js comum e roda em qualquer host Node.js com disco per
 flowchart LR
     B[🏦 Seus bancos] -- Open Finance --> M[Meu Pluggy]
     M -- API somente leitura --> P[Pluggy]
-    P -- credenciais no servidor --> W[⚡ Bytewave<br/>sua instância]
+    P -- credenciais no servidor --> W[⚡ Worthly<br/>sua instância]
     W --> D[(SQLite<br/>no seu volume)]
     W --> U[📱 Você<br/>navegador ou PWA]
 ```
 
-O [Meu Pluggy](https://meu.pluggy.ai) conecta seus bancos pelo Open Finance de graça. O Bytewave usa a API da Pluggy, com credenciais que ficam **só no servidor**, para ler contas, faturas, transações e investimentos, e monta o painel a partir daí.
+O [Meu Pluggy](https://meu.pluggy.ai) conecta seus bancos pelo Open Finance de graça. O Worthly usa a API da Pluggy, com credenciais que ficam **só no servidor**, para ler contas, faturas, transações e investimentos, e monta o painel a partir daí.
 
 ### O onboarding
 
 Na primeira vez, o fluxo em `/onboarding` guia cada etapa e valida tudo o que você cola:
 
-| Etapa | O que você faz | O que o Bytewave faz |
+| Etapa | O que você faz | O que o Worthly faz |
 | --- | --- | --- |
 | **1. Meu Pluggy** | Cria a conta grátis em [meu.pluggy.ai](https://meu.pluggy.ai) e conecta seus bancos pelo Open Finance. | — |
 | **2. Credenciais** | Cria uma conta em [dashboard.pluggy.ai](https://dashboard.pluggy.ai) (teste de 15 dias), adiciona o conector **MeuPluggy**, cria uma aplicação *Development* e cola o **Client ID** e o **Client Secret**. | Valida o par com a API da Pluggy antes de salvar no servidor. |
@@ -125,7 +125,7 @@ Em **Segurança** (menu do avatar), ative uma chave de acesso (passkey/WebAuthn)
 
 ### Instale como app
 
-O Bytewave é um PWA. No Android/Chrome, use **Instalar app** no menu do avatar. No iPhone, **Compartilhar → Adicionar à Tela de Início**. Os dados financeiros nunca ficam em cache no aparelho: offline, o app mostra apenas um aviso.
+O Worthly é um PWA. No Android/Chrome, use **Instalar app** no menu do avatar. No iPhone, **Compartilhar → Adicionar à Tela de Início**. Os dados financeiros nunca ficam em cache no aparelho: offline, o app mostra apenas um aviso.
 
 ### Ativos fora da Pluggy
 
@@ -136,8 +136,8 @@ Quando a Pluggy não retorna posições de renda variável ou cripto, use **Adic
 Você precisa de Node.js 20 ou mais recente.
 
 ```bash
-git clone https://github.com/csbills/bytewave-finance.git
-cd bytewave-finance
+git clone https://github.com/csbills/worthly.git
+cd worthly
 npm install
 cp .env.example .env
 npm run db:migrate
@@ -175,7 +175,7 @@ As credenciais da Pluggy ficam só no servidor (no banco ou em variáveis de amb
 
 ## 🤝 Contribuindo
 
-O Bytewave é feito pela comunidade, e **PRs com novas funcionalidades são muito bem-vindos**. Algumas ideias se você quiser começar:
+O Worthly é feito pela comunidade, e **PRs com novas funcionalidades são muito bem-vindos**. Algumas ideias se você quiser começar:
 
 - 🎯 Metas e orçamentos por categoria
 - 🔔 Alertas de fatura fechando, gasto fora do padrão e saldo baixo
@@ -184,7 +184,7 @@ O Bytewave é feito pela comunidade, e **PRs com novas funcionalidades são muit
 - 👥 Múltiplos usuários por instância (finanças do casal ou da família)
 - 🌎 Tradução para outros idiomas
 
-Tem outra ideia? [Abra uma issue](https://github.com/csbills/bytewave-finance/issues/new) para a gente conversar antes de você investir tempo nela.
+Tem outra ideia? [Abra uma issue](https://github.com/csbills/worthly/issues/new) para a gente conversar antes de você investir tempo nela.
 
 ### Como enviar um PR
 
@@ -201,16 +201,16 @@ Tem outra ideia? [Abra uma issue](https://github.com/csbills/bytewave-finance/is
 6. Descreva o que mudou e, se for visual, anexe um print (do desktop e do celular).
 
 > [!TIP]
-> Quer mostrar sua feature funcionando de verdade? Suba seu fork na [Hangar](https://tryhangar.io) e coloque o link no PR. Fica muito mais fácil de revisar.
+> Quer mostrar sua feature funcionando de verdade? Suba seu fork no [Hangar](https://tryhangar.io) e coloque o link no PR. Fica muito mais fácil de revisar.
 
 ---
 
 <div align="center">
 
-<sub>Feito com ☕ no Brasil · Hospedado com ❤️ na <a href="https://tryhangar.io">Hangar</a></sub>
+<sub>Feito com ☕ no Brasil · Hospedado com ❤️ no <a href="https://tryhangar.io">Hangar</a></sub>
 
 <br />
 
-[![Deploy on Hangar](https://tryhangar.io/deploy-on-hangar.svg)](https://tryhangar.io/deploy?repo=https://github.com/csbills/bytewave-finance)
+[![Deploy on Hangar](https://tryhangar.io/deploy-on-hangar.svg)](https://tryhangar.io/deploy?repo=https://github.com/csbills/worthly)
 
 </div>

@@ -26,7 +26,7 @@ export type AuthFormState = {
 
 // Compared against when the email is unknown, so a miss costs the same time
 // as a wrong password and does not reveal which accounts exist.
-const timingDecoy = hashPassword("bytewave-timing-decoy");
+const timingDecoy = hashPassword("worthly-timing-decoy");
 
 export async function signup(
   _previous: AuthFormState,
