@@ -268,7 +268,7 @@ export async function getSpendingPace(): Promise<SpendingPaceResult> {
   }
 
   try {
-    const client = getPluggyClient();
+    const client = await getPluggyClient();
     const transactionResults = await Promise.allSettled(
       accountResult.accounts.map(async (account) => {
         const transactions = await client.fetchAllTransactions(account.id, {

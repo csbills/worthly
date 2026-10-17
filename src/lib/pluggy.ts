@@ -1,21 +1,58 @@
 import "server-only";
 import { PluggyClient } from "pluggy-sdk";
 
-type PluggyCredential = "PLUGGY_CLIENT_ID" | "PLUGGY_CLIENT_SECRET";
+import { prisma } from "@/lib/prisma";
 
-function getRequiredCredential(name: PluggyCredential): string {
-  const value = process.env[name];
+export type PluggyCredentials = {
+  clientId: string;
+  clientSecret: string;
+  /** Saved through the onboarding, or read from PLUGGY_CLIENT_* env vars. */
+  source: "database" | "environment";
+};
 
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+/**
+ * Credentials saved by the onboarding win over the environment, so someone
+ * who deployed with one-click can configure everything from the browser.
+ */
+export async function getPluggyCredentials(): Promise<PluggyCredentials | null> {
+  const settings = await prisma.appSettings.findUnique({
+    where: { id: "default" },
+    select: { pluggyClientId: true, pluggyClientSecret: true },
+  });
+
+  if (settings?.pluggyClientId && settings.pluggyClientSecret) {
+    return {
+      clientId: settings.pluggyClientId,
+      clientSecret: settings.pluggyClientSecret,
+      source: "database",
+    };
   }
 
-  return value;
+  const clientId = process.env.PLUGGY_CLIENT_ID;
+  const clientSecret = process.env.PLUGGY_CLIENT_SECRET;
+
+  if (clientId && clientSecret) {
+    return { clientId, clientSecret, source: "environment" };
+  }
+
+  return null;
 }
 
-export function getPluggyClient(): PluggyClient {
-  return new PluggyClient({
-    clientId: getRequiredCredential("PLUGGY_CLIENT_ID"),
-    clientSecret: getRequiredCredential("PLUGGY_CLIENT_SECRET"),
-  });
+export function createPluggyClient({
+  clientId,
+  clientSecret,
+}: Pick<PluggyCredentials, "clientId" | "clientSecret">): PluggyClient {
+  return new PluggyClient({ clientId, clientSecret });
+}
+
+export async function getPluggyClient(): Promise<PluggyClient> {
+  const credentials = await getPluggyCredentials();
+
+  if (!credentials) {
+    throw new Error(
+      "Pluggy credentials are not configured. Finish the onboarding at /onboarding or set PLUGGY_CLIENT_ID and PLUGGY_CLIENT_SECRET.",
+    );
+  }
+
+  return createPluggyClient(credentials);
 }

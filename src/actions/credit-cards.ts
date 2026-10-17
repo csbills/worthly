@@ -1,5 +1,6 @@
 "use server";
 
+import type { PluggyClient } from "pluggy-sdk";
 import { type ConnectedAccount, getConnectedAccounts } from "@/actions/pluggy";
 import { getPluggyClient } from "@/lib/pluggy";
 import { getBankDisplayName, getBankLogoPath } from "../lib/bank-assets";
@@ -38,7 +39,7 @@ function getFallbackBankDetails(
 }
 
 async function getBankDetails(
-  client: ReturnType<typeof getPluggyClient>,
+  client: PluggyClient,
   accounts: ConnectedAccount[],
 ): Promise<CreditCardBankDetails> {
   const fallback = getFallbackBankDetails(accounts);
@@ -69,7 +70,7 @@ export async function getCreditCards(): Promise<CreditCardsResult> {
   }
 
   try {
-    const client = getPluggyClient();
+    const client = await getPluggyClient();
     const accountsByItemId = new Map<string, ConnectedAccount[]>();
 
     for (const account of accountResult.accounts) {

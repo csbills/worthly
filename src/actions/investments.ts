@@ -5,8 +5,8 @@ import type {
   Investment,
   InvestmentSubtype,
   InvestmentType,
+  PluggyClient,
 } from "pluggy-sdk";
-
 import { getPluggyClient } from "@/lib/pluggy";
 import { prisma } from "@/lib/prisma";
 
@@ -223,7 +223,7 @@ function serializeInvestment(
 }
 
 async function fetchInvestmentTransactions(
-  client: ReturnType<typeof getPluggyClient>,
+  client: PluggyClient,
   investment: Investment,
 ) {
   if (investment.balance <= 0) {
@@ -239,10 +239,7 @@ async function fetchInvestmentTransactions(
   }
 }
 
-async function fetchAllInvestments(
-  client: ReturnType<typeof getPluggyClient>,
-  itemId: string,
-) {
+async function fetchAllInvestments(client: PluggyClient, itemId: string) {
   const investments: Investment[] = [];
   let page = 1;
 
@@ -467,7 +464,7 @@ export async function getInvestments(): Promise<InvestmentsResult> {
   }
 
   try {
-    const client = getPluggyClient();
+    const client = await getPluggyClient();
     const investmentResults = await Promise.allSettled(
       items.map(({ itemId }) => fetchAllInvestments(client, itemId)),
     );

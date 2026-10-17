@@ -1,7 +1,6 @@
 "use server";
 
-import type { Transaction } from "pluggy-sdk";
-
+import type { PluggyClient, Transaction } from "pluggy-sdk";
 import { type ConnectedAccount, getConnectedAccounts } from "@/actions/pluggy";
 import { getPluggyClient } from "@/lib/pluggy";
 import { getBankDisplayName, getBankLogoPath } from "../lib/bank-assets";
@@ -179,7 +178,7 @@ function getFallbackBankDetails(
 }
 
 async function getAccountBankDetails(
-  client: ReturnType<typeof getPluggyClient>,
+  client: PluggyClient,
   accounts: ConnectedAccount[],
 ): Promise<AccountBankDetails> {
   const fallback = getFallbackBankDetails(accounts);
@@ -293,7 +292,7 @@ export async function getTransactions(
   }
 
   try {
-    const client = getPluggyClient();
+    const client = await getPluggyClient();
     const connectedAccountNumbers = getConnectedAccountNumbers(
       accountResult.accounts,
     );
