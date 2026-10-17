@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Item, PluggyClient } from "pluggy-sdk";
+import { verifySession } from "@/lib/auth/dal";
 import {
   createPluggyClient,
   getPluggyClient,
@@ -43,6 +44,8 @@ export type OnboardingState = {
 };
 
 export async function getOnboardingState(): Promise<OnboardingState> {
+  await verifySession();
+
   const [credentials, connections, settings] = await Promise.all([
     getPluggyCredentials(),
     prisma.pluggyItem.findMany({
@@ -153,6 +156,8 @@ export async function savePluggyCredentials(
   _previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
+  await verifySession();
+
   const clientId = readField(formData, "clientId");
   const clientSecret = readField(formData, "clientSecret");
 
@@ -195,6 +200,8 @@ export async function addPluggyConnection(
   _previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
+  await verifySession();
+
   const rawItemId = readField(formData, "itemId");
 
   if (!isValidPluggyItemId(rawItemId)) {
@@ -239,6 +246,8 @@ export async function addPluggyConnection(
 }
 
 export async function removePluggyConnection(formData: FormData) {
+  await verifySession();
+
   const itemId = readField(formData, "itemId");
 
   if (itemId) {
@@ -248,6 +257,8 @@ export async function removePluggyConnection(formData: FormData) {
 }
 
 export async function completeOnboarding(): Promise<never> {
+  await verifySession();
+
   const now = new Date();
 
   await prisma.appSettings.upsert({

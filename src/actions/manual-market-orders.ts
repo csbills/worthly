@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { verifySession } from "@/lib/auth/dal";
 import {
   type CryptoOrder,
   calculateCryptoOrderQuantity,
@@ -112,6 +113,8 @@ function getOrderData(
 export async function saveManualMarketOrder(
   formData: FormData,
 ): Promise<never> {
+  await verifySession();
+
   const orderId = getFormString(formData, "orderId") || null;
   const assetId = getFormString(formData, "assetId");
   const asset = findSupportedMarketAsset(assetId);
@@ -287,6 +290,8 @@ export async function saveManualMarketOrder(
 export async function deleteManualMarketOrder(
   formData: FormData,
 ): Promise<never> {
+  await verifySession();
+
   const orderId = getFormString(formData, "orderId");
 
   if (!orderId) {

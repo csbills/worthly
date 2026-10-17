@@ -2,6 +2,7 @@
 
 import type { CreditCardBills, PluggyClient, Transaction } from "pluggy-sdk";
 import { type ConnectedAccount, getConnectedAccounts } from "@/actions/pluggy";
+import { verifySession } from "@/lib/auth/dal";
 import { getPluggyClient } from "@/lib/pluggy";
 import { getBankDisplayName, getBankLogoPath } from "../lib/bank-assets";
 import {
@@ -185,6 +186,8 @@ function emptyResult(cardCount = 0, error: string | null = null) {
 }
 
 export async function getInstallments(): Promise<InstallmentsResult> {
+  await verifySession();
+
   const accountResult = await getConnectedAccounts();
   const creditAccounts = accountResult.accounts.filter(isCreditCard);
 

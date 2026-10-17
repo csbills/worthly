@@ -1,5 +1,6 @@
 "use server";
 
+import { verifySession } from "@/lib/auth/dal";
 import {
   buildPortfolioAssets,
   buildPortfolioSnapshotData,
@@ -136,6 +137,8 @@ async function getPortfolioHistory(currencies: PortfolioCurrencySummary[]) {
 }
 
 export async function getPortfolio(): Promise<PortfolioResult> {
+  await verifySession();
+
   const [investmentsResult, manualCryptoResult, manualMarketResult] =
     await Promise.all([
       getInvestments(),

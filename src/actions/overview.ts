@@ -1,6 +1,7 @@
 "use server";
 
 import { getConnectedAccounts } from "@/actions/pluggy";
+import { verifySession } from "@/lib/auth/dal";
 import { getPluggyClient } from "@/lib/pluggy";
 import {
   type CashFlowSummary,
@@ -233,6 +234,8 @@ function collectMonthlyAmounts(
 }
 
 export async function getSpendingPace(): Promise<SpendingPaceResult> {
+  await verifySession();
+
   const { currentDate, currentMonth, previousMonth } = getMonths();
   const emptyMonths = {
     currentMonth: {

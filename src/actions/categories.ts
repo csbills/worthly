@@ -3,6 +3,7 @@
 import type { CurrencyCode } from "pluggy-sdk";
 
 import { getConnectedAccounts } from "@/actions/pluggy";
+import { verifySession } from "@/lib/auth/dal";
 import { getPluggyClient } from "@/lib/pluggy";
 import {
   getTransactionCategory,
@@ -338,6 +339,8 @@ function getEmptyResult(
 export async function getCategorySpending(
   monthKey?: string,
 ): Promise<CategorySpendingResult> {
+  await verifySession();
+
   const { currentDate, currentMonth } = getCurrentMonth();
   const month = resolveRequestedMonth(monthKey, currentMonth);
   const isCurrent = month.key === currentMonth.key;

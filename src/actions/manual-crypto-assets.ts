@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { CurrencyCode } from "pluggy-sdk";
-
+import { verifySession } from "@/lib/auth/dal";
 import {
   type CoinGeckoPrice,
   fetchCoinGeckoMarketChart,
@@ -448,6 +448,8 @@ async function getLiveMarketData(assets: StoredManualCryptoAsset[]) {
 }
 
 export async function getManualCryptoAssets(): Promise<ManualCryptoAssetsResult> {
+  await verifySession();
+
   try {
     const assets = await prisma.manualCryptoAsset.findMany({
       orderBy: [{ currencyCode: "asc" }, { symbol: "asc" }],
@@ -476,6 +478,8 @@ export async function getManualCryptoAssets(): Promise<ManualCryptoAssetsResult>
 export async function saveManualCryptoAsset(
   formData: FormData,
 ): Promise<never> {
+  await verifySession();
+
   const assetId = getFormString(formData, "assetId");
   const asset = findSupportedCryptoAsset(assetId);
   const purchaseTotal = getFormNumber(formData, "purchaseTotal");

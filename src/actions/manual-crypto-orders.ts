@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-
+import { verifySession } from "@/lib/auth/dal";
 import { findSupportedCryptoAsset } from "@/lib/crypto-assets";
 import {
   type CryptoOrder,
@@ -157,6 +157,8 @@ function getOrderData(
 export async function saveManualCryptoOrder(
   formData: FormData,
 ): Promise<never> {
+  await verifySession();
+
   const orderId = getFormString(formData, "orderId") || null;
   const assetId = getFormString(formData, "assetId");
   const asset = findSupportedCryptoAsset(assetId);
@@ -340,6 +342,8 @@ export async function saveManualCryptoOrder(
 export async function deleteManualCryptoOrder(
   formData: FormData,
 ): Promise<never> {
+  await verifySession();
+
   const orderId = getFormString(formData, "orderId");
 
   if (!orderId) {

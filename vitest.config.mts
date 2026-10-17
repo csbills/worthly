@@ -6,4 +6,7 @@ export default defineConfig({
     // Same "@/*" → "src/*" mapping as tsconfig.json.
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
+  test: {
+    setupFiles: ["./vitest.setup.ts"],
+  },
 });

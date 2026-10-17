@@ -1,7 +1,7 @@
 "use server";
 
 import type { CurrencyCode } from "pluggy-sdk";
-
+import { verifySession } from "@/lib/auth/dal";
 import {
   type CryptoHistoryPoint,
   mapMarketChartToHistory,
@@ -248,6 +248,8 @@ async function getLiveMarketData(assets: StoredManualMarketAsset[]) {
 }
 
 export async function getManualMarketAssets(): Promise<ManualMarketAssetsResult> {
+  await verifySession();
+
   try {
     const assets = await prisma.manualMarketAsset.findMany({
       orderBy: [{ assetType: "asc" }, { symbol: "asc" }],

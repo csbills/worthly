@@ -2,6 +2,7 @@
 
 import type { PluggyClient, Transaction } from "pluggy-sdk";
 import { type ConnectedAccount, getConnectedAccounts } from "@/actions/pluggy";
+import { verifySession } from "@/lib/auth/dal";
 import { getPluggyClient } from "@/lib/pluggy";
 import { getBankDisplayName, getBankLogoPath } from "../lib/bank-assets";
 import { getTransactionCategory } from "../lib/transaction-category-dictionary";
@@ -272,6 +273,8 @@ function getCategoryFilterOptions(
 export async function getTransactions(
   filters: TransactionFilters = defaultTransactionFilters,
 ): Promise<TransactionsResult> {
+  await verifySession();
+
   const resolvedPeriod = resolveTransactionPeriod(
     filters.period,
     new Date(),
@@ -401,6 +404,8 @@ export async function getTransactions(
 }
 
 export async function getCurrentMonthTransactions(): Promise<CurrentMonthTransactionsResult> {
+  await verifySession();
+
   const month = getCurrentMonth();
   const result = await getTransactions({
     ...defaultTransactionFilters,

@@ -1,5 +1,6 @@
 "use server";
 
+import { verifySession } from "@/lib/auth/dal";
 import { calculateNetWorth, type NetWorthBreakdown } from "../lib/net-worth";
 import type { OverviewBalances } from "../lib/overview-balances";
 import { prisma } from "../lib/prisma";
@@ -172,6 +173,8 @@ async function getNetWorthResult(
 }
 
 export async function getDashboardOverview(): Promise<DashboardOverviewResult> {
+  await verifySession();
+
   const [spendingPace, portfolio] = await Promise.all([
     getSpendingPace(),
     getPortfolio(),

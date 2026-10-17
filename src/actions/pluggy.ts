@@ -1,7 +1,7 @@
 "use server";
 
 import type { Account } from "pluggy-sdk";
-
+import { verifySession } from "@/lib/auth/dal";
 import { getPluggyClient } from "@/lib/pluggy";
 import { prisma } from "@/lib/prisma";
 
@@ -41,6 +41,8 @@ function serializeAccount(account: Account): ConnectedAccount {
 }
 
 export async function getConnectedAccounts(): Promise<ConnectedAccountsResult> {
+  await verifySession();
+
   const items = await prisma.pluggyItem.findMany({
     select: { itemId: true },
     orderBy: { createdAt: "asc" },
