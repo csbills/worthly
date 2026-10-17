@@ -157,17 +157,19 @@ function PortfolioMetric({
   value,
   supportingText,
   valueClassName = "",
+  className = "",
 }: {
   label: string;
   value: string;
   supportingText?: string;
   valueClassName?: string;
+  className?: string;
 }) {
   return (
-    <div className="bg-card p-5">
+    <div className={`min-w-0 bg-card p-4 sm:p-5 ${className}`}>
       <p className="text-sm text-muted-foreground">{label}</p>
       <p
-        className={`mt-2 text-xl font-normal tracking-[-0.03em] tabular-nums ${valueClassName}`}
+        className={`mt-2 truncate text-lg font-normal tracking-[-0.03em] tabular-nums sm:text-xl ${valueClassName}`}
       >
         {value}
       </p>
@@ -416,8 +418,9 @@ function PortfolioCurrencyView({
 
   return (
     <section className="space-y-4">
-      <div className="grid gap-px overflow-hidden rounded-2xl border bg-border sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border bg-border xl:grid-cols-5">
         <PortfolioMetric
+          className="col-span-2 xl:col-span-1"
           label="Patrimônio atual"
           value={formatCurrency(currency.balance, currency.currencyCode)}
         />

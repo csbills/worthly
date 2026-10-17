@@ -204,7 +204,7 @@ function MenuPanel({ id, children, className = "" }: MenuPanelProps) {
     <div
       id={id}
       role="menu"
-      className={`absolute top-[calc(100%+0.375rem)] left-0 z-50 min-w-full origin-top-left animate-in fade-in-0 zoom-in-[0.97] overflow-hidden rounded-xl border bg-popover p-1 text-popover-foreground shadow-[0_12px_32px_-8px_rgb(0_0_0/0.18),0_2px_6px_rgb(0_0_0/0.04)] duration-150 ${className}`}
+      className={`absolute top-[calc(100%+0.375rem)] left-0 z-50 min-w-full origin-top-left animate-in fade-in-0 zoom-in-[0.97] overflow-hidden rounded-xl border bg-popover p-1 text-popover-foreground shadow-[0_12px_32px_-8px_rgb(0_0_0/0.18),0_2px_6px_rgb(0_0_0/0.04)] duration-150 ${className} max-sm:fixed max-sm:inset-x-2 max-sm:top-auto max-sm:bottom-[max(0.5rem,env(safe-area-inset-bottom))] max-sm:z-[70] max-sm:max-h-[78dvh]! max-sm:w-auto! max-sm:max-w-none! max-sm:origin-bottom max-sm:overflow-y-auto! max-sm:rounded-2xl max-sm:p-1.5 max-sm:slide-in-from-bottom-4`}
     >
       {children}
     </div>
@@ -405,8 +405,10 @@ function DateRangePanel({
             strokeWidth={2}
           />
         </button>
-        <div className="grid flex-1 grid-cols-2 gap-4 text-center text-xs text-muted-foreground">
-          <span>{formatMonthLabel(previousMonth)}</span>
+        <div className="grid flex-1 grid-cols-1 gap-4 text-center text-xs text-muted-foreground sm:grid-cols-2">
+          <span className="hidden sm:block">
+            {formatMonthLabel(previousMonth)}
+          </span>
           <span>{formatMonthLabel(calendarMonth)}</span>
         </div>
         <button
@@ -424,12 +426,14 @@ function DateRangePanel({
         </button>
       </div>
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <CalendarMonthView
-          month={previousMonth}
-          dateFrom={draftFrom}
-          dateTo={draftTo}
-          onSelect={selectDate}
-        />
+        <div className="hidden sm:block">
+          <CalendarMonthView
+            month={previousMonth}
+            dateFrom={draftFrom}
+            dateTo={draftTo}
+            onSelect={selectDate}
+          />
+        </div>
         <CalendarMonthView
           month={calendarMonth}
           dateFrom={draftFrom}
@@ -555,8 +559,19 @@ export function TransactionsFilters({
   }
 
   return (
-    <div ref={containerRef} className="relative z-30">
-      <div className="flex flex-wrap items-center gap-2">
+    <div
+      ref={containerRef}
+      className={`relative ${openMenu ? "z-[60]" : "z-30"}`}
+    >
+      {openMenu ? (
+        <button
+          type="button"
+          aria-label="Fechar filtro"
+          className="fixed inset-0 z-[65] animate-in bg-black/30 fade-in-0 sm:hidden"
+          onClick={() => setOpenMenu(null)}
+        />
+      ) : null}
+      <div className="-mx-4 flex snap-x items-center gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
         <div className="relative">
           <FilterTrigger
             icon={

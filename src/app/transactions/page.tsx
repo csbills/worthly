@@ -56,6 +56,15 @@ function formatAmount(transaction: CurrentMonthTransaction) {
   );
 }
 
+/** Pluggy joins description parts with "|"; show them as a readable list. */
+function formatDescription(value: string) {
+  return value
+    .split("|")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function getInitials(value: string) {
   const initials = value
     .split(/\s+/u)
@@ -68,21 +77,88 @@ function getInitials(value: string) {
   return initials || "?";
 }
 
+function BankAvatar({
+  transaction,
+  className = "size-7",
+}: {
+  transaction: CurrentMonthTransaction;
+  className?: string;
+}) {
+  const bankName = getBankDisplayName(transaction.bankName);
+
+  return transaction.bankLogoPath ? (
+    <span
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full border bg-background ${className}`}
+    >
+      <Image
+        src={transaction.bankLogoPath}
+        alt=""
+        width={36}
+        height={36}
+        className="size-full object-cover"
+      />
+    </span>
+  ) : (
+    <span
+      aria-hidden="true"
+      className={`flex shrink-0 items-center justify-center rounded-full border bg-muted text-[10px] font-medium text-muted-foreground ${className}`}
+    >
+      {getInitials(bankName)}
+    </span>
+  );
+}
+
+function getAmountClassName(transaction: CurrentMonthTransaction) {
+  return transaction.type === "CREDIT"
+    ? "text-success-foreground"
+    : "text-destructive-foreground";
+}
+
+/** Phone layout: one tappable line per transaction instead of a wide table. */
+function TransactionListItem({
+  transaction,
+}: {
+  transaction: CurrentMonthTransaction;
+}) {
+  return (
+    <li className="flex items-center gap-3 px-4 py-3">
+      <BankAvatar transaction={transaction} className="size-9" />
+      <div className="min-w-0 flex-1">
+        <p className="line-clamp-2 text-sm leading-5 font-medium break-words">
+          {formatDescription(transaction.description)}
+        </p>
+        <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+          <span aria-hidden="true">{transaction.categoryIcon}</span>
+          <span className="truncate">{transaction.categoryLabel}</span>
+          <span aria-hidden="true">·</span>
+          <span className="shrink-0 tabular-nums">
+            {formatDate(transaction.date)}
+          </span>
+        </p>
+      </div>
+      <p
+        className={`shrink-0 text-sm font-medium whitespace-nowrap tabular-nums ${getAmountClassName(transaction)}`}
+      >
+        {formatAmount(transaction)}
+      </p>
+    </li>
+  );
+}
+
 function TransactionRow({
   transaction,
 }: {
   transaction: CurrentMonthTransaction;
 }) {
-  const amountClassName =
-    transaction.type === "CREDIT"
-      ? "text-success-foreground"
-      : "text-destructive-foreground";
+  const amountClassName = getAmountClassName(transaction);
   const bankName = getBankDisplayName(transaction.bankName);
 
   return (
     <tr className="border-b transition-colors last:border-0 hover:bg-muted">
       <td className="min-w-64 px-5 py-3 align-middle">
-        <p className="text-sm font-medium">{transaction.description}</p>
+        <p className="text-sm font-medium">
+          {formatDescription(transaction.description)}
+        </p>
       </td>
       <td className="min-w-40 px-4 py-3 align-middle text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-2 rounded-full bg-muted py-0.5 pr-2.5 pl-1.5 text-xs">
@@ -94,24 +170,7 @@ function TransactionRow({
       </td>
       <td className="min-w-56 px-4 py-3 align-middle">
         <div className="flex min-w-0 items-center gap-2.5">
-          {transaction.bankLogoPath ? (
-            <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-background">
-              <Image
-                src={transaction.bankLogoPath}
-                alt=""
-                width={36}
-                height={36}
-                className="size-full object-cover"
-              />
-            </span>
-          ) : (
-            <span
-              aria-hidden="true"
-              className="flex size-7 shrink-0 items-center justify-center rounded-full border bg-muted text-[10px] font-medium text-muted-foreground"
-            >
-              {getInitials(bankName)}
-            </span>
-          )}
+          <BankAvatar transaction={transaction} />
           <div className="min-w-0">
             <p className="truncate text-sm">{bankName}</p>
           </div>
@@ -151,10 +210,10 @@ export default async function TransactionsPage({
 
       <TransactionsFilters filters={filters} options={result.filterOptions} />
 
-      <div className="surface grid grid-cols-2 divide-border xl:grid-cols-4 [&>div]:p-5 max-xl:[&>div:nth-child(-n+2)]:border-b xl:[&>div:not(:first-child)]:border-l max-xl:[&>div:nth-child(even)]:border-l">
+      <div className="surface grid grid-cols-2 divide-border xl:grid-cols-4 [&>div]:min-w-0 [&>div]:p-4 sm:[&>div]:p-5 max-xl:[&>div:nth-child(-n+2)]:border-b xl:[&>div:not(:first-child)]:border-l max-xl:[&>div:nth-child(even)]:border-l">
         <div>
           <p className="text-sm text-muted-foreground">Transações</p>
-          <p className="mt-2 text-2xl font-normal tracking-[-0.03em] tabular-nums">
+          <p className="mt-2 text-xl font-normal tracking-[-0.03em] whitespace-nowrap tabular-nums sm:text-2xl">
             {summary.total}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -163,20 +222,20 @@ export default async function TransactionsPage({
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Receitas</p>
-          <p className="mt-2 text-2xl font-normal tracking-[-0.03em] tabular-nums text-success-foreground">
+          <p className="mt-2 text-xl font-normal tracking-[-0.03em] whitespace-nowrap tabular-nums sm:text-2xl text-success-foreground">
             {formatCurrency(summary.receipts, summaryCurrency)}
           </p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Despesas</p>
-          <p className="mt-2 text-2xl font-normal tracking-[-0.03em] tabular-nums text-destructive-foreground">
+          <p className="mt-2 text-xl font-normal tracking-[-0.03em] whitespace-nowrap tabular-nums sm:text-2xl text-destructive-foreground">
             {formatCurrency(summary.expenses, summaryCurrency)}
           </p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Saldo</p>
           <p
-            className={`mt-2 text-2xl font-normal tracking-[-0.03em] tabular-nums ${
+            className={`mt-2 text-xl font-normal tracking-[-0.03em] whitespace-nowrap tabular-nums sm:text-2xl ${
               summary.balance < 0
                 ? "text-destructive-foreground"
                 : "text-success-foreground"
@@ -190,9 +249,9 @@ export default async function TransactionsPage({
       {result.error ? <Notice tone="warning">{result.error}</Notice> : null}
 
       <section className="min-w-0 overflow-hidden surface">
-        <div className="flex flex-col justify-between gap-3 border-b px-5 py-4 md:flex-row md:items-center">
+        <div className="flex flex-col justify-between gap-3 border-b px-4 py-4 sm:px-5 md:flex-row md:items-center">
           <TransactionsSearch initialValue={filters.search} />
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground sm:text-sm">
             <span>
               {result.transactions.length}{" "}
               {result.transactions.length === 1 ? "transação" : "transações"}
@@ -203,40 +262,50 @@ export default async function TransactionsPage({
         </div>
 
         {result.transactions.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] border-collapse text-left">
-              <thead>
-                <tr className="border-b bg-muted text-xs text-muted-foreground">
-                  <th scope="col" className="px-5 py-2.5 font-normal">
-                    Descrição
-                  </th>
-                  <th scope="col" className="px-4 py-2.5 font-normal">
-                    Categoria
-                  </th>
-                  <th scope="col" className="px-4 py-2.5 font-normal">
-                    Conta
-                  </th>
-                  <th scope="col" className="px-4 py-2.5 font-normal">
-                    Data
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-5 py-2.5 text-right font-normal"
-                  >
-                    Valor
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.transactions.map((transaction) => (
-                  <TransactionRow
-                    key={transaction.id}
-                    transaction={transaction}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <ul className="divide-y md:hidden">
+              {result.transactions.map((transaction) => (
+                <TransactionListItem
+                  key={transaction.id}
+                  transaction={transaction}
+                />
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[860px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b bg-muted text-xs text-muted-foreground">
+                    <th scope="col" className="px-5 py-2.5 font-normal">
+                      Descrição
+                    </th>
+                    <th scope="col" className="px-4 py-2.5 font-normal">
+                      Categoria
+                    </th>
+                    <th scope="col" className="px-4 py-2.5 font-normal">
+                      Conta
+                    </th>
+                    <th scope="col" className="px-4 py-2.5 font-normal">
+                      Data
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-5 py-2.5 text-right font-normal"
+                    >
+                      Valor
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.transactions.map((transaction) => (
+                    <TransactionRow
+                      key={transaction.id}
+                      transaction={transaction}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <div className="p-10 text-center">
             <p className="font-medium">Nenhuma transação encontrada</p>
