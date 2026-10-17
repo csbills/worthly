@@ -3,6 +3,7 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 
+import { LOCK_AFTER_MS, PING_EVERY_MS } from "@/lib/auth/app-lock";
 import { SESSION_COOKIE } from "@/lib/auth/routes";
 import { prisma } from "@/lib/prisma";
 
@@ -12,12 +13,22 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const SESSION_TTL_MS = 30 * DAY_MS;
 /** Sessions used within their last 15 days are pushed out another 30. */
 const RENEW_WITHIN_MS = 15 * DAY_MS;
+/** Activity is recorded at most once a minute, not on every request. */
+const TOUCH_EVERY_MS = PING_EVERY_MS;
 
 export type SessionUser = {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
+  /** Passkeys turn on the app lock. */
+  hasPasskeys: boolean;
+};
+
+export type CurrentSession = {
+  id: string;
+  locked: boolean;
+  user: SessionUser;
 };
 
 function hashToken(token: string) {
@@ -44,7 +55,7 @@ export async function createSession(userId: string) {
   await writeCookie(token, expiresAt);
 }
 
-export async function getSessionUser(): Promise<SessionUser | null> {
+export async function getSession(): Promise<CurrentSession | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
 
   if (!token) {
@@ -56,8 +67,15 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     select: {
       id: true,
       expiresAt: true,
+      lastActiveAt: true,
       user: {
-        select: { id: true, firstName: true, lastName: true, email: true },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          _count: { select: { passkeys: true } },
+        },
       },
     },
   });
@@ -73,18 +91,43 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     return null;
   }
 
-  if (session.expiresAt.getTime() - now < RENEW_WITHIN_MS) {
-    const expiresAt = new Date(now + SESSION_TTL_MS);
+  const { _count, ...profile } = session.user;
+  const user = { ...profile, hasPasskeys: _count.passkeys > 0 };
+  const idleMs = now - session.lastActiveAt.getTime();
+  const locked = user.hasPasskeys && idleMs > LOCK_AFTER_MS;
+  const renew = session.expiresAt.getTime() - now < RENEW_WITHIN_MS;
+  // A locked session records nothing: only unlocking makes it active again.
+  const touch = !locked && idleMs > TOUCH_EVERY_MS;
+
+  if (renew || touch) {
+    const expiresAt = renew ? new Date(now + SESSION_TTL_MS) : undefined;
     await prisma.session.update({
       where: { id: session.id },
-      data: { expiresAt },
+      data: {
+        expiresAt,
+        lastActiveAt: touch ? new Date(now) : undefined,
+      },
     });
-    // Cookies can only be written from Server Actions and Route Handlers;
-    // during a render the database renewal alone keeps the session alive.
-    await writeCookie(token, expiresAt).catch(() => {});
+
+    if (expiresAt) {
+      // Cookies can only be written from Server Actions and Route Handlers;
+      // during a render the database renewal alone keeps the session alive.
+      await writeCookie(token, expiresAt).catch(() => {});
+    }
   }
 
-  return session.user;
+  return { id: session.id, locked, user };
+}
+
+export async function getSessionUser(): Promise<SessionUser | null> {
+  return (await getSession())?.user ?? null;
+}
+
+export async function unlockSession(sessionId: string) {
+  await prisma.session.update({
+    where: { id: sessionId },
+    data: { lastActiveAt: new Date() },
+  });
 }
 
 export async function deleteSession() {

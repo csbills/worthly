@@ -5,6 +5,7 @@ import {
   Download04Icon,
   Logout01Icon,
   Plug01Icon,
+  SecurityLockIcon,
   Share08Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -12,6 +13,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { logout } from "@/actions/auth";
+import { AppLockWatcher } from "@/components/auth/passkeys";
 import { useInstallState } from "@/components/pwa";
 import {
   DropdownMenu,
@@ -102,6 +104,10 @@ export function UserMenu({ user }: { user: SessionUser }) {
             <HugeiconsIcon icon={Plug01Icon} strokeWidth={1.8} />
             Conexões
           </DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/security" />}>
+            <HugeiconsIcon icon={SecurityLockIcon} strokeWidth={1.8} />
+            Segurança
+          </DropdownMenuItem>
           {install.kind !== "unavailable" ? (
             <DropdownMenuItem
               onClick={() =>
@@ -124,6 +130,7 @@ export function UserMenu({ user }: { user: SessionUser }) {
         </DropdownMenuContent>
       </DropdownMenu>
       <IosInstallSheet open={iosSheetOpen} onOpenChange={setIosSheetOpen} />
+      {user.hasPasskeys ? <AppLockWatcher /> : null}
     </>
   );
 }

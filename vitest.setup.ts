@@ -9,10 +9,16 @@ vi.mock("@/lib/auth/dal", () => {
     firstName: "Teste",
     lastName: "Bytewave",
     email: "teste@example.com",
+    hasPasskeys: false,
   };
 
   return {
     verifySession: vi.fn(async () => user),
     getCurrentUser: vi.fn(async () => user),
+    getCurrentSession: vi.fn(async () => ({
+      id: "test-session",
+      locked: false,
+      user,
+    })),
   };
 });

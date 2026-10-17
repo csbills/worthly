@@ -151,18 +151,43 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   sessions     Session[]
+  passkeys     Passkey[]
 }
 
 /// Server-side sessions. Only a SHA-256 of the cookie token is stored, so a
 /// leaked database cannot be replayed as a login.
 model Session {
-  id        String   @id @default(cuid())
-  tokenHash String   @unique
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  tokenHash    String   @unique
+  userId       String
+  expiresAt    DateTime
+  /// Last request made while unlocked. With passkeys set up, a session idle
+  /// for a few minutes (the app went to the background) asks for one again.
+  lastActiveAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+/// WebAuthn credentials (Face ID, Touch ID, Android biometrics). Only the
+/// public key is stored; the private key never leaves the device.
+model Passkey {
+  id           String    @id @default(cuid())
+  /// Base64URL credential ID, as the browser reports it.
+  credentialId String    @unique
+  publicKey    Bytes
+  counter      Int       @default(0)
+  /// Comma-separated AuthenticatorTransport values ("internal,hybrid").
+  transports   String    @default("")
+  /// Synced (iCloud Keychain, Google Password Manager) or bound to one device.
+  backedUp     Boolean   @default(false)
+  name         String
+  userId       String
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

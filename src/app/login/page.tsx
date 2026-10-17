@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 
 import { LoginForm } from "@/components/auth/auth-forms";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { PasskeyLoginButton } from "@/components/auth/passkeys";
 import { getCurrentUser } from "@/lib/auth/dal";
-import { isFirstAccess } from "@/lib/auth/users";
+import { hasAnyPasskey, isFirstAccess } from "@/lib/auth/users";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +20,15 @@ export default async function LoginPage() {
     redirect("/");
   }
 
+  const showPasskey = await hasAnyPasskey();
+
   return (
     <AuthShell
       title="Bem-vindo de volta"
       description="Entre para ver suas finanças."
     >
-      <LoginForm />
+      {showPasskey ? <PasskeyLoginButton /> : null}
+      <LoginForm autoFocus={!showPasskey} />
     </AuthShell>
   );
 }

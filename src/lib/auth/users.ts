@@ -6,3 +6,8 @@ import { prisma } from "@/lib/prisma";
 export async function isFirstAccess() {
   return (await prisma.user.count()) === 0;
 }
+
+/** Offers "Entrar com Face ID" on the login once any passkey exists. */
+export async function hasAnyPasskey() {
+  return (await prisma.passkey.count()) > 0;
+}

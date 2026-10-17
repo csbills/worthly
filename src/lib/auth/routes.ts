@@ -31,3 +31,25 @@ export function getProxyRedirect(pathname: string, hasSessionCookie: boolean) {
 
   return "/login";
 }
+
+/**
+ * Where to go after unlocking. Only same-app paths are honored, so a crafted
+ * `?next=` link cannot bounce the user to another site.
+ */
+export function safeNextPath(next: string | null | undefined) {
+  if (
+    !next ||
+    !next.startsWith("/") ||
+    next.startsWith("//") ||
+    next.startsWith("/\\")
+  ) {
+    return "/";
+  }
+
+  const pathname = next.split(/[?#]/u)[0];
+  if (pathname === "/unlock" || isPublicPath(pathname)) {
+    return "/";
+  }
+
+  return next;
+}

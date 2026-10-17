@@ -36,20 +36,43 @@ vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
 import {
   createSession,
   deleteSession,
+  getSession,
   getSessionUser,
   SESSION_COOKIE,
+  unlockSession,
 } from "./session";
 
 const DAY = 24 * 60 * 60 * 1000;
 const sha256 = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 
+const MINUTE = 60 * 1000;
+
 const user = {
   id: "user-1",
   firstName: "Ana",
   lastName: "Souza",
   email: "ana@example.com",
+  hasPasskeys: false,
 };
+
+function storedSession({
+  expiresIn = 20 * DAY,
+  idleFor = 0,
+  passkeys = 0,
+}: {
+  expiresIn?: number;
+  idleFor?: number;
+  passkeys?: number;
+} = {}) {
+  const { hasPasskeys: _, ...profile } = user;
+  return {
+    id: "session-1",
+    expiresAt: new Date(Date.now() + expiresIn),
+    lastActiveAt: new Date(Date.now() - idleFor),
+    user: { ...profile, _count: { passkeys } },
+  };
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -86,11 +109,7 @@ describe("getSessionUser", () => {
 
   it("returns the user of a valid session", async () => {
     mocks.jar.set(SESSION_COOKIE, "token-abc");
-    mocks.prisma.session.findUnique.mockResolvedValue({
-      id: "session-1",
-      expiresAt: new Date(Date.now() + 20 * DAY),
-      user,
-    });
+    mocks.prisma.session.findUnique.mockResolvedValue(storedSession());
 
     await expect(getSessionUser()).resolves.toEqual(user);
     expect(mocks.prisma.session.findUnique).toHaveBeenCalledWith(
@@ -101,11 +120,9 @@ describe("getSessionUser", () => {
 
   it("extends a session that is close to expiring", async () => {
     mocks.jar.set(SESSION_COOKIE, "token-abc");
-    mocks.prisma.session.findUnique.mockResolvedValue({
-      id: "session-1",
-      expiresAt: new Date(Date.now() + 2 * DAY),
-      user,
-    });
+    mocks.prisma.session.findUnique.mockResolvedValue(
+      storedSession({ expiresIn: 2 * DAY }),
+    );
 
     await getSessionUser();
 
@@ -115,16 +132,77 @@ describe("getSessionUser", () => {
 
   it("drops expired sessions", async () => {
     mocks.jar.set(SESSION_COOKIE, "token-abc");
-    mocks.prisma.session.findUnique.mockResolvedValue({
-      id: "session-1",
-      expiresAt: new Date(Date.now() - 1000),
-      user,
-    });
+    mocks.prisma.session.findUnique.mockResolvedValue(
+      storedSession({ expiresIn: -1000 }),
+    );
 
     await expect(getSessionUser()).resolves.toBeNull();
     expect(mocks.prisma.session.deleteMany).toHaveBeenCalledWith({
       where: { id: "session-1" },
     });
+  });
+});
+
+describe("getSession", () => {
+  it("never locks a session when no passkey is set up", async () => {
+    mocks.jar.set(SESSION_COOKIE, "token-abc");
+    mocks.prisma.session.findUnique.mockResolvedValue(
+      storedSession({ idleFor: 3 * DAY }),
+    );
+
+    await expect(getSession()).resolves.toMatchObject({
+      id: "session-1",
+      locked: false,
+      user,
+    });
+  });
+
+  it("locks a session left idle with passkeys set up, without refreshing it", async () => {
+    mocks.jar.set(SESSION_COOKIE, "token-abc");
+    mocks.prisma.session.findUnique.mockResolvedValue(
+      storedSession({ idleFor: 6 * MINUTE, passkeys: 1 }),
+    );
+
+    await expect(getSession()).resolves.toMatchObject({
+      locked: true,
+      user: { ...user, hasPasskeys: true },
+    });
+    // Visiting the unlock screen must not count as activity.
+    expect(mocks.prisma.session.update).not.toHaveBeenCalled();
+  });
+
+  it("keeps an active session unlocked and records the activity", async () => {
+    mocks.jar.set(SESSION_COOKIE, "token-abc");
+    mocks.prisma.session.findUnique.mockResolvedValue(
+      storedSession({ idleFor: 2 * MINUTE, passkeys: 1 }),
+    );
+
+    await expect(getSession()).resolves.toMatchObject({ locked: false });
+
+    const { data } = mocks.prisma.session.update.mock.calls[0][0];
+    expect(data.lastActiveAt.getTime()).toBeGreaterThan(Date.now() - 1000);
+    expect(data.expiresAt).toBeUndefined();
+  });
+
+  it("does not write on every request", async () => {
+    mocks.jar.set(SESSION_COOKIE, "token-abc");
+    mocks.prisma.session.findUnique.mockResolvedValue(
+      storedSession({ idleFor: 10 * 1000, passkeys: 1 }),
+    );
+
+    await getSession();
+
+    expect(mocks.prisma.session.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("unlockSession", () => {
+  it("marks the session as active again", async () => {
+    await unlockSession("session-1");
+
+    const { where, data } = mocks.prisma.session.update.mock.calls[0][0];
+    expect(where).toEqual({ id: "session-1" });
+    expect(data.lastActiveAt.getTime()).toBeGreaterThan(Date.now() - 1000);
   });
 });
 

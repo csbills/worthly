@@ -181,7 +181,7 @@ export function SignupForm() {
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ autoFocus = true }: { autoFocus?: boolean }) {
   const [state, action, pending] = useActionState(login, idle);
   const errors = state.errors ?? {};
 
@@ -202,7 +202,7 @@ export function LoginForm() {
           autoCapitalize="none"
           spellCheck={false}
           required
-          autoFocus={!state.values?.email}
+          autoFocus={autoFocus && !state.values?.email}
           defaultValue={state.values?.email}
           aria-invalid={errors.email ? true : undefined}
           className={fieldClassName}

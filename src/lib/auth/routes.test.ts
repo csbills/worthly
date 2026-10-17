@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getProxyRedirect } from "./routes";
+import { getProxyRedirect, safeNextPath } from "./routes";
 
 describe("getProxyRedirect", () => {
   it("sends visitors without a session cookie to the login", () => {
@@ -26,5 +26,29 @@ describe("getProxyRedirect", () => {
   it("does not redirect requests that carry a session cookie", () => {
     expect(getProxyRedirect("/", true)).toBeNull();
     expect(getProxyRedirect("/login", true)).toBeNull();
+  });
+});
+
+describe("safeNextPath", () => {
+  it("keeps paths inside the app", () => {
+    expect(safeNextPath("/transactions?month=2026-10")).toBe(
+      "/transactions?month=2026-10",
+    );
+  });
+
+  it("falls back to the overview for anything that could leave the app", () => {
+    for (const value of [
+      null,
+      undefined,
+      "",
+      "https://evil.example",
+      "//evil.example",
+      "/\\evil.example",
+      "transactions",
+      "/unlock",
+      "/login",
+    ]) {
+      expect(safeNextPath(value), String(value)).toBe("/");
+    }
   });
 });
