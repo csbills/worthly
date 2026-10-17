@@ -4,14 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "prisma generate && next build",
+    "start": "prisma migrate deploy && next start",
     "test": "vitest run",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "lint": "biome check",
-    "format": "biome format --write"
+    "format": "biome format --write",
+    "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -22,8 +23,10 @@
     "better-sqlite3": "^13.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.4.2",
     "next": "16.3.3",
     "pluggy-sdk": "^0.90.0",
+    "prisma": "7.10.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "recharts": "^3.10.1",
@@ -39,8 +42,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "dotenv": "^17.4.2",
-    "prisma": "7.10.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.11"
