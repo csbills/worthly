@@ -49,7 +49,7 @@ O jeito mais rápido (e o que a gente usa e recomenda) é o **Hangar**:
 [![Deploy on Hangar](https://tryhangar.io/deploy-on-hangar.svg)](https://tryhangar.io/deploy?repo=https://github.com/csbills/worthly)
 
 1. **Clique no botão.** O Hangar lê o [`hangar.yaml`](hangar.yaml) deste repositório e mostra o que vai criar antes de começar.
-2. **Revise as variáveis.** As chaves da Pluggy e da CoinGecko são opcionais: dá para deixar em branco e colar depois, no onboarding.
+2. **Revise o que será criado.** Nenhuma chave é pedida no deploy: as credenciais da Pluggy são coladas depois, no onboarding.
 3. **Confirme.** O Hangar faz o build, cria o volume persistente em `/data`, configura o domínio com HTTPS e publica.
 4. **Abra a URL**, crie sua conta e siga o onboarding em `/onboarding`.
 
@@ -148,10 +148,8 @@ Abra [http://localhost:3000](http://localhost:3000), crie sua conta e siga o onb
 | --- | --- | --- |
 | `DATABASE_URL` | Não | Caminho do SQLite. Padrão: `file:./prisma/dev.db`. Em produção, aponte para um volume persistente. |
 | `APP_URL` | Em produção | URL pública da instância (ex.: `https://financas.exemplo.com`). Define o domínio das chaves de acesso. Localmente, o host da requisição é usado. |
-| `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | Não | Alternativa ao onboarding. Credenciais salvas pelo onboarding têm prioridade. |
-| `COINGECKO_API_KEY` | Não | Chave Demo da CoinGecko para cotações de cripto. Sem ela, usa a API pública. |
 
-As credenciais da Pluggy ficam só no servidor (no banco ou em variáveis de ambiente) e nunca vão para o navegador. Não use o prefixo `NEXT_PUBLIC_` para elas.
+As credenciais da Pluggy são configuradas no onboarding, ficam só no banco do servidor e nunca vão para o navegador.
 
 ### Scripts
 

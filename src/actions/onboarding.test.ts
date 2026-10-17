@@ -195,11 +195,10 @@ describe("removePluggyConnection", () => {
 });
 
 describe("getOnboardingState", () => {
-  it("reports where the credentials come from without exposing the secret", async () => {
+  it("reports the saved credentials without exposing the secret", async () => {
     mocks.getPluggyCredentials.mockResolvedValue({
       clientId: "0b3c5e6a-1d2f-4a9b-8c7d-6e5f4a3b2c1d",
       clientSecret: "super-secret",
-      source: "environment",
     });
     mocks.prisma.pluggyItem.findMany.mockResolvedValue([]);
     mocks.prisma.appSettings.findUnique.mockResolvedValue(null);
@@ -207,7 +206,7 @@ describe("getOnboardingState", () => {
     const state = await getOnboardingState();
 
     expect(state).toEqual({
-      credentials: { source: "environment", clientIdHint: "0b3c…2c1d" },
+      credentials: { clientIdHint: "0b3c…2c1d" },
       connections: [],
       completed: false,
     });
@@ -218,7 +217,6 @@ describe("getOnboardingState", () => {
     mocks.getPluggyCredentials.mockResolvedValue({
       clientId: "client-id-value",
       clientSecret: "secret",
-      source: "database",
     });
     mocks.prisma.pluggyItem.findMany.mockResolvedValue([
       {

@@ -8,7 +8,6 @@ import {
   createPluggyClient,
   getPluggyClient,
   getPluggyCredentials,
-  type PluggyCredentials,
 } from "@/lib/pluggy";
 import { prisma } from "@/lib/prisma";
 import { getBankDisplayName, getBankLogoPath } from "../lib/bank-assets";
@@ -36,7 +35,6 @@ export type PluggyConnectionSummary = {
 
 export type OnboardingState = {
   credentials: {
-    source: PluggyCredentials["source"];
     clientIdHint: string;
   } | null;
   connections: PluggyConnectionSummary[];
@@ -65,10 +63,7 @@ export async function getOnboardingState(): Promise<OnboardingState> {
 
   return {
     credentials: credentials
-      ? {
-          source: credentials.source,
-          clientIdHint: maskIdentifier(credentials.clientId),
-        }
+      ? { clientIdHint: maskIdentifier(credentials.clientId) }
       : null,
     connections: credentials
       ? await backfillConnectionDetails(connections)

@@ -14,33 +14,17 @@ vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
 
 import { getPluggyClient, getPluggyCredentials } from "./pluggy";
 
-const originalClientId = process.env.PLUGGY_CLIENT_ID;
-const originalClientSecret = process.env.PLUGGY_CLIENT_SECRET;
-
-function restoreEnv(name: string, value: string | undefined) {
-  if (value === undefined) {
-    delete process.env[name];
-  } else {
-    process.env[name] = value;
-  }
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
-  delete process.env.PLUGGY_CLIENT_ID;
-  delete process.env.PLUGGY_CLIENT_SECRET;
   mocks.prisma.appSettings.findUnique.mockResolvedValue(null);
 });
 
 afterEach(() => {
-  restoreEnv("PLUGGY_CLIENT_ID", originalClientId);
-  restoreEnv("PLUGGY_CLIENT_SECRET", originalClientSecret);
+  vi.unstubAllEnvs();
 });
 
 describe("getPluggyCredentials", () => {
-  it("prefers the credentials saved during onboarding", async () => {
-    process.env.PLUGGY_CLIENT_ID = "env-id";
-    process.env.PLUGGY_CLIENT_SECRET = "env-secret";
+  it("returns the credentials saved during onboarding", async () => {
     mocks.prisma.appSettings.findUnique.mockResolvedValue({
       pluggyClientId: "db-id",
       pluggyClientSecret: "db-secret",
@@ -49,23 +33,17 @@ describe("getPluggyCredentials", () => {
     await expect(getPluggyCredentials()).resolves.toEqual({
       clientId: "db-id",
       clientSecret: "db-secret",
-      source: "database",
     });
   });
 
-  it("falls back to the environment variables", async () => {
-    process.env.PLUGGY_CLIENT_ID = "env-id";
-    process.env.PLUGGY_CLIENT_SECRET = "env-secret";
+  it("ignores PLUGGY_CLIENT_* environment variables", async () => {
+    vi.stubEnv("PLUGGY_CLIENT_ID", "env-id");
+    vi.stubEnv("PLUGGY_CLIENT_SECRET", "env-secret");
 
-    await expect(getPluggyCredentials()).resolves.toEqual({
-      clientId: "env-id",
-      clientSecret: "env-secret",
-      source: "environment",
-    });
+    await expect(getPluggyCredentials()).resolves.toBeNull();
   });
 
   it("ignores half-configured credentials", async () => {
-    process.env.PLUGGY_CLIENT_ID = "env-id";
     mocks.prisma.appSettings.findUnique.mockResolvedValue({
       pluggyClientId: "db-id",
       pluggyClientSecret: null,
@@ -76,15 +54,17 @@ describe("getPluggyCredentials", () => {
 });
 
 describe("getPluggyClient", () => {
-  it("explains how to configure Pluggy when nothing is set", async () => {
+  it("explains how to configure Pluggy when nothing is saved", async () => {
     await expect(getPluggyClient()).rejects.toThrow(
       "Pluggy credentials are not configured",
     );
   });
 
-  it("creates a Pluggy client from the resolved credentials", async () => {
-    process.env.PLUGGY_CLIENT_ID = "client-id-for-tests";
-    process.env.PLUGGY_CLIENT_SECRET = "client-secret-for-tests";
+  it("creates a Pluggy client from the saved credentials", async () => {
+    mocks.prisma.appSettings.findUnique.mockResolvedValue({
+      pluggyClientId: "client-id-for-tests",
+      pluggyClientSecret: "client-secret-for-tests",
+    });
 
     await expect(getPluggyClient()).resolves.toBeInstanceOf(PluggyClient);
   });

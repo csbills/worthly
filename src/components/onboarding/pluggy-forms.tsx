@@ -351,10 +351,8 @@ export function CredentialsPanel({
             Client ID{" "}
             <span className="font-mono text-xs">
               {credentials.clientIdHint}
-            </span>
-            {credentials.source === "environment"
-              ? " · via variáveis de ambiente"
-              : " · salvas nesta instância"}
+            </span>{" "}
+            · salvas nesta instância
           </p>
         </div>
       </div>

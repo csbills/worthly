@@ -19,17 +19,3 @@ services:
       DATABASE_URL: file:/data/worthly.db
       # Domínio das chaves de acesso (Face ID/biometria). Não troque depois.
       APP_URL: ${{ web.url }}
-      PLUGGY_CLIENT_ID:
-        prompt: Pluggy Client ID (opcional)
-        description: Pode deixar em branco e colar depois no onboarding em /onboarding.
-        required: false
-      PLUGGY_CLIENT_SECRET:
-        prompt: Pluggy Client Secret (opcional)
-        description: Pode deixar em branco e colar depois no onboarding em /onboarding.
-        secret: true
-        required: false
-      COINGECKO_API_KEY:
-        prompt: Chave Demo da CoinGecko (opcional)
-        description: Melhora as cotações de cripto. Sem ela, o app usa a API pública.
-        secret: true
-        required: false
