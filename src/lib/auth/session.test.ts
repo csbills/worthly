@@ -9,9 +9,11 @@ const mocks = vi.hoisted(() => {
       get: vi.fn((name: string) =>
         jar.has(name) ? { name, value: jar.get(name) } : undefined,
       ),
-      set: vi.fn((name: string, value: string) => {
-        jar.set(name, value);
-      }),
+      set: vi.fn(
+        (name: string, value: string, _options?: { expires?: Date }) => {
+          jar.set(name, value);
+        },
+      ),
       delete: vi.fn((name: string) => {
         jar.delete(name);
       }),
@@ -72,7 +74,7 @@ describe("createSession", () => {
       sameSite: "lax",
       path: "/",
     });
-    expect(options.expires.getTime()).toBeGreaterThan(Date.now() + 29 * DAY);
+    expect(options?.expires?.getTime()).toBeGreaterThan(Date.now() + 29 * DAY);
   });
 });
 
