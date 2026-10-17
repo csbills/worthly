@@ -9,8 +9,7 @@ const {
   getPortfolioCategoryToggleLabel,
 } = portfolioDisplay;
 
-const manualStock = {
-  source: "manual",
+const catalogStock = {
   symbol: "PETR4",
   categoryKey: "EQUITY",
   quantity: 4,
@@ -21,7 +20,6 @@ const manualStock = {
 } as const;
 
 const pluggyFixedIncome = {
-  source: "pluggy",
   symbol: "CDB",
   categoryKey: "FIXED_INCOME",
   quantity: 396_652.1048,
@@ -33,7 +31,6 @@ const pluggyFixedIncome = {
 } as const;
 
 const pluggyStock = {
-  source: "pluggy",
   symbol: "STOCK",
   categoryKey: "EQUITY",
   quantity: 4,
@@ -45,7 +42,6 @@ const pluggyStock = {
 } as const;
 
 const pluggyFii = {
-  source: "pluggy",
   symbol: "REAL_ESTATE_FUND",
   categoryKey: "EQUITY",
   quantity: 10,
@@ -57,7 +53,6 @@ const pluggyFii = {
 } as const;
 
 const pluggyEtf = {
-  source: "pluggy",
   symbol: "ETF",
   categoryKey: "ETF",
   quantity: 5,
@@ -69,8 +64,8 @@ const pluggyEtf = {
 } as const;
 
 describe("Portfolio asset display", () => {
-  it("prefers a ticker for manual market assets and a compact institution name for Pluggy assets", () => {
-    expect(getPortfolioAssetLabel(manualStock)).toBe("PETR4");
+  it("prefers a catalog ticker for stocks and a compact institution name for other assets", () => {
+    expect(getPortfolioAssetLabel(catalogStock)).toBe("PETR4");
     expect(getPortfolioAssetLabel(pluggyFixedIncome)).toBe("CDB · Nubank");
   });
 
@@ -96,7 +91,7 @@ describe("Portfolio asset display", () => {
   });
 
   it("shows quantities only for positions where quotas or units are useful", () => {
-    expect(getPortfolioAssetQuantityLabel(manualStock)).toBe("4 cotas");
+    expect(getPortfolioAssetQuantityLabel(catalogStock)).toBe("4 cotas");
     expect(getPortfolioAssetQuantityLabel(pluggyFixedIncome)).toBeNull();
   });
 
@@ -110,7 +105,6 @@ describe("Portfolio asset display", () => {
     const assets = [
       {
         id: "itub4",
-        source: "manual",
         symbol: "ITUB4",
         categoryKey: "EQUITY",
         quantity: 2,
@@ -123,7 +117,6 @@ describe("Portfolio asset display", () => {
       },
       {
         id: "petr4",
-        source: "manual",
         symbol: "PETR4",
         categoryKey: "EQUITY",
         quantity: 4,

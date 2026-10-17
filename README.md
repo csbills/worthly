@@ -36,7 +36,7 @@ Contas, cartões, faturas e investimentos de todos os seus bancos, lidos via Ope
 | 📊 **Painel completo** | Patrimônio líquido, fluxo de caixa, ritmo de gastos do mês e evolução ao longo do tempo. |
 | 💳 **Cartões e faturas** | Faturas, limite usado e disponível, e parcelamentos acompanhados de perto. |
 | 🧾 **Transações** | Lista com busca, filtros e categorias, pensada para funcionar bem no celular. |
-| 📈 **Investimentos** | Carteira consolidada, mais ações, FIIs, ETFs e cripto que você adiciona à mão, com cotações automáticas. |
+| 📈 **Investimentos** | Carteira consolidada das suas corretoras e bancos, com alocação, rentabilidade e proventos. |
 | 🔐 **Face ID e biometria** | Login sem senha com passkeys e bloqueio do app quando ele fica em segundo plano. |
 | 📱 **Instala como app** | PWA no iPhone, Android e desktop, sem passar por loja. |
 | 🛡️ **Somente leitura** | O Worthly só consulta saldos e lançamentos. Nenhum dinheiro é movimentado. |
@@ -126,10 +126,6 @@ Em **Segurança** (menu do avatar), ative uma chave de acesso (passkey/WebAuthn)
 ### Instale como app
 
 O Worthly é um PWA. No Android/Chrome, use **Instalar app** no menu do avatar. No iPhone, **Compartilhar → Adicionar à Tela de Início**. Os dados financeiros nunca ficam em cache no aparelho: offline, o app mostra apenas um aviso.
-
-### Ativos fora da Pluggy
-
-Quando a Pluggy não retorna posições de renda variável ou cripto, use **Adicionar ação, FII ou ETF** e **Adicionar criptoativo** em `/investments`. Cada ordem aceita compra ou venda, data, valor total, taxa e preço por unidade, e a quantidade é calculada sozinha. As cotações vêm do Yahoo Finance (ações, FIIs e ETFs) e da CoinGecko (cripto).
 
 ## 💻 Rodando localmente
 

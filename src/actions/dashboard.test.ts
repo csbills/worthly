@@ -78,9 +78,6 @@ describe("Dashboard overview action", () => {
     });
     mocks.getPortfolio.mockResolvedValue({
       itemCount: 1,
-      manualAssetCount: 0,
-      manualCryptoAssetCount: 0,
-      manualMarketAssetCount: 0,
       currencies: [
         {
           currencyCode: "BRL",

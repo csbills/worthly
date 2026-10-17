@@ -8,8 +8,6 @@ import {
   type PortfolioCurrencyResult,
 } from "@/actions/portfolio";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { ManualCryptoOrderModal } from "@/components/manual-crypto-order-modal";
-import { ManualMarketOrderModal } from "@/components/manual-market-order-modal";
 import { PortfolioAllocationChart } from "@/components/portfolio-allocation-chart";
 import { PortfolioEvolutionChart } from "@/components/portfolio-evolution-chart";
 import { PageHeader } from "@/components/ui/card";
@@ -18,8 +16,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { supportedCryptoAssets } from "@/lib/crypto-assets";
-import { supportedMarketAssets } from "@/lib/market-assets";
 import {
   type PortfolioAssetSummary,
   type PortfolioCategorySummary,
@@ -35,13 +31,6 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Investimentos" };
-
-type InvestmentsPageProps = {
-  searchParams: Promise<{
-    crypto?: string | string[] | undefined;
-    market?: string | string[] | undefined;
-  }>;
-};
 
 function formatCurrency(value: number | null, currencyCode: CurrencyCode) {
   if (value === null) {
@@ -97,59 +86,6 @@ function getProfitClassName(value: number | null) {
   }
 
   return value >= 0 ? "text-success-foreground" : "text-destructive";
-}
-
-function getStatusMessage(status: string | undefined) {
-  if (status === "order-saved") {
-    return {
-      className: "border-success/20 bg-success/[0.07] text-success-foreground",
-      text: "Ordem salva. A posição, o custo médio e o resultado foram recalculados.",
-    };
-  }
-
-  if (status === "order-deleted") {
-    return {
-      className: "border-success/20 bg-success/[0.07] text-success-foreground",
-      text: "Ordem excluída. A posição, o custo médio e o resultado foram recalculados.",
-    };
-  }
-
-  if (status === "invalid-order") {
-    return {
-      className: "border-warning/25 bg-warning/[0.08] text-warning-foreground",
-      text: "Informe dados válidos. Uma venda não pode exceder a quantidade disponível no histórico.",
-    };
-  }
-
-  if (status === "order-error") {
-    return {
-      className: "border-destructive/30 bg-destructive/10 text-destructive",
-      text: "Não foi possível salvar ou excluir a ordem. Tente novamente.",
-    };
-  }
-
-  if (status === "saved") {
-    return {
-      className: "border-success/20 bg-success/[0.07] text-success-foreground",
-      text: "Criptoativo salvo. A quantidade e o custo foram calculados; o preço de mercado será atualizado pela CoinGecko.",
-    };
-  }
-
-  if (status === "invalid") {
-    return {
-      className: "border-warning/25 bg-warning/[0.08] text-warning-foreground",
-      text: "Selecione um ativo e informe valores válidos para total, taxa e preço de compra.",
-    };
-  }
-
-  if (status === "error") {
-    return {
-      className: "border-destructive/30 bg-destructive/10 text-destructive",
-      text: "Não foi possível salvar o criptoativo. Tente novamente.",
-    };
-  }
-
-  return null;
 }
 
 function PortfolioMetric({
@@ -272,33 +208,6 @@ function PortfolioAssetRow({ asset }: { asset: PortfolioAssetSummary }) {
               </p>
             ) : null}
           </div>
-          {asset.source === "manual" ? (
-            asset.manualKind === "crypto" ? (
-              <ManualCryptoOrderModal
-                catalog={supportedCryptoAssets}
-                asset={{
-                  id: asset.sourceId,
-                  symbol: asset.symbol,
-                  name: asset.name,
-                  coingeckoId: asset.coingeckoId,
-                  orders: asset.orders,
-                }}
-                triggerLabel="Editar"
-              />
-            ) : (
-              <ManualMarketOrderModal
-                catalog={supportedMarketAssets}
-                asset={{
-                  id: asset.sourceId,
-                  symbol: asset.symbol,
-                  name: asset.name,
-                  quantity: asset.quantity,
-                  orders: asset.orders,
-                }}
-                triggerLabel="Editar"
-              />
-            )
-          ) : null}
         </div>
       </div>
 
@@ -409,10 +318,8 @@ function PortfolioCategory({
 
 function PortfolioCurrencyView({
   currency,
-  showManualActions,
 }: {
   currency: PortfolioCurrencyResult;
-  showManualActions: boolean;
 }) {
   const profitClassName = getProfitClassName(currency.amountProfit);
 
@@ -527,12 +434,6 @@ function PortfolioCurrencyView({
               Posição, participação, saldo e resultado de cada ativo.
             </p>
           </div>
-          {showManualActions ? (
-            <div className="flex shrink-0 flex-wrap items-center gap-2 md:justify-end">
-              <ManualCryptoOrderModal catalog={supportedCryptoAssets} />
-              <ManualMarketOrderModal catalog={supportedMarketAssets} />
-            </div>
-          ) : null}
         </div>
         {currency.categories.map((category) => (
           <PortfolioCategory
@@ -556,8 +457,8 @@ function EmptyPortfolio({ hasError }: { hasError: boolean }) {
       </h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
         {hasError
-          ? "Confira o status da conexão no Meu Pluggy e tente atualizar novamente. Você também pode cadastrar cripto, ação, FII ou ETF manualmente."
-          : "Conecte uma conta no Meu Pluggy ou cadastre cripto, ação, FII ou ETF manualmente para começar a acompanhar sua carteira."}
+          ? "Confira o status da conexão no Meu Pluggy e tente atualizar novamente."
+          : "Conecte uma conta no Meu Pluggy para começar a acompanhar sua carteira."}
       </p>
       <a
         href="/accounts"
@@ -569,34 +470,16 @@ function EmptyPortfolio({ hasError }: { hasError: boolean }) {
   );
 }
 
-export default async function InvestmentsPage({
-  searchParams,
-}: InvestmentsPageProps) {
-  const [params, result] = await Promise.all([searchParams, getPortfolio()]);
-  const cryptoStatus = Array.isArray(params.crypto)
-    ? params.crypto[0]
-    : params.crypto;
-  const marketStatus = Array.isArray(params.market)
-    ? params.market[0]
-    : params.market;
-  const statusMessage = getStatusMessage(marketStatus ?? cryptoStatus);
+export default async function InvestmentsPage() {
+  const result = await getPortfolio();
 
   return (
     <DashboardShell>
       <PageHeader
         eyebrow="Carteira"
         title="Investimentos"
-        description="Renda fixa, renda variável e cripto consolidados, com rentabilidade sobre o custo."
+        description="Renda fixa e renda variável consolidadas, com rentabilidade sobre o custo."
       />
-
-      {statusMessage ? (
-        <p
-          className={`rounded-xl border px-4 py-3 text-sm ${statusMessage.className}`}
-          aria-live="polite"
-        >
-          {statusMessage.text}
-        </p>
-      ) : null}
 
       {result.error ? (
         <p className="rounded-xl border border-warning/25 bg-warning/[0.08] px-4 py-3 text-sm text-warning-foreground">
@@ -606,11 +489,10 @@ export default async function InvestmentsPage({
 
       {result.currencies.length > 0 ? (
         <div className="space-y-10">
-          {result.currencies.map((currency, index) => (
+          {result.currencies.map((currency) => (
             <PortfolioCurrencyView
               key={currency.currencyCode}
               currency={currency}
-              showManualActions={index === 0}
             />
           ))}
         </div>

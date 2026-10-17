@@ -13,12 +13,6 @@ vi.mock("@/components/dashboard-shell", () => ({
     <main>{children}</main>
   ),
 }));
-vi.mock("@/components/manual-crypto-order-modal", () => ({
-  ManualCryptoOrderModal: () => null,
-}));
-vi.mock("@/components/manual-market-order-modal", () => ({
-  ManualMarketOrderModal: () => null,
-}));
 vi.mock("@/components/portfolio-allocation-chart", () => ({
   PortfolioAllocationChart: () => null,
 }));
@@ -35,12 +29,6 @@ vi.mock("@/components/ui/collapsible", () => ({
   CollapsibleTrigger: ({ children }: { children: React.ReactNode }) => (
     <button type="button">{children}</button>
   ),
-}));
-vi.mock("@/lib/crypto-assets", () => ({
-  supportedCryptoAssets: [],
-}));
-vi.mock("@/lib/market-assets", () => ({
-  supportedMarketAssets: [],
 }));
 vi.mock("@/lib/portfolio", () => ({
   portfolioCategoryColors: { EQUITY: "#000000" },
@@ -65,9 +53,6 @@ describe("InvestmentsPage", () => {
     vi.clearAllMocks();
     mocks.getPortfolio.mockResolvedValue({
       itemCount: 1,
-      manualAssetCount: 0,
-      manualCryptoAssetCount: 0,
-      manualMarketAssetCount: 0,
       error: null,
       currencies: [
         {
@@ -82,9 +67,6 @@ describe("InvestmentsPage", () => {
           assets: [
             {
               id: "pluggy:investment-equity",
-              sourceId: "investment-equity",
-              source: "pluggy",
-              manualKind: null,
               categoryKey: "EQUITY",
               categoryLabel: "Renda variável",
               symbol: "STOCK",
@@ -97,19 +79,12 @@ describe("InvestmentsPage", () => {
               income: 25,
               amountProfitPercentage: 12.5,
               quantity: 10,
-              unitPrice: null,
               averagePrice: 100,
               institutionName: "Corretora",
               issuer: null,
               positionCount: 1,
               dueDate: null,
               logoPath: null,
-              coingeckoId: null,
-              priceSource: null,
-              priceUpdatedAt: null,
-              orders: [],
-              history: [],
-              updatedAt: null,
               percentageOfCategory: 100,
               percentageOfPortfolio: 100,
             },
@@ -134,9 +109,7 @@ describe("InvestmentsPage", () => {
   });
 
   it("shows result and proventos in the portfolio summary", async () => {
-    const page = await InvestmentsPage({
-      searchParams: Promise.resolve({}),
-    });
+    const page = await InvestmentsPage();
     const markup = renderToStaticMarkup(page);
 
     expect(markup).toContain("Proventos");

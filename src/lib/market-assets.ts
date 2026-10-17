@@ -1,5 +1,3 @@
-import type { InvestmentSubtype, InvestmentType } from "pluggy-sdk";
-
 export const supportedMarketAssets = [
   { symbol: "PETR4", name: "Petrobras PN", assetType: "STOCK" },
   { symbol: "VALE3", name: "Vale ON", assetType: "STOCK" },
@@ -47,47 +45,5 @@ export const supportedMarketAssets = [
   { symbol: "B5P211", name: "It Now IMA-B5 P2", assetType: "ETF" },
 ] as const;
 
-export type ManualMarketAssetType =
+export type MarketAssetType =
   (typeof supportedMarketAssets)[number]["assetType"];
-
-export type SupportedMarketAsset = (typeof supportedMarketAssets)[number];
-
-export type MarketAssetClassification = {
-  categoryKey: Extract<InvestmentType, "EQUITY" | "ETF">;
-  subtype: Extract<InvestmentSubtype, "STOCK" | "REAL_ESTATE_FUND" | "ETF">;
-  label: string;
-};
-
-export function findSupportedMarketAsset(value: string) {
-  const normalizedValue = value.trim().toLocaleUpperCase("pt-BR");
-
-  return supportedMarketAssets.find(
-    (asset) => asset.symbol === normalizedValue,
-  );
-}
-
-export function getMarketAssetClassification(
-  assetType: ManualMarketAssetType,
-): MarketAssetClassification {
-  if (assetType === "FII") {
-    return {
-      categoryKey: "EQUITY",
-      subtype: "REAL_ESTATE_FUND",
-      label: "Fundo imobiliário",
-    };
-  }
-
-  if (assetType === "ETF") {
-    return {
-      categoryKey: "ETF",
-      subtype: "ETF",
-      label: "ETF",
-    };
-  }
-
-  return {
-    categoryKey: "EQUITY",
-    subtype: "STOCK",
-    label: "Ação",
-  };
-}

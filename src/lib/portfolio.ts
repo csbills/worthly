@@ -1,14 +1,8 @@
 import type { CurrencyCode, InvestmentType } from "pluggy-sdk";
 import { getBankLogoPath } from "./bank-assets";
-import { getCryptoAssetLogo } from "./crypto-assets";
-import type { CryptoHistoryPoint } from "./crypto-market";
-import type { CryptoOrderView } from "./crypto-orders";
 import { investmentCategoryColors } from "./investment-category-colors";
-import { getMarketAssetLogo } from "./market-asset-logos";
 
-export type PortfolioCategoryKey = InvestmentType | "CRYPTO";
-export type PortfolioAssetSource = "pluggy" | "manual";
-export type PortfolioManualKind = "crypto" | "market";
+export type PortfolioCategoryKey = InvestmentType;
 
 export type PortfolioInvestmentInput = {
   id: string;
@@ -28,55 +22,8 @@ export type PortfolioInvestmentInput = {
   dueDate: string | null;
 };
 
-export type PortfolioManualCryptoInput = {
-  id: string;
-  symbol: string;
-  name: string;
-  quantity: number;
-  averagePrice: number | null;
-  currentPrice: number | null;
-  purchaseTotal: number | null;
-  amountOriginal: number | null;
-  amountProfit: number | null;
-  amountProfitPercentage: number | null;
-  currencyCode: CurrencyCode;
-  coingeckoId: string | null;
-  priceSource: string | null;
-  priceUpdatedAt: string | null;
-  updatedAt: string;
-  orders?: CryptoOrderView[];
-};
-
-export type PortfolioManualMarketInput = {
-  id: string;
-  symbol: string;
-  name: string;
-  assetType: "STOCK" | "FII" | "ETF";
-  categoryKey: "EQUITY" | "ETF";
-  subtype: "STOCK" | "REAL_ESTATE_FUND" | "ETF";
-  quantity: number;
-  averagePrice: number | null;
-  currentPrice: number | null;
-  balance: number | null;
-  amountOriginal: number | null;
-  amountProfit: number | null;
-  income?: number | null;
-  amountProfitPercentage: number | null;
-  currencyCode: CurrencyCode;
-  priceSource: "Yahoo Finance" | "Último preço salvo" | null;
-  priceUpdatedAt: string | null;
-  history: CryptoHistoryPoint[];
-  orders?: CryptoOrderView[];
-  realizedProfit: number;
-  orderCount: number;
-  updatedAt: string;
-};
-
 export type PortfolioAsset = {
   id: string;
-  sourceId: string;
-  source: PortfolioAssetSource;
-  manualKind: PortfolioManualKind | null;
   categoryKey: PortfolioCategoryKey;
   categoryLabel: string;
   symbol: string;
@@ -89,19 +36,12 @@ export type PortfolioAsset = {
   income: number | null;
   amountProfitPercentage: number | null;
   quantity: number | null;
-  unitPrice: number | null;
   averagePrice: number | null;
   institutionName: string | null;
   issuer: string | null;
   positionCount: number;
   dueDate: string | null;
   logoPath: string | null;
-  coingeckoId: string | null;
-  priceSource: string | null;
-  priceUpdatedAt: string | null;
-  orders: CryptoOrderView[];
-  history: CryptoHistoryPoint[];
-  updatedAt: string | null;
 };
 
 export type PortfolioAssetSummary = PortfolioAsset & {
@@ -164,13 +104,10 @@ export const portfolioCategoryLabels: Record<PortfolioCategoryKey, string> = {
   MUTUAL_FUND: "Fundos",
   OTHER: "Outros",
   SECURITY: "Previdência",
-  CRYPTO: "Criptoativos",
 };
 
-export const portfolioCategoryColors: Record<PortfolioCategoryKey, string> = {
-  ...investmentCategoryColors,
-  CRYPTO: "#f59e0b",
-};
+export const portfolioCategoryColors: Record<PortfolioCategoryKey, string> =
+  investmentCategoryColors;
 
 const portfolioCategoryOrder: PortfolioCategoryKey[] = [
   "FIXED_INCOME",
@@ -179,7 +116,6 @@ const portfolioCategoryOrder: PortfolioCategoryKey[] = [
   "ETF",
   "SECURITY",
   "COE",
-  "CRYPTO",
   "OTHER",
 ];
 
@@ -211,11 +147,7 @@ function calculateAveragePrice(
   amountOriginal: number | null,
   quantity: number | null,
 ) {
-  if (
-    categoryKey !== "EQUITY" &&
-    categoryKey !== "ETF" &&
-    categoryKey !== "CRYPTO"
-  ) {
+  if (categoryKey !== "EQUITY" && categoryKey !== "ETF") {
     return null;
   }
 
@@ -235,132 +167,39 @@ function calculateAveragePrice(
 
 export function buildPortfolioAssets(
   investments: PortfolioInvestmentInput[],
-  manualAssets: PortfolioManualCryptoInput[],
-  manualMarketAssets: PortfolioManualMarketInput[] = [],
 ): PortfolioAsset[] {
-  return [
-    ...investments.map((investment) => ({
-      id: `pluggy:${investment.id}`,
-      sourceId: investment.id,
-      source: "pluggy" as const,
-      manualKind: null,
-      categoryKey: investment.type,
-      categoryLabel: portfolioCategoryLabels[investment.type],
-      symbol: investment.subtype ?? investment.type,
-      name: investment.name,
-      subtype: investment.subtype,
-      currencyCode: investment.currencyCode,
-      balance: investment.balance,
-      amountOriginal: investment.amountOriginal,
-      amountProfit: investment.amountProfit,
-      income: investment.income ?? null,
-      amountProfitPercentage: getProfitPercentage(
-        investment.amountProfit,
-        investment.amountOriginal,
-      ),
-      quantity: investment.quantity,
-      unitPrice: null,
-      averagePrice: calculateAveragePrice(
-        investment.type,
-        investment.amountOriginal,
-        investment.quantity,
-      ),
-      institutionName: investment.institutionName,
-      issuer: investment.issuer,
-      positionCount: investment.positionCount,
-      dueDate: investment.dueDate,
-      logoPath: getBankLogoPath(
-        investment.institutionName,
-        investment.issuer,
-        investment.name,
-      ),
-      coingeckoId: null,
-      priceSource: null,
-      priceUpdatedAt: null,
-      orders: [],
-      history: [],
-      updatedAt: null,
-    })),
-    ...manualAssets.map((asset) => {
-      const amountOriginal = asset.amountOriginal ?? asset.purchaseTotal;
-
-      return {
-        id: `manual:${asset.id}`,
-        sourceId: asset.id,
-        source: "manual" as const,
-        manualKind: "crypto" as const,
-        categoryKey: "CRYPTO" as const,
-        categoryLabel: portfolioCategoryLabels.CRYPTO,
-        symbol: asset.symbol,
-        name: asset.name,
-        subtype: null,
-        currencyCode: asset.currencyCode,
-        balance:
-          asset.currentPrice === null
-            ? null
-            : asset.currentPrice * asset.quantity,
-        amountOriginal,
-        amountProfit: asset.amountProfit,
-        income: null,
-        amountProfitPercentage:
-          asset.amountProfitPercentage ??
-          getProfitPercentage(asset.amountProfit, amountOriginal),
-        quantity: asset.quantity,
-        unitPrice: asset.currentPrice,
-        averagePrice:
-          asset.averagePrice ??
-          calculateAveragePrice("CRYPTO", amountOriginal, asset.quantity),
-        institutionName: null,
-        issuer: null,
-        positionCount: Math.max(asset.orders?.length ?? 0, 1),
-        dueDate: null,
-        logoPath: getCryptoAssetLogo(asset.coingeckoId),
-        coingeckoId: asset.coingeckoId,
-        priceSource: asset.priceSource,
-        priceUpdatedAt: asset.priceUpdatedAt,
-        orders: asset.orders ?? [],
-        history: [],
-        updatedAt: asset.updatedAt,
-      };
-    }),
-    ...manualMarketAssets.map((asset) => ({
-      id: `manual-market:${asset.id}`,
-      sourceId: asset.id,
-      source: "manual" as const,
-      manualKind: "market" as const,
-      categoryKey: asset.categoryKey,
-      categoryLabel: portfolioCategoryLabels[asset.categoryKey],
-      symbol: asset.symbol,
-      name: asset.name,
-      subtype: asset.subtype,
-      currencyCode: asset.currencyCode,
-      balance: asset.balance,
-      amountOriginal: asset.amountOriginal,
-      amountProfit: asset.amountProfit,
-      income: asset.income ?? null,
-      amountProfitPercentage: asset.amountProfitPercentage,
-      quantity: asset.quantity,
-      unitPrice: asset.currentPrice,
-      averagePrice:
-        asset.averagePrice ??
-        calculateAveragePrice(
-          asset.categoryKey,
-          asset.amountOriginal,
-          asset.quantity,
-        ),
-      institutionName: null,
-      issuer: null,
-      positionCount: Math.max(asset.orders?.length ?? asset.orderCount, 1),
-      dueDate: null,
-      logoPath: getMarketAssetLogo(asset.symbol, asset.assetType),
-      coingeckoId: null,
-      priceSource: asset.priceSource,
-      priceUpdatedAt: asset.priceUpdatedAt,
-      orders: asset.orders ?? [],
-      history: asset.history,
-      updatedAt: asset.updatedAt,
-    })),
-  ];
+  return investments.map((investment) => ({
+    id: `pluggy:${investment.id}`,
+    categoryKey: investment.type,
+    categoryLabel: portfolioCategoryLabels[investment.type],
+    symbol: investment.subtype ?? investment.type,
+    name: investment.name,
+    subtype: investment.subtype,
+    currencyCode: investment.currencyCode,
+    balance: investment.balance,
+    amountOriginal: investment.amountOriginal,
+    amountProfit: investment.amountProfit,
+    income: investment.income ?? null,
+    amountProfitPercentage: getProfitPercentage(
+      investment.amountProfit,
+      investment.amountOriginal,
+    ),
+    quantity: investment.quantity,
+    averagePrice: calculateAveragePrice(
+      investment.type,
+      investment.amountOriginal,
+      investment.quantity,
+    ),
+    institutionName: investment.institutionName,
+    issuer: investment.issuer,
+    positionCount: investment.positionCount,
+    dueDate: investment.dueDate,
+    logoPath: getBankLogoPath(
+      investment.institutionName,
+      investment.issuer,
+      investment.name,
+    ),
+  }));
 }
 
 export function summarizePortfolioAssets(

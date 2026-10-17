@@ -2,8 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getInvestments: vi.fn(),
-  getManualCryptoAssets: vi.fn(),
-  getManualMarketAssets: vi.fn(),
   prisma: {
     portfolioSnapshot: {
       upsert: vi.fn(),
@@ -16,12 +14,6 @@ const mocks = vi.hoisted(() => ({
 vi.mock("server-only", () => ({}));
 vi.mock("./investments", () => ({
   getInvestments: mocks.getInvestments,
-}));
-vi.mock("./manual-crypto-assets", () => ({
-  getManualCryptoAssets: mocks.getManualCryptoAssets,
-}));
-vi.mock("./manual-market-assets", () => ({
-  getManualMarketAssets: mocks.getManualMarketAssets,
 }));
 vi.mock("../lib/prisma", () => ({ prisma: mocks.prisma }));
 
@@ -58,14 +50,6 @@ describe("Portfolio action", () => {
         },
       ],
       currencies: [],
-      error: null,
-    });
-    mocks.getManualCryptoAssets.mockResolvedValue({
-      assets: [],
-      error: null,
-    });
-    mocks.getManualMarketAssets.mockResolvedValue({
-      assets: [],
       error: null,
     });
   });
@@ -125,7 +109,6 @@ describe("Portfolio action", () => {
     );
     expect(result).toMatchObject({
       itemCount: 1,
-      manualAssetCount: 0,
       error: null,
       currencies: [
         expect.objectContaining({
@@ -162,63 +145,5 @@ describe("Portfolio action", () => {
 
     expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
     expect(result.error).toBe("Uma conexão falhou");
-  });
-
-  it("includes manual market assets in the consolidated portfolio", async () => {
-    mocks.getInvestments.mockResolvedValue({
-      itemCount: 1,
-      investments: [],
-      currencies: [],
-      error: null,
-    });
-    mocks.getManualMarketAssets.mockResolvedValue({
-      assets: [
-        {
-          id: "manual-mxrf11",
-          symbol: "MXRF11",
-          name: "Maxi Renda",
-          assetType: "FII",
-          categoryKey: "EQUITY",
-          subtype: "REAL_ESTATE_FUND",
-          quantity: 10,
-          averagePrice: 100,
-          currentPrice: 110,
-          balance: 1100,
-          amountOriginal: 1000,
-          amountProfit: 100,
-          amountProfitPercentage: 10,
-          currencyCode: "BRL",
-          priceSource: "Yahoo Finance",
-          priceUpdatedAt: "2026-08-30T18:00:00.000Z",
-          history: [],
-          orders: [],
-          realizedProfit: 0,
-          orderCount: 1,
-          updatedAt: "2026-08-30T18:00:00.000Z",
-        },
-      ],
-      error: null,
-    });
-
-    const result = await getPortfolio();
-
-    expect(result).toMatchObject({
-      itemCount: 1,
-      manualAssetCount: 1,
-      error: null,
-      currencies: [
-        expect.objectContaining({
-          currencyCode: "BRL",
-          balance: 1100,
-          categories: [
-            expect.objectContaining({
-              key: "EQUITY",
-              balance: 1100,
-              assets: [expect.objectContaining({ symbol: "MXRF11" })],
-            }),
-          ],
-        }),
-      ],
-    });
   });
 });

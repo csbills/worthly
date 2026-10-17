@@ -10,8 +10,6 @@ import {
 } from "../lib/portfolio";
 import { prisma } from "../lib/prisma";
 import { getInvestments } from "./investments";
-import { getManualCryptoAssets } from "./manual-crypto-assets";
-import { getManualMarketAssets } from "./manual-market-assets";
 
 const timeZone = "America/Sao_Paulo";
 const historyLimit = 90;
@@ -22,9 +20,6 @@ export type PortfolioCurrencyResult = PortfolioCurrencySummary & {
 
 export type PortfolioResult = {
   itemCount: number;
-  manualAssetCount: number;
-  manualCryptoAssetCount: number;
-  manualMarketAssetCount: number;
   currencies: PortfolioCurrencyResult[];
   error: string | null;
 };
@@ -139,23 +134,10 @@ async function getPortfolioHistory(currencies: PortfolioCurrencySummary[]) {
 export async function getPortfolio(): Promise<PortfolioResult> {
   await verifySession();
 
-  const [investmentsResult, manualCryptoResult, manualMarketResult] =
-    await Promise.all([
-      getInvestments(),
-      getManualCryptoAssets(),
-      getManualMarketAssets(),
-    ]);
-  const assets = buildPortfolioAssets(
-    investmentsResult.investments,
-    manualCryptoResult.assets,
-    manualMarketResult.assets,
-  );
+  const investmentsResult = await getInvestments();
+  const assets = buildPortfolioAssets(investmentsResult.investments);
   const currencies = summarizePortfolioAssets(assets);
-  const sourceError = combineErrors(
-    investmentsResult.error,
-    manualCryptoResult.error,
-    manualMarketResult.error,
-  );
+  const sourceError = investmentsResult.error;
   let error = sourceError;
 
   if (!sourceError) {
@@ -184,10 +166,6 @@ export async function getPortfolio(): Promise<PortfolioResult> {
 
   return {
     itemCount: investmentsResult.itemCount,
-    manualAssetCount:
-      manualCryptoResult.assets.length + manualMarketResult.assets.length,
-    manualCryptoAssetCount: manualCryptoResult.assets.length,
-    manualMarketAssetCount: manualMarketResult.assets.length,
     currencies: currencies.map((currency) => ({
       ...currency,
       history: history.get(currency.currencyCode) ?? [],

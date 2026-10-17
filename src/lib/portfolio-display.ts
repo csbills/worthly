@@ -1,14 +1,10 @@
 import { getBankDisplayName } from "./bank-assets";
 import { getMarketAssetLogo } from "./market-asset-logos";
-import {
-  type ManualMarketAssetType,
-  supportedMarketAssets,
-} from "./market-assets";
+import { type MarketAssetType, supportedMarketAssets } from "./market-assets";
 import type { PortfolioAsset } from "./portfolio";
 
 type PortfolioAssetDisplayInput = Pick<
   PortfolioAsset,
-  | "source"
   | "symbol"
   | "categoryKey"
   | "quantity"
@@ -68,11 +64,7 @@ function normalizeIdentity(value: string | null | undefined) {
 
 function getAutomaticMarketAssetType(
   asset: PortfolioAssetDisplayInput,
-): ManualMarketAssetType | null {
-  if (asset.source !== "pluggy") {
-    return null;
-  }
-
+): MarketAssetType | null {
   if (asset.categoryKey === "ETF" || asset.subtype === "ETF") {
     return "ETF";
   }
@@ -116,10 +108,6 @@ function getAutomaticMarketTicker(asset: PortfolioAssetDisplayInput) {
 }
 
 export function getPortfolioAssetLabel(asset: PortfolioAssetDisplayInput) {
-  if (asset.source === "manual") {
-    return asset.symbol;
-  }
-
   const marketTicker = getAutomaticMarketTicker(asset);
 
   if (marketTicker) {
@@ -161,10 +149,7 @@ export function getPortfolioAssetQuantityLabel(
   asset: PortfolioAssetDisplayInput,
 ) {
   const isQuotaBased =
-    asset.source === "manual" ||
-    asset.categoryKey === "EQUITY" ||
-    asset.categoryKey === "ETF" ||
-    asset.categoryKey === "CRYPTO";
+    asset.categoryKey === "EQUITY" || asset.categoryKey === "ETF";
 
   if (
     asset.quantity === null ||
@@ -178,9 +163,7 @@ export function getPortfolioAssetQuantityLabel(
     maximumFractionDigits: 8,
   }).format(asset.quantity);
 
-  return asset.categoryKey === "CRYPTO"
-    ? `${quantity} ${asset.symbol}`
-    : `${quantity} cotas`;
+  return `${quantity} cotas`;
 }
 
 export function getPortfolioCategoryToggleLabel(categoryLabel: string) {
