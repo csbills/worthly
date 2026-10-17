@@ -1,0 +1,5 @@
+# Keep LF everywhere: Biome checks line endings and Windows checkouts
+# would otherwise convert them to CRLF.
+* text=auto eol=lf
+*.png binary
+*.ico binary
