@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   fetchAccounts: vi.fn(),
   getPluggyCredentials: vi.fn(),
   revalidatePath: vi.fn(),
+  clearPluggyCache: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`REDIRECT:${path}`);
   }),
@@ -25,6 +26,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
 vi.mock("@/lib/pluggy", () => ({
+  clearPluggyCache: mocks.clearPluggyCache,
   createPluggyClient: () => ({ fetchCategories: mocks.fetchCategories }),
   getPluggyClient: async () => ({
     fetchItem: mocks.fetchItem,
@@ -159,6 +161,7 @@ describe("addPluggyConnection", () => {
       create: { itemId: ITEM_ID, ...details },
       update: details,
     });
+    expect(mocks.clearPluggyCache).toHaveBeenCalled();
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
   });
 
@@ -191,6 +194,7 @@ describe("removePluggyConnection", () => {
     expect(mocks.prisma.pluggyItem.deleteMany).toHaveBeenCalledWith({
       where: { itemId: ITEM_ID },
     });
+    expect(mocks.clearPluggyCache).toHaveBeenCalled();
   });
 });
 

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { Item, PluggyClient } from "pluggy-sdk";
 import { verifySession } from "@/lib/auth/dal";
 import {
+  clearPluggyCache,
   createPluggyClient,
   getPluggyClient,
   getPluggyCredentials,
@@ -186,6 +187,7 @@ export async function savePluggyCredentials(
     update: { pluggyClientId: clientId, pluggyClientSecret: clientSecret },
   });
 
+  clearPluggyCache();
   revalidatePath("/", "layout");
 
   return { status: "success", message: "Credenciais validadas e salvas." };
@@ -213,7 +215,7 @@ export async function addPluggyConnection(
   let client: PluggyClient;
   let item: Item;
   try {
-    client = await getPluggyClient();
+    client = await getPluggyClient({ fresh: true });
     item = await client.fetchItem(itemId);
   } catch {
     return {
@@ -232,6 +234,7 @@ export async function addPluggyConnection(
     update: details,
   });
 
+  clearPluggyCache();
   revalidatePath("/", "layout");
 
   return {
@@ -247,6 +250,7 @@ export async function removePluggyConnection(formData: FormData) {
 
   if (itemId) {
     await prisma.pluggyItem.deleteMany({ where: { itemId } });
+    clearPluggyCache();
     revalidatePath("/", "layout");
   }
 }
