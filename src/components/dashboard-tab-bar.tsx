@@ -55,7 +55,7 @@ export function DashboardTabBar() {
               aria-current={active ? "page" : undefined}
               aria-label={item.label}
               className={cn(
-                "group/tab relative flex h-9 items-center gap-2 rounded-full px-[9px] text-[13px] font-medium outline-none transition-colors duration-200",
+                "group/tab relative flex h-11 items-center gap-2 rounded-full px-[11px] text-[13px] font-medium outline-none transition-colors duration-200 sm:h-9 sm:px-[9px]",
                 "focus-visible:ring-2 focus-visible:ring-white/40 active:scale-95",
                 active
                   ? "bg-white/12 pr-3.5 text-white"

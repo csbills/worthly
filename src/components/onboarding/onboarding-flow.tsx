@@ -272,16 +272,23 @@ function StepFooter({
   children?: ReactNode;
 }) {
   return (
-    <div className="mt-8 flex items-center justify-between gap-3 border-t pt-5">
+    <div className="mt-8 flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
       {onBack ? (
-        <Button variant="ghost" onClick={onBack} className="-ml-2">
+        <Button
+          variant="ghost"
+          onClick={onBack}
+          className="self-start sm:-ml-2"
+        >
           <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
           Voltar
         </Button>
       ) : (
-        <span />
+        <span className="hidden sm:block" />
       )}
-      <div className="flex items-center gap-2">{children}</div>
+      {/* Phones get full-width, thumb-sized actions with the primary one on top. */}
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center max-sm:[&>*]:h-11 max-sm:[&>*]:w-full">
+        {children}
+      </div>
     </div>
   );
 }
