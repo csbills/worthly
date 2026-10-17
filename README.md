@@ -1,73 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bytewave
 
-## Pluggy
+**Seu organizador de finanças, open source e no seu próprio servidor.**
 
-The server-side Pluggy SDK is available through `src/lib/pluggy.ts`.
+Bytewave lê contas, cartões e investimentos dos seus bancos via Open Finance, usando o [Meu Pluggy](https://meu.pluggy.ai), e transforma tudo em um painel limpo: patrimônio líquido, fluxo de caixa, ritmo de gastos, faturas, parcelamentos, categorias e carteira de investimentos.
 
-1. Copy `.env.example` to `.env.local`.
-2. Fill in `PLUGGY_CLIENT_ID` and `PLUGGY_CLIENT_SECRET` with the credentials from your Pluggy application.
-3. Use `getPluggyClient()` from Server Actions or other server-only code:
+[![Deploy on Hangar](https://tryhangar.io/deploy-on-hangar.svg)](https://tryhangar.io/deploy?repo=https://github.com/csbills/bytewave-finance)
 
-```ts
-import { getPluggyClient } from "@/lib/pluggy";
+- **Somente leitura** — o app consulta saldos e lançamentos; nada é movimentado.
+- **Seus dados, sua instância** — credenciais e banco de dados ficam no servidor que você controla.
+- **Configuração guiada** — um onboarding passo a passo cria a conta no Meu Pluggy, valida as chaves da Pluggy e importa os dados.
 
-const pluggy = getPluggyClient();
-```
+## Comece em um clique
 
-These credentials are sensitive and must never be exposed through client-side code or variables prefixed with `NEXT_PUBLIC_`.
+1. Clique em **Deploy on Hangar** acima. A Hangar clona este repositório, faz o build e publica com HTTPS.
+2. Adicione um **volume persistente** ao serviço (por exemplo montado em `/data`) e defina a variável:
 
-### Meu Pluggy
+   ```bash
+   DATABASE_URL="file:/data/bytewave.db"
+   ```
 
-This project uses the existing connections from Meu Pluggy. In the Pluggy Dashboard, enable the MeuPluggy connector for the application and use the Demo application to authorize each bank connected to your Meu Pluggy account. After authorization, copy the resulting `itemId` and add it at `/accounts`.
+   Sem o volume, o SQLite é recriado a cada deploy e você perde as conexões salvas.
+3. Abra a URL publicada. Na primeira visita você cai no onboarding em `/onboarding`.
 
-Each bank connection has its own `itemId`. The application stores these identifiers in SQLite and uses the server-side SDK to retrieve the associated accounts. Pluggy Connect is not needed for this flow.
+O `npm start` já roda `prisma migrate deploy` antes de subir o Next.js, então o banco é criado e atualizado sozinho.
 
-### Ações, FIIs e ETFs manuais
+> [!WARNING]
+> O Bytewave ainda não tem login. Qualquer pessoa com a URL vê seus dados financeiros e pode trocar as credenciais. Até existir autenticação, proteja a instância (domínio privado, rede interna ou um proxy com senha) antes de conectar bancos reais.
 
-Quando a Pluggy não retornar posições de renda variável, use o botão `Adicionar ação, FII ou ETF` em `/investments`. O catálogo de ativos é pré-configurado e cada ordem aceita compra ou venda, data, valor total, taxa e preço por unidade. A quantidade é calculada automaticamente e as ordens podem ser editadas depois.
+## O onboarding
 
-As cotações e o histórico são consultados no Yahoo Finance por uma rota pública, sem token ou custo adicional. Se um ticker não estiver disponível nessa fonte, a posição continua carregando com o último preço salvo.
+O fluxo em `/onboarding` guia cada etapa e valida o que você cola:
 
-## Prisma
+| Etapa | O que você faz | O que o Bytewave faz |
+| --- | --- | --- |
+| 1. Meu Pluggy | Cria a conta grátis em [meu.pluggy.ai](https://meu.pluggy.ai) e conecta seus bancos pelo Open Finance. | — |
+| 2. Credenciais | Cria uma conta em [dashboard.pluggy.ai](https://dashboard.pluggy.ai) (teste de 15 dias), adiciona o conector **MeuPluggy**, cria uma aplicação *Development* e cola o **Client ID** e o **Client Secret**. | Valida o par com a API da Pluggy antes de salvar no servidor. |
+| 3. Item ID | Na aplicação, clica em **Ir para Demo**, conecta o MeuPluggy, escolhe o banco e usa **⋯ → Copiar Item ID**. Repete para cada banco. | Confere o item na Pluggy e identifica o banco. |
+| 4. Pronto | Abre o painel. | Lê contas, faturas, transações e investimentos. |
 
-The project uses Prisma with a local SQLite database during development.
+Mais detalhes no guia oficial: [pluggyai/meu-pluggy](https://github.com/pluggyai/meu-pluggy).
 
-1. Add the `DATABASE_URL` from `.env.example` to your local environment.
-2. Generate the Prisma Client with `npm run db:generate`.
-3. Create and apply the initial migration with `npm run db:migrate -- --name init`.
-4. Use `npm run db:studio` to inspect the local database.
-
-## Getting Started
-
-First, run the development server:
+## Rodando localmente
 
 ```bash
+npm install
+cp .env.example .env
+npm run db:migrate
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra [http://localhost:3000](http://localhost:3000) e siga o onboarding.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Variáveis de ambiente
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variável | Obrigatória | Descrição |
+| --- | --- | --- |
+| `DATABASE_URL` | Não | Caminho do SQLite. Padrão: `file:./prisma/dev.db`. Em produção, aponte para um volume persistente. |
+| `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | Não | Alternativa ao onboarding. Credenciais salvas pelo onboarding têm prioridade. |
+| `COINGECKO_API_KEY` | Não | Chave Demo da CoinGecko para cotações de cripto. Sem ela, usa a API pública. |
 
-## Learn More
+As credenciais da Pluggy ficam só no servidor (banco local ou variáveis de ambiente) e nunca são enviadas ao navegador. Não use o prefixo `NEXT_PUBLIC_` para elas.
 
-To learn more about Next.js, take a look at the following resources:
+### Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Comando | O que faz |
+| --- | --- |
+| `npm run dev` | Servidor de desenvolvimento |
+| `npm run build` | Gera o Prisma Client e faz o build de produção |
+| `npm start` | Aplica migrations pendentes e sobe o servidor |
+| `npm test` | Testes (Vitest) |
+| `npm run lint` | Biome |
+| `npm run db:migrate` | Cria/aplica migrations em desenvolvimento |
+| `npm run db:studio` | Abre o Prisma Studio |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Ativos fora da Pluggy
 
-## Deploy on Vercel
+Quando a Pluggy não retorna posições de renda variável ou cripto, use **Adicionar ação, FII ou ETF** e **Adicionar criptoativo** em `/investments`. Cada ordem aceita compra ou venda, data, valor total, taxa e preço por unidade; a quantidade é calculada automaticamente. Cotações vêm do Yahoo Finance (ações, FIIs, ETFs) e da CoinGecko (cripto).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js 16 (App Router, Server Components e Server Actions) · React 19 · Tailwind CSS 4 · Base UI · Prisma 7 + SQLite · Recharts · Pluggy SDK.
+
+## Contribuindo
+
+Issues e pull requests são bem-vindos. Antes de abrir um PR, rode `npm test`, `npm run lint` e `npm run build`.
