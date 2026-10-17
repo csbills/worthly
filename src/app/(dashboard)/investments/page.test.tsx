@@ -8,11 +8,6 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/actions/portfolio", () => ({
   getPortfolio: mocks.getPortfolio,
 }));
-vi.mock("@/components/dashboard-shell", () => ({
-  DashboardShell: ({ children }: { children: React.ReactNode }) => (
-    <main>{children}</main>
-  ),
-}));
 vi.mock("@/components/portfolio-allocation-chart", () => ({
   PortfolioAllocationChart: () => null,
 }));

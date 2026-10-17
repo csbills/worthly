@@ -5,7 +5,6 @@ import {
   type CurrentMonthTransaction,
   getTransactions,
 } from "@/actions/transactions";
-import { DashboardShell } from "@/components/dashboard-shell";
 import {
   TransactionsFilters,
   TransactionsSearch,
@@ -201,7 +200,7 @@ export default async function TransactionsPage({
       ?.currencyCode ?? "BRL";
 
   return (
-    <DashboardShell>
+    <>
       <PageHeader
         eyebrow={result.period.label}
         title="Transações"
@@ -322,6 +321,6 @@ export default async function TransactionsPage({
           </div>
         )}
       </section>
-    </DashboardShell>
+    </>
   );
 }

@@ -13,7 +13,6 @@ import {
   getInstallments,
   type InstallmentsResult,
 } from "@/actions/installments";
-import { DashboardShell } from "@/components/dashboard-shell";
 import { InstallmentsView } from "@/components/installments-view";
 import { Notice, PageHeader } from "@/components/ui/card";
 import {
@@ -473,7 +472,7 @@ export default async function CreditCardsPage() {
   ]);
 
   return (
-    <DashboardShell>
+    <>
       <PageHeader
         eyebrow="Crédito"
         title="Cartões"
@@ -483,6 +482,6 @@ export default async function CreditCardsPage() {
       {result.error ? <Notice tone="warning">{result.error}</Notice> : null}
 
       <CardsContent result={result} installmentsResult={installmentsResult} />
-    </DashboardShell>
+    </>
   );
 }

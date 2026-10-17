@@ -3,7 +3,6 @@ import Link from "next/link";
 
 import { getOnboardingState } from "@/actions/onboarding";
 import { type ConnectedAccount, getConnectedAccounts } from "@/actions/pluggy";
-import { DashboardShell } from "@/components/dashboard-shell";
 import {
   ConnectionList,
   CredentialsPanel,
@@ -94,7 +93,7 @@ export default async function AccountsPage() {
   );
 
   return (
-    <DashboardShell>
+    <>
       <PageHeader
         eyebrow="Configurações"
         title="Conexões"
@@ -117,7 +116,7 @@ export default async function AccountsPage() {
             <div>
               <h2 className="text-sm font-medium">Contas importadas</h2>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                Lidas diretamente da Pluggy a cada visita.
+                Lidas da Pluggy e atualizadas a cada 5 minutos.
               </p>
             </div>
             <span className="text-sm text-muted-foreground tabular-nums">
@@ -185,6 +184,6 @@ export default async function AccountsPage() {
           </Card>
         </div>
       </div>
-    </DashboardShell>
+    </>
   );
 }

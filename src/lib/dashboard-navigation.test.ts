@@ -18,7 +18,12 @@ describe("dashboard navigation", () => {
 
   it("only links to routes that have a page", () => {
     for (const item of dashboardNavigationItems) {
-      const page = path.join(process.cwd(), "src/app", item.href, "page.tsx");
+      const page = path.join(
+        process.cwd(),
+        "src/app/(dashboard)",
+        item.href,
+        "page.tsx",
+      );
       expect(existsSync(page), item.href).toBe(true);
     }
   });

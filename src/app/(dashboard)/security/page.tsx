@@ -7,7 +7,6 @@ import {
   AddPasskeyButton,
   DeletePasskeyButton,
 } from "@/components/auth/passkeys";
-import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge, Card, CardDescription, PageHeader } from "@/components/ui/card";
 import { LOCK_AFTER_MS } from "@/lib/auth/app-lock";
 
@@ -54,7 +53,7 @@ export default async function SecurityPage() {
   const hasPasskeys = passkeys.length > 0;
 
   return (
-    <DashboardShell>
+    <>
       <PageHeader
         eyebrow="Configurações"
         title="Segurança"
@@ -101,6 +100,6 @@ export default async function SecurityPage() {
           </CardDescription>
         </Card>
       </div>
-    </DashboardShell>
+    </>
   );
 }

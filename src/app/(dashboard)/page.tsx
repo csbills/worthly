@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { getDashboardOverview } from "@/actions/dashboard";
 import { getOnboardingState } from "@/actions/onboarding";
 import { CashFlowCard } from "@/components/cash-flow-card";
-import { DashboardShell } from "@/components/dashboard-shell";
 import { NetWorthCard } from "@/components/net-worth-card";
 import {
   AccountsBalanceCard,
@@ -51,7 +50,7 @@ export default async function Page() {
   const now = new Date();
 
   return (
-    <DashboardShell>
+    <>
       <PageHeader
         eyebrow={formatToday(now)}
         title={getGreeting(now)}
@@ -82,6 +81,6 @@ export default async function Page() {
         <AccountsBalanceCard overviewBalances={result.overviewBalances} />
         <AvailableCreditCard overviewBalances={result.overviewBalances} />
       </div>
-    </DashboardShell>
+    </>
   );
 }

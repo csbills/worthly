@@ -12,11 +12,6 @@ vi.mock("@/actions/credit-cards", () => ({
 vi.mock("@/actions/installments", () => ({
   getInstallments: mocks.getInstallments,
 }));
-vi.mock("@/components/dashboard-shell", () => ({
-  DashboardShell: ({ children }: { children: React.ReactNode }) => (
-    <main>{children}</main>
-  ),
-}));
 vi.mock("@/components/installments-view", () => ({
   InstallmentsView: () => (
     <section data-testid="installments-section">

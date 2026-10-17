@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
 
 import { DeployOnHangarButton, GithubLink, Wordmark } from "@/components/brand";
 import { DashboardTabBar } from "@/components/dashboard-tab-bar";
@@ -7,9 +7,26 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { verifySession } from "@/lib/auth/dal";
 
-export async function DashboardHeader() {
+async function CurrentUserMenu() {
   const user = await verifySession();
 
+  return <UserMenu user={user} />;
+}
+
+function UserMenuFallback() {
+  return (
+    <span
+      aria-hidden="true"
+      className="size-9 animate-pulse rounded-full bg-muted sm:size-8"
+    />
+  );
+}
+
+/**
+ * Static chrome: only the avatar waits for the session, so the header paints
+ * right away and stays mounted while pages below it load.
+ */
+export function DashboardHeader() {
   return (
     <header className="fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)]">
       {/* Progressive blur, no tint: sharpness itself fades out. */}
@@ -33,13 +50,16 @@ export async function DashboardHeader() {
           <ThemeToggle />
           <GithubLink className="hidden sm:flex" />
           <DeployOnHangarButton className="mx-1.5 hidden md:inline-flex" />
-          <UserMenu user={user} />
+          <Suspense fallback={<UserMenuFallback />}>
+            <CurrentUserMenu />
+          </Suspense>
         </div>
       </div>
     </header>
   );
 }
 
+/** Rendered once by the (dashboard) layout, so it survives navigations. */
 export function DashboardShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-background">

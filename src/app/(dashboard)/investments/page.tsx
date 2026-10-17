@@ -7,7 +7,6 @@ import {
   getPortfolio,
   type PortfolioCurrencyResult,
 } from "@/actions/portfolio";
-import { DashboardShell } from "@/components/dashboard-shell";
 import { PortfolioAllocationChart } from "@/components/portfolio-allocation-chart";
 import { PortfolioEvolutionChart } from "@/components/portfolio-evolution-chart";
 import { PageHeader } from "@/components/ui/card";
@@ -471,10 +470,11 @@ function EmptyPortfolio({ hasError }: { hasError: boolean }) {
 }
 
 export default async function InvestmentsPage() {
+  await new Promise((r) => setTimeout(r, 4000)); // TEMP
   const result = await getPortfolio();
 
   return (
-    <DashboardShell>
+    <>
       <PageHeader
         eyebrow="Carteira"
         title="Investimentos"
@@ -499,6 +499,6 @@ export default async function InvestmentsPage() {
       ) : (
         <EmptyPortfolio hasError={Boolean(result.error)} />
       )}
-    </DashboardShell>
+    </>
   );
 }

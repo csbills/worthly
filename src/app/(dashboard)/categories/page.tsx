@@ -13,7 +13,6 @@ import {
   getCategorySpending,
 } from "@/actions/categories";
 import { CategorySpendingChart } from "@/components/category-spending-chart";
-import { DashboardShell } from "@/components/dashboard-shell";
 import { Notice, PageHeader } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -182,7 +181,7 @@ export default async function CategoriesPage({
   const result = await getCategorySpending(requestedMonth);
 
   return (
-    <DashboardShell>
+    <>
       <PageHeader
         eyebrow="Gastos"
         title="Categorias"
@@ -285,6 +284,6 @@ export default async function CategoriesPage({
           </div>
         )}
       </section>
-    </DashboardShell>
+    </>
   );
 }
