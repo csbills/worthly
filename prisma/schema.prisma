@@ -141,3 +141,28 @@ model NetWorthSnapshot {
 
   @@index([snapshotDate])
 }
+
+model User {
+  id           String    @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+}
+
+/// Server-side sessions. Only a SHA-256 of the cookie token is stored, so a
+/// leaked database cannot be replayed as a login.
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
