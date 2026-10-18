@@ -12,7 +12,9 @@
     "db:studio": "prisma studio",
     "lint": "biome check",
     "format": "biome format --write",
-    "db:deploy": "prisma migrate deploy"
+    "db:deploy": "prisma migrate deploy",
+    "demo": "node scripts/demo.mjs",
+    "demo:seed": "node scripts/demo.mjs seed"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
