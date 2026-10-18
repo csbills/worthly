@@ -1,6 +1,10 @@
 import "server-only";
 import { PluggyClient } from "pluggy-sdk";
 
+import {
+  createDemoPluggyClient,
+  isDemoMode,
+} from "@/lib/demo/pluggy-demo-client";
 import { prisma } from "@/lib/prisma";
 import { createTtlCache } from "@/lib/ttl-cache";
 
@@ -93,6 +97,10 @@ export async function getPluggyClient({
 }: {
   fresh?: boolean;
 } = {}): Promise<PluggyClient> {
+  if (isDemoMode()) {
+    return createDemoPluggyClient();
+  }
+
   const credentials = await getPluggyCredentials();
 
   if (!credentials) {
