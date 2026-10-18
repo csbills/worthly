@@ -23,7 +23,14 @@ Contas, cartões, faturas e investimentos de todos os seus bancos, lidos via Ope
 ![PWA](https://img.shields.io/badge/PWA-5a0fc8?logo=pwa&logoColor=white)
 ![PRs bem-vindos](https://img.shields.io/badge/PRs-bem--vindos-22c55e)
 
-[Funcionalidades](#-funcionalidades) · [Deploy](#-suba-sua-instância) · [Como funciona](#-como-funciona) · [Rodando localmente](#-rodando-localmente) · [Contribuindo](#-contribuindo)
+[Funcionalidades](#-funcionalidades) · [Telas](#-telas) · [Deploy](#-suba-sua-instância) · [Como funciona](#-como-funciona) · [Rodando localmente](#-rodando-localmente) · [Contribuindo](#-contribuindo)
+
+<br />
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/hero-dark.webp" />
+  <img src="docs/screenshots/hero-light.webp" alt="Painel do Worthly no MacBook e no iPhone: patrimônio líquido, fluxo de caixa e ritmo de gastos" />
+</picture>
 
 </div>
 
@@ -41,6 +48,46 @@ Contas, cartões, faturas e investimentos de todos os seus bancos, lidos via Ope
 | 📱 **Instala como app** | PWA no iPhone, Android e desktop, sem passar por loja. |
 | 🛡️ **Somente leitura** | O Worthly só consulta saldos e lançamentos. Nenhum dinheiro é movimentado. |
 | 🏠 **Seus dados, sua instância** | Credenciais e banco de dados ficam no servidor que você controla. Nada passa por terceiros além do seu banco e da Pluggy. |
+
+## 📸 Telas
+
+<sub>Dados fictícios do [modo demo](#modo-demo). As imagens acompanham o tema claro ou escuro do seu GitHub.</sub>
+
+### Transações
+
+Busca, filtros por período, conta e categoria, e categorização automática de tudo o que entrou e saiu.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/transactions-dark.webp" />
+  <img src="docs/screenshots/transactions-light.webp" alt="Tela de transações no MacBook e no iPhone" />
+</picture>
+
+### Cartões e faturas
+
+Fatura a pagar, próxima fatura em formação, última fatura fechada e limite de cada cartão.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/cards-dark.webp" />
+  <img src="docs/screenshots/cards-light.webp" alt="Tela de cartões no MacBook e no iPhone" />
+</picture>
+
+### Investimentos
+
+Patrimônio, custo, rentabilidade, proventos, evolução em 90 dias e alocação por categoria.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/investments-dark.webp" />
+  <img src="docs/screenshots/investments-light.webp" alt="Tela de investimentos no MacBook e no iPhone" />
+</picture>
+
+### No celular, como app
+
+Instalado como PWA, o Worthly ocupa a tela inteira e navega por uma barra de abas na parte de baixo.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/phones-dark.webp" />
+  <img src="docs/screenshots/phones-light.webp" alt="Quatro telas do Worthly no iPhone: visão geral, transações, cartões e investimentos" />
+</picture>
 
 ## 🚀 Suba sua instância
 
@@ -142,11 +189,22 @@ npm run dev
 
 Abra [http://localhost:3000](http://localhost:3000), crie sua conta e siga o onboarding.
 
+### Modo demo
+
+Quer ver o app funcionando sem conectar um banco? O modo demo troca a Pluggy por dados fictícios (três bancos, cartões com parcelamentos e uma carteira de investimentos) e usa um banco separado em `prisma/demo.db`, sem tocar no seu `dev.db`:
+
+```bash
+npm run demo
+```
+
+Abra [http://localhost:3100](http://localhost:3100) e entre com `demo@worthly.test` / `worthly-demo`. Para recriar só o banco demo, rode `npm run demo:seed`. Foi com ele que as imagens deste README foram geradas.
+
 ### Variáveis de ambiente
 
 | Variável | Obrigatória | Descrição |
 | --- | --- | --- |
 | `DATABASE_URL` | Não | Caminho do SQLite. Padrão: `file:./prisma/dev.db`. Em produção, aponte para um volume persistente. |
+| `WORTHLY_DEMO` | Não | Com `1`, usa dados fictícios no lugar da Pluggy. O `npm run demo` já define. |
 | `APP_URL` | Em produção | URL pública da instância (ex.: `https://financas.exemplo.com`). Define o domínio das chaves de acesso. Localmente, o host da requisição é usado. |
 
 As credenciais da Pluggy são configuradas no onboarding, ficam só no banco do servidor e nunca vão para o navegador.
@@ -160,6 +218,7 @@ As credenciais da Pluggy são configuradas no onboarding, ficam só no banco do 
 | `npm start` | Aplica as migrations pendentes e sobe o servidor |
 | `npm test` | Testes (Vitest) |
 | `npm run lint` | Lint e formatação (Biome) |
+| `npm run demo` | Sobe o app com dados fictícios em `localhost:3100` |
 | `npm run db:migrate` | Cria e aplica migrations em desenvolvimento |
 | `npm run db:studio` | Abre o Prisma Studio |
 
