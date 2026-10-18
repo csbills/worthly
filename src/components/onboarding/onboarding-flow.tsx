@@ -17,7 +17,6 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { type ReactNode, useState } from "react";
 
 import { completeOnboarding, type OnboardingState } from "@/actions/onboarding";
-import { DeployOnHangarButton } from "@/components/brand";
 import {
   ConnectionList,
   CredentialsPanel,
@@ -559,14 +558,12 @@ export function OnboardingFlow({
                 </Button>
               </StepFooter>
             </form>
-            <div className="mt-6 flex flex-col gap-3 rounded-xl bg-muted p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-6 rounded-xl bg-muted p-4">
               <p className="text-sm leading-6 text-muted-foreground">
                 Curtiu? Ajude outras pessoas a ter o próprio organizador — dê
                 uma estrela no{" "}
-                <InlineLink href={GITHUB_REPO_URL}>GitHub</InlineLink> ou
-                compartilhe o deploy em um clique.
+                <InlineLink href={GITHUB_REPO_URL}>GitHub</InlineLink>.
               </p>
-              <DeployOnHangarButton className="self-start sm:self-auto" />
             </div>
           </>
         ) : null}

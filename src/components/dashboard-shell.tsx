@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { type ReactNode, Suspense } from "react";
 
-import { DeployOnHangarButton, GithubLink, Wordmark } from "@/components/brand";
+import { GithubLink, Wordmark } from "@/components/brand";
 import { DashboardTabBar } from "@/components/dashboard-tab-bar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
@@ -49,7 +49,6 @@ export function DashboardHeader() {
         <div className="flex items-center gap-1">
           <ThemeToggle />
           <GithubLink className="hidden sm:flex" />
-          <DeployOnHangarButton className="mx-1.5 hidden md:inline-flex" />
           <Suspense fallback={<UserMenuFallback />}>
             <CurrentUserMenu />
           </Suspense>

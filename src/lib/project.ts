@@ -1,7 +1,5 @@
-/** Public home of the open-source project — what "Deploy on Hangar" clones. */
+/** Public home of the open-source project. */
 export const GITHUB_REPO_URL = "https://github.com/csbills/worthly";
-
-export const HANGAR_DEPLOY_URL = `https://tryhangar.io/deploy?repo=${GITHUB_REPO_URL}`;
 
 export const MEU_PLUGGY_URL = "https://meu.pluggy.ai";
 
