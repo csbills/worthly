@@ -40,7 +40,7 @@ Contas, cartões, faturas e investimentos de todos os seus bancos, lidos via Ope
 
 |  |  |
 | --- | --- |
-| 🦔 **Tito, o assistente** | Pergunte em português sobre o seu dinheiro e receba respostas com os números reais das suas contas. Especialistas com foco fixo (assinaturas, mercado, metas) e avisos proativos na visão geral. |
+| 💬 **Tito, o assistente** | Pergunte em português sobre o seu dinheiro e receba respostas com os números reais das suas contas. Especialistas com foco fixo (assinaturas, mercado, metas) e avisos proativos na visão geral. |
 | 🎯 **Planejar** | Orçamentos mensais por categoria com projeção do mês, assinaturas e contas recorrentes detectadas sozinhas, e metas de economia. |
 | ✏️ **Do seu jeito** | Recategorize, anote e ignore transações, e crie regras que valem para as parecidas. |
 | 🔌 **MCP** | Use os seus dados no Claude Desktop, no Claude Code ou em qualquer cliente MCP, com um token só de leitura. |
