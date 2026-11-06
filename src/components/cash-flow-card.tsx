@@ -5,6 +5,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
+import { AnimatedCurrency } from "@/components/ui/animated-number";
 import type { CashFlowSummary } from "@/lib/cash-flow";
 
 function formatCurrency(value: number) {
@@ -92,7 +93,7 @@ export function CashFlowCard({
         <p
           className={`text-[1.75rem] leading-none font-normal tracking-[-0.035em] tabular-nums md:text-[2rem] ${getBalanceClassName(current.balance)}`}
         >
-          {formatCurrency(current.balance)}
+          <AnimatedCurrency value={current.balance} />
         </p>
         <p className="text-sm font-medium text-muted-foreground">
           saldo do mês

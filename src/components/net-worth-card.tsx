@@ -8,6 +8,7 @@ import type {
 } from "../actions/dashboard";
 import { compareNetWorth } from "../lib/net-worth";
 import { NetWorthChart } from "./net-worth-chart";
+import { AnimatedCurrency } from "./ui/animated-number";
 
 function formatCurrency(value: number, currencyCode: string) {
   return new Intl.NumberFormat("pt-BR", {
@@ -114,7 +115,10 @@ export function NetWorthCard({
         <>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <p className="text-[1.75rem] leading-none font-normal tracking-[-0.035em] tabular-nums md:text-[2rem]">
-              {formatCurrency(current.netWorth, currencyCode)}
+              <AnimatedCurrency
+                value={current.netWorth}
+                currencyCode={currencyCode}
+              />
             </p>
             <p className="text-sm font-medium text-muted-foreground">
               total estimado
