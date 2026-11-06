@@ -6,12 +6,18 @@ import {
   getTransactions,
 } from "@/actions/transactions";
 import {
+  type EditableTransaction,
+  EditTransactionTrigger,
+  TransactionEditorProvider,
+} from "@/components/transaction-editor";
+import {
   TransactionsFilters,
   TransactionsSearch,
 } from "@/components/transactions-filters";
 import { buttonVariants } from "@/components/ui/button";
 import { Notice, PageHeader } from "@/components/ui/card";
 import { getBankDisplayName } from "@/lib/bank-assets";
+import { listTransactionCategoryOptions } from "@/lib/transaction-category-dictionary";
 import {
   normalizeTransactionFilters,
   type TransactionFilterInput,
@@ -107,6 +113,37 @@ function BankAvatar({
   );
 }
 
+function toEditable(transaction: CurrentMonthTransaction): EditableTransaction {
+  return {
+    id: transaction.id,
+    description: formatDescription(transaction.description),
+    amountLabel: formatAmount(transaction),
+    categoryId: transaction.categoryId,
+    categoryLabel: transaction.categoryLabel,
+    note: transaction.note,
+    ignored: transaction.ignored,
+  };
+}
+
+function TransactionMeta({
+  transaction,
+}: {
+  transaction: CurrentMonthTransaction;
+}) {
+  if (!transaction.note && !transaction.ignored) return null;
+
+  return (
+    <span className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+      {transaction.ignored ? (
+        <span className="rounded-full bg-muted px-2 py-0.5">Ignorada</span>
+      ) : null}
+      {transaction.note ? (
+        <span className="truncate italic">{transaction.note}</span>
+      ) : null}
+    </span>
+  );
+}
+
 function getAmountClassName(transaction: CurrentMonthTransaction) {
   return transaction.type === "CREDIT"
     ? "text-success-foreground"
@@ -120,26 +157,32 @@ function TransactionListItem({
   transaction: CurrentMonthTransaction;
 }) {
   return (
-    <li className="flex items-center gap-3 px-4 py-3">
-      <BankAvatar transaction={transaction} className="size-9" />
-      <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 text-sm leading-5 font-medium break-words">
-          {formatDescription(transaction.description)}
-        </p>
-        <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-          <span aria-hidden="true">{transaction.categoryIcon}</span>
-          <span className="truncate">{transaction.categoryLabel}</span>
-          <span aria-hidden="true">·</span>
-          <span className="shrink-0 tabular-nums">
-            {formatDate(transaction.date)}
-          </span>
-        </p>
-      </div>
-      <p
-        className={`shrink-0 text-sm font-medium whitespace-nowrap tabular-nums ${getAmountClassName(transaction)}`}
+    <li className={transaction.ignored ? "opacity-60" : undefined}>
+      <EditTransactionTrigger
+        transaction={toEditable(transaction)}
+        className="flex items-center gap-3 px-4 py-3 transition-colors active:bg-muted"
       >
-        {formatAmount(transaction)}
-      </p>
+        <BankAvatar transaction={transaction} className="size-9" />
+        <span className="block min-w-0 flex-1">
+          <span className="line-clamp-2 block text-sm leading-5 font-medium break-words">
+            {formatDescription(transaction.description)}
+          </span>
+          <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+            <span aria-hidden="true">{transaction.categoryIcon}</span>
+            <span className="truncate">{transaction.categoryLabel}</span>
+            <span aria-hidden="true">·</span>
+            <span className="shrink-0 tabular-nums">
+              {formatDate(transaction.date)}
+            </span>
+          </span>
+          <TransactionMeta transaction={transaction} />
+        </span>
+        <span
+          className={`shrink-0 text-sm font-medium whitespace-nowrap tabular-nums ${getAmountClassName(transaction)}`}
+        >
+          {formatAmount(transaction)}
+        </span>
+      </EditTransactionTrigger>
     </li>
   );
 }
@@ -153,11 +196,19 @@ function TransactionRow({
   const bankName = getBankDisplayName(transaction.bankName);
 
   return (
-    <tr className="border-b transition-colors last:border-0 hover:bg-muted">
+    <tr
+      className={`border-b transition-colors last:border-0 hover:bg-muted ${transaction.ignored ? "opacity-60" : ""}`}
+    >
       <td className="min-w-64 px-5 py-3 align-middle">
-        <p className="text-sm font-medium">
-          {formatDescription(transaction.description)}
-        </p>
+        <EditTransactionTrigger
+          transaction={toEditable(transaction)}
+          className="rounded-md"
+        >
+          <span className="block text-sm font-medium">
+            {formatDescription(transaction.description)}
+          </span>
+          <TransactionMeta transaction={transaction} />
+        </EditTransactionTrigger>
       </td>
       <td className="min-w-40 px-4 py-3 align-middle text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-2 rounded-full bg-muted py-0.5 pr-2.5 pl-1.5 text-xs">
@@ -247,80 +298,82 @@ export default async function TransactionsPage({
 
       {result.error ? <Notice tone="warning">{result.error}</Notice> : null}
 
-      <section className="min-w-0 overflow-hidden surface">
-        <div className="flex flex-col justify-between gap-3 border-b px-4 py-4 sm:px-5 md:flex-row md:items-center">
-          <TransactionsSearch initialValue={filters.search} />
-          <div className="flex items-center gap-3 text-xs text-muted-foreground sm:text-sm">
-            <span>
-              {result.transactions.length}{" "}
-              {result.transactions.length === 1 ? "transação" : "transações"}
-            </span>
-            <span aria-hidden="true">·</span>
-            <span>{result.period.label}</span>
-          </div>
-        </div>
-
-        {result.transactions.length > 0 ? (
-          <>
-            <ul className="divide-y md:hidden">
-              {result.transactions.map((transaction) => (
-                <TransactionListItem
-                  key={transaction.id}
-                  transaction={transaction}
-                />
-              ))}
-            </ul>
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[860px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b bg-muted text-xs text-muted-foreground">
-                    <th scope="col" className="px-5 py-2.5 font-normal">
-                      Descrição
-                    </th>
-                    <th scope="col" className="px-4 py-2.5 font-normal">
-                      Categoria
-                    </th>
-                    <th scope="col" className="px-4 py-2.5 font-normal">
-                      Conta
-                    </th>
-                    <th scope="col" className="px-4 py-2.5 font-normal">
-                      Data
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-5 py-2.5 text-right font-normal"
-                    >
-                      Valor
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.transactions.map((transaction) => (
-                    <TransactionRow
-                      key={transaction.id}
-                      transaction={transaction}
-                    />
-                  ))}
-                </tbody>
-              </table>
+      <TransactionEditorProvider categories={listTransactionCategoryOptions()}>
+        <section className="min-w-0 overflow-hidden surface">
+          <div className="flex flex-col justify-between gap-3 border-b px-4 py-4 sm:px-5 md:flex-row md:items-center">
+            <TransactionsSearch initialValue={filters.search} />
+            <div className="flex items-center gap-3 text-xs text-muted-foreground sm:text-sm">
+              <span>
+                {result.transactions.length}{" "}
+                {result.transactions.length === 1 ? "transação" : "transações"}
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>{result.period.label}</span>
             </div>
-          </>
-        ) : (
-          <div className="p-10 text-center">
-            <p className="font-medium">Nenhuma transação encontrada</p>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Ajuste os filtros ou verifique se a conexão já sincronizou os
-              dados.
-            </p>
-            <a
-              href="/accounts"
-              className={buttonVariants({ className: "mt-5" })}
-            >
-              Gerenciar conexões
-            </a>
           </div>
-        )}
-      </section>
+
+          {result.transactions.length > 0 ? (
+            <>
+              <ul className="divide-y md:hidden">
+                {result.transactions.map((transaction) => (
+                  <TransactionListItem
+                    key={transaction.id}
+                    transaction={transaction}
+                  />
+                ))}
+              </ul>
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[860px] border-collapse text-left">
+                  <thead>
+                    <tr className="border-b bg-muted text-xs text-muted-foreground">
+                      <th scope="col" className="px-5 py-2.5 font-normal">
+                        Descrição
+                      </th>
+                      <th scope="col" className="px-4 py-2.5 font-normal">
+                        Categoria
+                      </th>
+                      <th scope="col" className="px-4 py-2.5 font-normal">
+                        Conta
+                      </th>
+                      <th scope="col" className="px-4 py-2.5 font-normal">
+                        Data
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-5 py-2.5 text-right font-normal"
+                      >
+                        Valor
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.transactions.map((transaction) => (
+                      <TransactionRow
+                        key={transaction.id}
+                        transaction={transaction}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <div className="p-10 text-center">
+              <p className="font-medium">Nenhuma transação encontrada</p>
+              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                Ajuste os filtros ou verifique se a conexão já sincronizou os
+                dados.
+              </p>
+              <a
+                href="/accounts"
+                className={buttonVariants({ className: "mt-5" })}
+              >
+                Gerenciar conexões
+              </a>
+            </div>
+          )}
+        </section>
+      </TransactionEditorProvider>
     </>
   );
 }
