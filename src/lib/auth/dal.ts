@@ -3,6 +3,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
+import { getServiceUser } from "@/lib/auth/service-context";
 import { getSession, type SessionUser } from "@/lib/auth/session";
 
 /** The request's session, locked or not. Memoized per request. */
@@ -15,6 +16,10 @@ export const getCurrentSession = cache(getSession);
  * A locked session (app lock) gets the unlock screen instead of data.
  */
 export const verifySession = cache(async (): Promise<SessionUser> => {
+  // Requisições do servidor MCP já validaram o token antes de chegar aqui.
+  const service = getServiceUser();
+  if (service) return service;
+
   const session = await getCurrentSession();
 
   if (!session) {

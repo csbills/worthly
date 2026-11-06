@@ -17,6 +17,7 @@ vi.mock("@/lib/auth/session", () => ({
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
 import { verifySession } from "./dal";
+import { runAsServiceUser } from "./service-context";
 
 const user = {
   id: "u1",
@@ -47,5 +48,15 @@ describe("verifySession", () => {
     mocks.getSession.mockResolvedValue({ id: "s1", locked: false, user });
 
     await expect(verifySession()).resolves.toEqual(user);
+  });
+
+  it("trusts the service user without reading the cookie session", async () => {
+    mocks.getSession.mockResolvedValue(null);
+
+    await expect(
+      runAsServiceUser(user, () => verifySession()),
+    ).resolves.toEqual(user);
+    expect(mocks.getSession).not.toHaveBeenCalled();
+    await expect(verifySession()).rejects.toThrow("REDIRECT:/login");
   });
 });
