@@ -228,3 +228,34 @@ model Goal {
   updatedAt    DateTime  @updatedAt
   completedAt  DateTime?
 }
+
+/// Contexto da família para o plano (linha única "default"): quem vive da
+/// renda, estabilidade, idade e o objetivo de longo prazo.
+model FinancialProfile {
+  id                    String   @id @default("default")
+  /// single | couple | family
+  householdType         String   @default("couple")
+  dependents            Int      @default(0)
+  /// stable (CLT, servidor) | variable (autônomo, comissão)
+  incomeStability       String   @default("stable")
+  /// Quantas rendas sustentam a casa.
+  incomeEarners         Int      @default(1)
+  birthYear             Int?
+  /// independence | home | debt-free | education | travel
+  mainGoal              String   @default("independence")
+  /// Idade em que quer poder parar de depender do trabalho.
+  targetIndependenceAge Int?
+  /// Custo de vida mensal desejado nessa fase, em reais de hoje. Vazio: o
+  /// gasto típico atual sem os compromissos que vão terminar.
+  desiredMonthlyCost    Float?
+  /// Retorno anual acima da inflação (%), usado nas projeções.
+  expectedRealReturn    Float    @default(4)
+  /// Quanto do patrimônio retirar por ano na independência (%).
+  withdrawalRate        Float    @default(4)
+  /// Meses de reserva de emergência; vazio usa a recomendação do plano.
+  emergencyMonths       Int?
+  /// Contexto livre para o Tito ("queremos ter um filho em 2028").
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
