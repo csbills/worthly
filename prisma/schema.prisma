@@ -39,6 +39,13 @@ model AppSettings {
   /// Chave da API da Anthropic para o assistente (Tito). Opcional: sem ela
   /// o assistente fica desligado. Nunca volta para o navegador.
   anthropicApiKey       String?
+  /// Qual modelo de linguagem o Tito usa: "anthropic", "deepseek" ou
+  /// "openai-compatible" (qualquer API no formato Chat Completions).
+  assistantProvider     String    @default("anthropic")
+  /// Chave, endereço e modelo dos providers que não são a Anthropic.
+  assistantApiKey       String?
+  assistantBaseUrl      String?
+  assistantModel        String?
   /// SHA-256 do token do servidor MCP (Claude Desktop e outros clientes). O
   /// token em si só aparece uma vez, na hora em que é criado.
   mcpTokenHash          String?
