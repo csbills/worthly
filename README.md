@@ -101,7 +101,7 @@ O jeito mais rápido (e o que a gente usa e recomenda) é o **Hangar**:
 [![Deploy on Hangar](https://tryhangar.io/deploy-on-hangar.svg)](https://tryhangar.io/deploy?repo=https://github.com/csbills/worthly)
 
 1. **Clique no botão.** O Hangar lê o [`hangar.yaml`](hangar.yaml) deste repositório e mostra o que vai criar antes de começar.
-2. **Revise o que será criado.** Nenhuma chave é pedida no deploy: as credenciais da Pluggy são coladas depois, no onboarding.
+2. **Revise o que será criado.** Nenhuma chave é pedida no deploy: as credenciais da Pluggy são coladas depois, no onboarding, e a chave do assistente na tela do Tito.
 3. **Confirme.** O Hangar faz o build, cria o volume persistente em `/data`, configura o domínio com HTTPS e publica.
 4. **Abra a URL**, crie sua conta e siga o onboarding em `/onboarding`.
 
@@ -177,12 +177,25 @@ Em **Segurança** (menu do avatar), ative uma chave de acesso (passkey/WebAuthn)
 
 ### Tito, o assistente
 
-O Tito é um tatu-bola que lê as suas finanças e responde perguntas como "quanto gastei com delivery este mês?" ou "o que mudou em relação ao mês passado?". Ele usa um modelo da Anthropic (`claude-opus-5-5`) com ferramentas só de leitura: transações, categorias, contas, faturas, investimentos, orçamentos, assinaturas e metas.
+O Tito é um tatu-bola que lê as suas finanças e responde perguntas como "quanto gastei com delivery este mês?" ou "o que mudou em relação ao mês passado?". Ele usa ferramentas só de leitura: transações, categorias, contas, faturas, investimentos, orçamentos, assinaturas, metas e o plano da casa.
 
-- Ative em **Tito → Conheça o Tito**, colando uma chave da API da Anthropic (ou defina `ANTHROPIC_API_KEY` no servidor). A chave fica só no servidor.
-- Nada é enviado à Anthropic enquanto você não conversa. Ao perguntar, vão apenas os dados que a resposta precisa.
-- Em **Especialistas**, crie um Tito com instruções fixas (ou use os prontos: caçador de assinaturas, guardião do mercado, treinador de metas).
+- **Escolha o modelo:** Claude (Anthropic, padrão `claude-opus-5-5`), DeepSeek (`deepseek-flash`) ou qualquer API compatível com a da OpenAI (OpenAI, OpenRouter, Ollama…). Configure em **Tito → Conheça o Tito** ou pelas variáveis do servidor. A chave é validada antes de ser salva e fica só no servidor.
+- Nada é enviado ao provider enquanto você não conversa. Ao perguntar, vão apenas os dados que a resposta precisa.
+- Em **Especialistas**, crie um Tito com instruções fixas (ou use os prontos: caçador de assinaturas, guardião do mercado, treinador de metas, planejador da independência).
 - No modo demo sem chave, o Tito responde com um resumo pronto, sem IA, só para mostrar a conversa.
+
+#### Metas em linguagem natural, sem alucinação
+
+Diga algo como _"em 2027 quero reformar a cozinha (7 mil, até março), comprar um carro de 25 mil até outubro e viajar"_ e o Tito organiza:
+
+- **O modelo só escolhe a intenção** (nomes, valores, datas). Um validador rejeita valor absurdo, mês no passado e metas repetidas; se faltar um valor, o Tito pergunta.
+- **Os números vêm de um motor determinístico:** a sobra vai primeiro para a meta de prazo mais próximo, a reserva de emergência continua recebendo, e quando não cabe ele calcula quanto falta por mês, sugere economias de até 20% nos gastos de escolha e propõe datas realistas.
+- **Ações viram propostas:** aparece um cartão com o plano mês a mês. Nada é criado até você confirmar — e dá para criar também os orçamentos das economias.
+- **Checagem de valores:** todo R$ que o Tito escreve precisa aparecer nos dados da conversa ou na sua pergunta; o que não aparece fica marcado como "não conferido".
+
+#### Trocar de provider
+
+O assistente fala com um contrato neutro (`src/lib/assistant/providers/contract.ts`). Cada adaptador converte mensagens, ferramentas e streaming do seu provider e guarda a resposta original para devolvê-la intacta quando o provider exige (os blocos de raciocínio do Claude, o `reasoning_content` do DeepSeek). Para um provider novo, implemente `AssistantProvider` e registre em `providers/options.ts` e `providers/index.ts`.
 
 ### Plano da casa
 
@@ -236,7 +249,12 @@ Abra [http://localhost:3100](http://localhost:3100) e entre com `demo@worthly.te
 | --- | --- | --- |
 | `DATABASE_URL` | Não | Caminho do SQLite. Padrão: `file:./prisma/dev.db`. Em produção, aponte para um volume persistente. |
 | `WORTHLY_DEMO` | Não | Com `1`, usa dados fictícios no lugar da Pluggy. O `npm run demo` já define. |
-| `ANTHROPIC_API_KEY` | Não | Chave da API da Anthropic para o Tito. Alternativa a colar a chave na tela do assistente. |
+| `ASSISTANT_PROVIDER` | Não | Modelo do Tito: `anthropic` (padrão), `deepseek` ou `openai-compatible`. O que for salvo na tela do Tito tem prioridade. |
+| `ANTHROPIC_API_KEY` | Não | Chave da Anthropic, para `anthropic`. |
+| `DEEPSEEK_API_KEY` | Não | Chave do DeepSeek, para `deepseek`. |
+| `ASSISTANT_API_KEY` | Não | Chave de um provider compatível com OpenAI (vale também para o DeepSeek). |
+| `ASSISTANT_BASE_URL` | Não | Endereço da API compatível com OpenAI (ex.: `https://api.openai.com/v1`). |
+| `ASSISTANT_MODEL` | Não | Modelo a usar (ex.: `deepseek-v4-pro`). Sem ele, vale o padrão de cada provider. |
 | `APP_URL` | Em produção | URL pública da instância (ex.: `https://financas.exemplo.com`). Define o domínio das chaves de acesso. Localmente, o host da requisição é usado. |
 
 As credenciais da Pluggy são configuradas no onboarding, ficam só no banco do servidor e nunca vão para o navegador.

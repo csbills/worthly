@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://tryhangar.io/schema/hangar.v1.json
 version: 1
 name: worthly
-description: Organizador de finanças pessoais open source com Open Finance (Meu Pluggy), patrimônio, faturas, gastos e investimentos.
+description: Organizador de finanças pessoais open source com Open Finance (Meu Pluggy), patrimônio, faturas, gastos, investimentos, plano da casa e o Tito, um assistente com IA (Claude, DeepSeek ou compatível com OpenAI).
 
 services:
   web:
@@ -19,3 +19,8 @@ services:
       DATABASE_URL: file:/data/worthly.db
       # Domínio das chaves de acesso (Face ID/biometria). Não troque depois.
       APP_URL: ${{ web.url }}
+      # O Tito (assistente) é opcional e se configura na própria tela dele,
+      # sem chave no deploy. Se preferir pelo servidor, defina como segredo:
+      # ASSISTANT_PROVIDER (anthropic | deepseek | openai-compatible) e
+      # ANTHROPIC_API_KEY, DEEPSEEK_API_KEY ou ASSISTANT_API_KEY,
+      # ASSISTANT_BASE_URL e ASSISTANT_MODEL.
