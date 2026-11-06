@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { type ReactNode, Suspense } from "react";
+import { type ReactNode, Suspense, ViewTransition } from "react";
 
 import { GithubLink, Wordmark } from "@/components/brand";
 import { DashboardTabBar } from "@/components/dashboard-tab-bar";
@@ -64,7 +64,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh flex-col bg-background">
       <DashboardHeader />
       <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-1 flex-col gap-5 px-4 pt-[calc(4.5rem+env(safe-area-inset-top))] pb-[calc(7rem+env(safe-area-inset-bottom))] md:px-6 md:pt-24">
-        {children}
+        {/* Cada navegação faz um crossfade curto do conteúdo (classe "page"
+            em design-tokens.css); o cabeçalho e a barra ficam parados. */}
+        <ViewTransition default="page">
+          <div className="flex min-w-0 flex-1 flex-col gap-5">{children}</div>
+        </ViewTransition>
       </main>
       <DashboardTabBar />
     </div>
