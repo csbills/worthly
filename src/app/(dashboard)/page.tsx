@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { getDashboardOverview } from "@/actions/dashboard";
 import { getOnboardingState } from "@/actions/onboarding";
@@ -9,6 +10,7 @@ import {
   AvailableCreditCard,
 } from "@/components/overview-balance-cards";
 import { SpendingPaceCard } from "@/components/spending-pace-card";
+import { TitoHome, TitoHomeSkeleton } from "@/components/tito-home";
 import { Notice, PageHeader } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -60,6 +62,9 @@ export default async function Page() {
       {result.error ? <Notice tone="warning">{result.error}</Notice> : null}
 
       <div className="stagger grid grid-cols-12 gap-4">
+        <Suspense fallback={<TitoHomeSkeleton />}>
+          <TitoHome />
+        </Suspense>
         <NetWorthCard
           current={result.netWorth.current}
           history={result.netWorth.history}
