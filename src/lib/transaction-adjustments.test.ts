@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  applyTransactionAdjustments,
   createTransactionAdjustments,
   emptyTransactionAdjustments,
   findMatchingRule,
@@ -85,5 +86,57 @@ describe("transaction adjustments", () => {
     expect(normalizeRulePattern("  Pão de Açúcar  ")).toBe("pao de acucar");
     expect(normalizeRulePattern("a")).toBeNull();
     expect(normalizeRulePattern("   ")).toBeNull();
+  });
+  it("prepares Pluggy transactions for reports", () => {
+    const result = applyTransactionAdjustments(
+      [
+        {
+          id: "tx-override",
+          description: "x",
+          categoryId: "05000000",
+          category: "Transfer",
+        },
+        {
+          id: "tx-ignored",
+          description: "y",
+          categoryId: null,
+          category: null,
+        },
+        {
+          id: "tx-c",
+          description: "Uber *trip",
+          categoryId: null,
+          category: "Other",
+        },
+        {
+          id: "tx-d",
+          description: "Mercado",
+          categoryId: "10000000",
+          category: "Groceries",
+        },
+      ],
+      adjustments,
+    );
+
+    expect(result).toEqual([
+      {
+        id: "tx-override",
+        description: "x",
+        categoryId: "11010000",
+        category: null,
+      },
+      {
+        id: "tx-c",
+        description: "Uber *trip",
+        categoryId: "19050000",
+        category: null,
+      },
+      {
+        id: "tx-d",
+        description: "Mercado",
+        categoryId: "10000000",
+        category: "Groceries",
+      },
+    ]);
   });
 });

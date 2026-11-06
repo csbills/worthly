@@ -5,6 +5,8 @@ import type { CurrencyCode } from "pluggy-sdk";
 import { getConnectedAccounts } from "@/actions/pluggy";
 import { verifySession } from "@/lib/auth/dal";
 import { getPluggyClient } from "@/lib/pluggy";
+import { applyTransactionAdjustments } from "@/lib/transaction-adjustments";
+import { loadTransactionAdjustments } from "@/lib/transaction-adjustments-store";
 import {
   getTransactionCategory,
   type ResolvedTransactionCategory,
@@ -358,7 +360,10 @@ export async function getCategorySpending(
   }
 
   try {
-    const client = await getPluggyClient();
+    const [client, adjustments] = await Promise.all([
+      getPluggyClient(),
+      loadTransactionAdjustments(),
+    ]);
     const transactionResults = await Promise.allSettled(
       accountResult.accounts.map(async (account) => {
         const transactions = await client.fetchAllTransactions(account.id, {
@@ -379,7 +384,7 @@ export async function getCategorySpending(
       accountResult.accounts,
     );
     const summary = buildCategoryGroups(
-      transactions,
+      applyTransactionAdjustments(transactions, adjustments),
       month,
       currentMonth,
       currentDate.day,

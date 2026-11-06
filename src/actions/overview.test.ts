@@ -6,6 +6,14 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/transaction-adjustments-store", async () => {
+  const { emptyTransactionAdjustments } = await import(
+    "@/lib/transaction-adjustments"
+  );
+  return {
+    loadTransactionAdjustments: async () => emptyTransactionAdjustments,
+  };
+});
 vi.mock("@/actions/pluggy", () => ({
   getConnectedAccounts: mocks.getConnectedAccounts,
 }));

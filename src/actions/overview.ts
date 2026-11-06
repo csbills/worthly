@@ -3,6 +3,8 @@
 import { getConnectedAccounts } from "@/actions/pluggy";
 import { verifySession } from "@/lib/auth/dal";
 import { getPluggyClient } from "@/lib/pluggy";
+import { applyTransactionAdjustments } from "@/lib/transaction-adjustments";
+import { loadTransactionAdjustments } from "@/lib/transaction-adjustments-store";
 import {
   type CashFlowSummary,
   type CashFlowTransactionInput,
@@ -271,7 +273,10 @@ export async function getSpendingPace(): Promise<SpendingPaceResult> {
   }
 
   try {
-    const client = await getPluggyClient();
+    const [client, adjustments] = await Promise.all([
+      getPluggyClient(),
+      loadTransactionAdjustments(),
+    ]);
     const transactionResults = await Promise.allSettled(
       accountResult.accounts.map(async (account) => {
         const transactions = await client.fetchAllTransactions(account.id, {
@@ -297,7 +302,7 @@ export async function getSpendingPace(): Promise<SpendingPaceResult> {
       currentCashFlow,
       previousCashFlow,
     } = collectMonthlyAmounts(
-      transactions,
+      applyTransactionAdjustments(transactions, adjustments),
       currentMonth,
       previousMonth,
       currentDate.day,

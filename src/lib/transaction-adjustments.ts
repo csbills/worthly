@@ -110,3 +110,38 @@ export function getTransactionNote(
 ) {
   return adjustments.overrides.get(transactionId)?.note ?? null;
 }
+
+type AdjustableTransaction = {
+  id: string;
+  description?: string | null;
+  descriptionRaw?: string | null;
+  categoryId?: string | null;
+  category?: string | null;
+};
+
+/**
+ * Prepara transações da Pluggy para relatórios: tira as ignoradas e troca a
+ * categoria pela final. Quando a categoria muda, o nome da Pluggy é
+ * descartado para não competir com o id escolhido.
+ */
+export function applyTransactionAdjustments<T extends AdjustableTransaction>(
+  transactions: readonly T[],
+  adjustments: TransactionAdjustments,
+): T[] {
+  return transactions.flatMap((transaction) => {
+    if (isIgnoredTransaction(transaction.id, adjustments)) return [];
+
+    const categoryId = getAdjustedCategoryId(
+      {
+        id: transaction.id,
+        description: transaction.description || transaction.descriptionRaw,
+        categoryId: transaction.categoryId,
+      },
+      adjustments,
+    );
+
+    return categoryId === (transaction.categoryId ?? null)
+      ? [transaction]
+      : [{ ...transaction, categoryId, category: null }];
+  });
+}
