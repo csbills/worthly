@@ -5,6 +5,8 @@ import type Anthropic from "@anthropic-ai/sdk";
 import type { AssistantEvent } from "@/lib/assistant/run";
 import { runAssistantTool } from "@/lib/assistant/tools";
 
+type Emit = (event: AssistantEvent) => void;
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -32,15 +34,62 @@ async function readTool(name: string): Promise<Record<string, unknown>> {
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Solta o texto aos poucos, como o streaming de verdade. */
+async function streamText(
+  text: string,
+  onEvent: Emit,
+): Promise<Anthropic.Beta.BetaMessageParam[]> {
+  for (const chunk of text.match(/[\s\S]{1,24}(\s|$)/g) ?? [text]) {
+    onEvent({ type: "text", text: chunk });
+    await pause(25);
+  }
+
+  return [{ role: "assistant", content: [{ type: "text", text }] }];
+}
+
+const planQuestion =
+  /plano|meta|independ|liberdade|reserva|aposent|guardar|poupar/i;
+
+/** Perguntas de planejamento recebem os passos do plano real da casa. */
+async function runDemoPlanTurn(onEvent: Emit) {
+  onEvent({
+    type: "tool",
+    name: "get_financial_plan",
+    label: "Montando o plano da casa",
+  });
+  const result = await readTool("get_financial_plan");
+  const plan = result.plan as
+    | { steps?: { title: string; detail: string }[] }
+    | undefined;
+  const steps = plan?.steps ?? [];
+
+  return streamText(
+    [
+      "Estou no **modo demo**, sem IA, mas o plano abaixo usa os números reais desta casa:",
+      "",
+      ...steps.map(
+        (step, index) => `${index + 1}. **${step.title}** — ${step.detail}`,
+      ),
+      "",
+      "Os cenários, os compromissos e as metas sugeridas estão em Planejar → Meu plano.",
+    ].join("\n"),
+    onEvent,
+  );
+}
+
 /**
  * Sem chave da Anthropic, no modo demo, o Tito responde com um resumo montado
  * a partir das mesmas ferramentas — só para mostrar a conversa funcionando.
  */
 export async function runDemoAssistantTurn({
   onEvent,
+  question = "",
 }: {
-  onEvent: (event: AssistantEvent) => void;
+  onEvent: Emit;
+  question?: string;
 }): Promise<Anthropic.Beta.BetaMessageParam[]> {
+  if (planQuestion.test(question)) return runDemoPlanTurn(onEvent);
+
   onEvent({
     type: "tool",
     name: "get_overview",
@@ -78,12 +127,5 @@ export async function runDemoAssistantTurn({
     );
   }
 
-  const text = lines.join("\n");
-
-  for (const chunk of text.match(/[\s\S]{1,24}(\s|$)/g) ?? [text]) {
-    onEvent({ type: "text", text: chunk });
-    await pause(25);
-  }
-
-  return [{ role: "assistant", content: [{ type: "text", text }] }];
+  return streamText(lines.join("\n"), onEvent);
 }

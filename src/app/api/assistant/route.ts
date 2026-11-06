@@ -89,7 +89,7 @@ export async function POST(request: Request) {
               onEvent: send,
               extraSystem: conversation.agent?.instructions ?? null,
             })
-          : await runDemoAssistantTurn({ onEvent: send });
+          : await runDemoAssistantTurn({ onEvent: send, question });
 
         await appendConversationMessages(conversation.id, added);
         send({ type: "done" });
