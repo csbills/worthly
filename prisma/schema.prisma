@@ -259,3 +259,22 @@ model FinancialProfile {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
+
+/// Compromisso fixo que pesa no orçamento: financiamento, empréstimo,
+/// aluguel, escola, pensão. Quando tem data de fim, o plano sabe quando esse
+/// dinheiro volta a ficar livre.
+model Obligation {
+  id            String   @id @default(cuid())
+  name          String
+  /// financing | loan | rent | education | alimony | other
+  kind          String   @default("other")
+  monthlyAmount Float
+  /// Último mês de pagamento (YYYY-MM); vazio = sem data para acabar.
+  endMonth      String?
+  /// Saldo devedor atual, quando houver.
+  balance       Float?
+  /// Juros ao ano (%), para comparar amortizar com investir.
+  interestRate  Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
