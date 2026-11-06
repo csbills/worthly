@@ -433,6 +433,26 @@ export default async function PlanningPage() {
       {budgets.error ? <Notice tone="warning">{budgets.error}</Notice> : null}
 
       <div className="stagger grid gap-5 lg:grid-cols-2">
+        <Link
+          href="/planning/plan"
+          className="surface group/plan flex items-center gap-4 p-4 transition-shadow hover:shadow-elevation-2 sm:p-5 lg:col-span-2"
+        >
+          <Tito mood="thinking" size="md" className="-my-2" />
+          <div className="min-w-0 flex-1">
+            <p className="font-medium">Meu plano</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Reserva, compromissos e o caminho até a independência, montados
+              com a renda e os gastos reais da sua casa.
+            </p>
+          </div>
+          <span
+            aria-hidden="true"
+            className="text-muted-foreground transition-transform group-hover/plan:translate-x-0.5"
+          >
+            →
+          </span>
+        </Link>
+
         <section className="surface overflow-hidden lg:col-span-2">
           <SectionHeader
             title="Orçamentos do mês"
