@@ -26,6 +26,10 @@ model AppSettings {
   /// Chave da API da Anthropic para o assistente (Tito). Opcional: sem ela
   /// o assistente fica desligado. Nunca volta para o navegador.
   anthropicApiKey       String?
+  /// SHA-256 do token do servidor MCP (Claude Desktop e outros clientes). O
+  /// token em si só aparece uma vez, na hora em que é criado.
+  mcpTokenHash          String?
+  mcpTokenCreatedAt     DateTime?
   onboardingCompletedAt DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
