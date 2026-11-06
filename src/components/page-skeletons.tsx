@@ -1,3 +1,4 @@
+import { Tito } from "@/components/mascot/tito";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -22,10 +23,14 @@ export function PageLoading({
 
 export function PageHeaderSkeleton() {
   return (
-    <div className="space-y-2">
-      <Skeleton className="h-4 w-28 rounded-md" />
-      <Skeleton className="h-9 w-48 rounded-lg" />
-      <Skeleton className="h-4 w-full max-w-md rounded-md" />
+    <div className="flex items-end justify-between gap-4">
+      <div className="min-w-0 flex-1 space-y-2">
+        <Skeleton className="h-4 w-28 rounded-md" />
+        <Skeleton className="h-9 w-48 rounded-lg" />
+        <Skeleton className="h-4 w-full max-w-md rounded-md" />
+      </div>
+      {/* O Tito rola enquanto os bancos respondem. */}
+      <Tito mood="rolling" size="sm" className="mb-1" />
     </div>
   );
 }

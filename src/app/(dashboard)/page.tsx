@@ -59,7 +59,7 @@ export default async function Page() {
 
       {result.error ? <Notice tone="warning">{result.error}</Notice> : null}
 
-      <div className="grid grid-cols-12 gap-4">
+      <div className="stagger grid grid-cols-12 gap-4">
         <NetWorthCard
           current={result.netWorth.current}
           history={result.netWorth.history}
