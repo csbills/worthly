@@ -111,6 +111,8 @@ const MAX_MONTHS = 50 * 12;
 const ASSUMED_INFLATION = 4;
 const EMERGENCY_SHARE = 0.7;
 const CUT_SHARE = 0.15;
+/** Transferências e investimentos não são gasto de escolha para cortar. */
+const notCuttable = new Set(["03000000", "04000000", "05000000"]);
 
 const round = (value: number) => Math.round(value * 100) / 100;
 const roundUp = (value: number, step: number) => Math.ceil(value / step) * step;
@@ -252,7 +254,12 @@ export function buildFinancialPlan({
 
   // Ajustes realistas: só nos gastos de escolha, 15% dos três maiores.
   const cuts = baseline.groups
-    .filter((group) => !group.essential && group.monthlyTypical >= 100)
+    .filter(
+      (group) =>
+        !group.essential &&
+        !notCuttable.has(group.groupId) &&
+        group.monthlyTypical >= 100,
+    )
     .slice(0, 3)
     .map((group) => ({
       groupId: group.groupId,

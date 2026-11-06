@@ -59,6 +59,14 @@ function baseline(
         lastMonth: 400,
       },
       {
+        groupId: "05000000",
+        label: "Transferências",
+        icon: "↔️",
+        essential: false,
+        monthlyTypical: 2000,
+        lastMonth: 2000,
+      },
+      {
         groupId: "09000000",
         label: "Serviços digitais",
         icon: "💻",
