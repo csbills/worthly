@@ -8,6 +8,8 @@ const publicPaths = new Set([
   "/manifest.webmanifest",
   "/sw.js",
   "/favicon.ico",
+  // Autenticado pelo token MCP dentro da própria rota, não pelo cookie.
+  "/api/mcp",
 ]);
 
 const publicPrefixes = ["/icon", "/apple-icon", "/assets/"];

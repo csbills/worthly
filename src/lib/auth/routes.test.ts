@@ -7,6 +7,8 @@ describe("getProxyRedirect", () => {
     expect(getProxyRedirect("/", false)).toBe("/login");
     expect(getProxyRedirect("/transactions", false)).toBe("/login");
     expect(getProxyRedirect("/onboarding", false)).toBe("/login");
+    expect(getProxyRedirect("/api/assistant", false)).toBe("/login");
+    expect(getProxyRedirect("/api/mcp/x", false)).toBe("/login");
   });
 
   it("lets the auth pages and PWA assets through without a session", () => {
@@ -18,6 +20,7 @@ describe("getProxyRedirect", () => {
       "/icon-192.png",
       "/apple-icon.png",
       "/offline",
+      "/api/mcp",
     ]) {
       expect(getProxyRedirect(path, false), path).toBeNull();
     }
