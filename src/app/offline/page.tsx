@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { LogoMark } from "@/components/brand";
+import { Tito } from "@/components/mascot/tito";
 import { ReloadButton } from "@/components/pwa";
 
 export const metadata: Metadata = { title: "Sem conexão" };
@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Sem conexão" };
 export default function OfflinePage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-6 text-center">
-      <LogoMark className="size-12 text-primary" />
+      <Tito mood="sleep" size="xl" />
       <h1 className="mt-6 text-[1.625rem] leading-tight font-normal tracking-[-0.03em]">
         Você está offline
       </h1>

@@ -30,6 +30,7 @@ import {
   unlockWithPasskey,
   unlockWithPassword,
 } from "@/actions/passkeys";
+import { Tito } from "@/components/mascot/tito";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LOCK_AFTER_MS, PING_EVERY_MS } from "@/lib/auth/app-lock";
@@ -211,8 +212,19 @@ export function UnlockPanel({ next }: { next: string }) {
     unlock();
   }, [supported]);
 
+  const mood =
+    error || passwordState.message
+      ? "worried"
+      : pending || passwordPending
+        ? "rolling"
+        : "ball";
+
   return (
     <div className="space-y-4">
+      {/* Enrolado protegendo seus dados; rola enquanto confere quem é você. */}
+      <div className="flex justify-center pb-1">
+        <Tito mood={mood} size="lg" />
+      </div>
       {supported ? (
         <Button
           type="button"

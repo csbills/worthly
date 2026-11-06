@@ -8,11 +8,14 @@ export function AuthShell({
   description,
   children,
   footer,
+  mascot,
 }: {
   title: string;
   description: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
+  /** O Tito (ou outro ornamento) sentado sobre o cartão. */
+  mascot?: ReactNode;
 }) {
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-background">
@@ -26,6 +29,11 @@ export function AuthShell({
       </header>
       <main className="relative flex flex-1 items-start justify-center px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:items-center sm:pt-0">
         <div className="w-full max-w-[25rem]">
+          {mascot ? (
+            <div className="relative z-10 -mb-3 flex justify-center animate-rise-in">
+              {mascot}
+            </div>
+          ) : null}
           <div className="surface p-6 sm:p-8">
             <h1 className="text-[1.625rem] leading-tight font-normal tracking-[-0.03em]">
               {title}

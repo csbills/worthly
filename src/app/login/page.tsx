@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/auth-forms";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { PasskeyLoginButton } from "@/components/auth/passkeys";
+import { Tito } from "@/components/mascot/tito";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { hasAnyPasskey, isFirstAccess } from "@/lib/auth/users";
 
@@ -26,6 +27,7 @@ export default async function LoginPage() {
     <AuthShell
       title="Bem-vindo de volta"
       description="Entre para ver suas finanças."
+      mascot={<Tito mood="wave" size="lg" />}
     >
       {showPasskey ? <PasskeyLoginButton /> : null}
       <LoginForm autoFocus={!showPasskey} />

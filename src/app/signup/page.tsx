@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { SignupForm } from "@/components/auth/auth-forms";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { Tito } from "@/components/mascot/tito";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { isFirstAccess } from "@/lib/auth/users";
 
@@ -21,6 +22,7 @@ export default async function SignupPage() {
       title="Crie sua conta"
       description="Este é o primeiro acesso a esta instância. A conta que você criar agora será a única com acesso aos seus dados."
       footer="Seus dados ficam no servidor desta instância. A senha é guardada apenas como hash."
+      mascot={<Tito mood="wave" size="lg" />}
     >
       <SignupForm />
     </AuthShell>
