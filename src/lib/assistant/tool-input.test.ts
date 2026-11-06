@@ -4,6 +4,7 @@ import {
   compactToolResult,
   parseEmptyToolInput,
   parseMonthToolInput,
+  parseSimulationToolInput,
   parseTransactionsToolInput,
 } from "./tool-input";
 
@@ -91,6 +92,29 @@ describe("assistant tool input", () => {
       amount: 10.46,
       items: [1, 2, "… e mais 1 itens"],
       nested: { label: "ok" },
+    });
+  });
+  it("validates plan simulations", () => {
+    expect(parseSimulationToolInput({})).toEqual({
+      ok: true,
+      value: {
+        extraMonthly: 0,
+        desiredMonthlyCost: null,
+        targetAge: null,
+        realReturn: null,
+      },
+    });
+    expect(
+      parseSimulationToolInput({ extra_monthly: 500, target_age: 50 }),
+    ).toMatchObject({ ok: true, value: { extraMonthly: 500, targetAge: 50 } });
+    expect(parseSimulationToolInput({ extra_monthly: "500" })).toMatchObject({
+      ok: false,
+    });
+    expect(parseSimulationToolInput({ real_return: 15 })).toMatchObject({
+      ok: false,
+    });
+    expect(parseSimulationToolInput({ target_age: 20 })).toMatchObject({
+      ok: false,
     });
   });
 });

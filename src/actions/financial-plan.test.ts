@@ -60,7 +60,7 @@ vi.mock("@/actions/subscriptions", () => ({
   }),
 }));
 
-import { getFinancialPlan } from "./financial-plan";
+import { getFinancialPlan, simulateFinancialPlan } from "./financial-plan";
 
 function tx(
   accountId: string,
@@ -115,5 +115,22 @@ describe("getFinancialPlan", () => {
     ]);
     expect(result.ownershipIncomplete).toBe(false);
     expect(result.plan.steps.length).toBeGreaterThan(0);
+  });
+
+  it("simulates saving more without touching the saved plan", async () => {
+    const { base, simulated } = await simulateFinancialPlan(
+      {
+        extraMonthly: 2000,
+        desiredMonthlyCost: null,
+        targetAge: null,
+        realReturn: null,
+      },
+      new Date("2026-11-05T15:00:00Z"),
+    );
+
+    expect(simulated.capacity).toBe(base.capacity + 2000);
+    expect(
+      simulated.independence.scenarios[0].monthsToGoal as number,
+    ).toBeLessThan(base.independence.scenarios[0].monthsToGoal as number);
   });
 });

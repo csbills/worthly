@@ -180,3 +180,47 @@ export async function getFinancialPlan(
     error: transactions.error ?? accounts.error,
   };
 }
+
+export type PlanSimulation = {
+  extraMonthly: number;
+  desiredMonthlyCost: number | null;
+  targetAge: number | null;
+  realReturn: number | null;
+};
+
+/**
+ * O mesmo plano com hipóteses trocadas: guardar mais por mês, outro custo de
+ * vida, outra idade-alvo ou outro retorno. Não salva nada.
+ */
+export async function simulateFinancialPlan(
+  simulation: PlanSimulation,
+  now = new Date(),
+): Promise<{ base: FinancialPlan; simulated: FinancialPlan }> {
+  const result = await getFinancialPlan(now);
+  const extra = Math.max(
+    -result.baseline.typicalIncome,
+    simulation.extraMonthly,
+  );
+
+  const simulated = buildFinancialPlan({
+    baseline: {
+      ...result.baseline,
+      savingsCapacity: result.baseline.savingsCapacity + extra,
+    },
+    profile: {
+      ...result.profile,
+      desiredMonthlyCost:
+        simulation.desiredMonthlyCost ?? result.profile.desiredMonthlyCost,
+      targetIndependenceAge:
+        simulation.targetAge ?? result.profile.targetIndependenceAge,
+      expectedRealReturn:
+        simulation.realReturn ?? result.profile.expectedRealReturn,
+    },
+    obligations: result.obligations,
+    balances: result.balances,
+    existingGoalNames: [],
+    now,
+  });
+
+  return { base: result.plan, simulated };
+}

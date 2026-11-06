@@ -162,3 +162,68 @@ export function compactToolResult(value: unknown, maxItems = 120): unknown {
 
   return value;
 }
+
+export type SimulationToolInput = {
+  extraMonthly: number;
+  desiredMonthlyCost: number | null;
+  targetAge: number | null;
+  realReturn: number | null;
+};
+
+/** Hipóteses para simular o plano ("e se guardarmos R$ 500 a mais?"). */
+export function parseSimulationToolInput(
+  input: unknown,
+): ToolInputResult<SimulationToolInput> {
+  if (!isRecord(input)) return { ok: false, error: "input must be an object" };
+
+  const number = (key: string) => {
+    const value = input[key];
+    if (value === undefined || value === null) return null;
+    return typeof value === "number" && Number.isFinite(value)
+      ? value
+      : undefined;
+  };
+  const extraMonthly = number("extra_monthly");
+  const desiredMonthlyCost = number("desired_monthly_cost");
+  const targetAge = number("target_age");
+  const realReturn = number("real_return");
+
+  if (
+    [extraMonthly, desiredMonthlyCost, targetAge, realReturn].includes(
+      undefined,
+    )
+  ) {
+    return { ok: false, error: "all fields must be numbers" };
+  }
+  if (
+    desiredMonthlyCost !== null &&
+    desiredMonthlyCost !== undefined &&
+    desiredMonthlyCost <= 0
+  ) {
+    return { ok: false, error: "desired_monthly_cost must be positive" };
+  }
+  if (
+    targetAge !== null &&
+    targetAge !== undefined &&
+    (targetAge < 30 || targetAge > 90)
+  ) {
+    return { ok: false, error: "target_age must be between 30 and 90" };
+  }
+  if (
+    realReturn !== null &&
+    realReturn !== undefined &&
+    (realReturn < 0 || realReturn > 10)
+  ) {
+    return { ok: false, error: "real_return must be between 0 and 10" };
+  }
+
+  return {
+    ok: true,
+    value: {
+      extraMonthly: extraMonthly ?? 0,
+      desiredMonthlyCost: desiredMonthlyCost ?? null,
+      targetAge: targetAge ?? null,
+      realReturn: realReturn ?? null,
+    },
+  };
+}

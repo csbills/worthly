@@ -6,6 +6,10 @@ import { getBudgetsOverview } from "@/actions/budgets";
 import { getCategorySpending } from "@/actions/categories";
 import { getCreditCards } from "@/actions/credit-cards";
 import { getDashboardOverview } from "@/actions/dashboard";
+import {
+  getFinancialPlan,
+  simulateFinancialPlan,
+} from "@/actions/financial-plan";
 import { listGoals } from "@/actions/goals";
 import { getInvestments } from "@/actions/investments";
 import { getConnectedAccounts } from "@/actions/pluggy";
@@ -16,9 +20,11 @@ import {
   compactToolResult,
   parseEmptyToolInput,
   parseMonthToolInput,
+  parseSimulationToolInput,
   parseTransactionsToolInput,
   type ToolInputResult,
 } from "@/lib/assistant/tool-input";
+import type { FinancialPlan } from "@/lib/financial-plan";
 import { defaultTransactionFilters } from "@/lib/transaction-filters";
 import { summarizeTransactions } from "@/lib/transaction-summary";
 
@@ -39,6 +45,20 @@ const emptySchema: Anthropic.Beta.BetaTool.InputSchema = {
   properties: {},
   additionalProperties: false,
 };
+
+/** O plano sem as séries do gráfico, que só pesam no contexto. */
+function planForModel(plan: FinancialPlan) {
+  return {
+    ...plan,
+    independence: {
+      ...plan.independence,
+      scenarios: plan.independence.scenarios.map(({ points, ...scenario }) => ({
+        ...scenario,
+        investedIn10Years: points[9]?.value ?? null,
+      })),
+    },
+  };
+}
 
 const registry: ToolDefinition<unknown>[] = [
   defineTool({
@@ -247,6 +267,69 @@ const registry: ToolDefinition<unknown>[] = [
     },
     parse: parseEmptyToolInput,
     run: async () => listGoals(),
+  }),
+  defineTool({
+    label: "Montando o plano da casa",
+    tool: {
+      name: "get_financial_plan",
+      description:
+        "O plano financeiro da casa inteira (todas as pessoas conectadas): perfil da família (quem vive da renda, dependentes, estabilidade, idade, objetivo, observações), raio-X dos últimos 6 meses fechados (renda e gasto típicos pela mediana, essenciais x escolha, por pessoa, por grupo de categoria, sinais de dívida cara), compromissos fixos com data de fim, reserva de emergência recomendada, passos na ordem certa, cenários até a independência financeira, valor mensal necessário para a idade-alvo, cortes realistas e metas sugeridas. Use antes de qualquer conversa sobre metas, planos, reserva, aposentadoria ou independência.",
+      eager_input_streaming: true,
+      input_schema: emptySchema,
+    },
+    parse: parseEmptyToolInput,
+    run: async () => {
+      const result = await getFinancialPlan();
+      return {
+        profile: result.profile,
+        members: result.members,
+        obligations: result.obligations,
+        obligationCandidates: result.candidates,
+        balances: result.balances,
+        baseline: { ...result.baseline, months: result.baseline.months },
+        plan: planForModel(result.plan),
+        ownershipIncomplete: result.ownershipIncomplete,
+        error: result.error,
+      };
+    },
+  }),
+  defineTool({
+    label: "Simulando cenários",
+    tool: {
+      name: "simulate_plan",
+      description:
+        "Recalcula o plano com hipóteses, sem salvar nada: guardar mais (ou menos) por mês, outro custo de vida na independência, outra idade-alvo ou outro retorno real. Devolve o plano atual (base) e o simulado para comparar prazos, idade de chegada e o valor mensal necessário. Use para perguntas 'e se…'.",
+      eager_input_streaming: true,
+      input_schema: {
+        type: "object",
+        properties: {
+          extra_monthly: {
+            type: "number",
+            description:
+              "Quanto a mais por mês a casa guardaria (negativo = guardar menos), em reais.",
+          },
+          desired_monthly_cost: {
+            type: "number",
+            description:
+              "Custo de vida mensal desejado na independência, em reais de hoje.",
+          },
+          target_age: {
+            type: "number",
+            description: "Idade-alvo para a independência (30 a 90).",
+          },
+          real_return: {
+            type: "number",
+            description: "Retorno anual acima da inflação em % (0 a 10).",
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+    parse: parseSimulationToolInput,
+    run: async (input) => {
+      const { base, simulated } = await simulateFinancialPlan(input);
+      return { base: planForModel(base), simulated: planForModel(simulated) };
+    },
   }),
 ];
 
