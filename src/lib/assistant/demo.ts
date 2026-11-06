@@ -1,7 +1,6 @@
 import "server-only";
 
-import type Anthropic from "@anthropic-ai/sdk";
-
+import type { ChatMessage } from "@/lib/assistant/providers/contract";
 import type { AssistantEvent } from "@/lib/assistant/run";
 import { runAssistantTool } from "@/lib/assistant/tools";
 
@@ -16,17 +15,13 @@ function formatCurrency(value: number) {
 
 async function readTool(name: string): Promise<Record<string, unknown>> {
   const result = await runAssistantTool({
-    type: "tool_use",
     id: `demo_${name}`,
     name,
     input: {},
-    caller: { type: "direct" },
-  } as Anthropic.Beta.BetaToolUseBlock);
+  });
 
   try {
-    return typeof result.content === "string" && !result.is_error
-      ? JSON.parse(result.content)
-      : {};
+    return result.isError ? {} : JSON.parse(result.content);
   } catch {
     return {};
   }
@@ -35,16 +30,13 @@ async function readTool(name: string): Promise<Record<string, unknown>> {
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Solta o texto aos poucos, como o streaming de verdade. */
-async function streamText(
-  text: string,
-  onEvent: Emit,
-): Promise<Anthropic.Beta.BetaMessageParam[]> {
+async function streamText(text: string, onEvent: Emit): Promise<ChatMessage[]> {
   for (const chunk of text.match(/[\s\S]{1,24}(\s|$)/g) ?? [text]) {
     onEvent({ type: "text", text: chunk });
     await pause(25);
   }
 
-  return [{ role: "assistant", content: [{ type: "text", text }] }];
+  return [{ role: "assistant", parts: [{ type: "text", text }] }];
 }
 
 const planQuestion =
@@ -87,7 +79,7 @@ export async function runDemoAssistantTurn({
 }: {
   onEvent: Emit;
   question?: string;
-}): Promise<Anthropic.Beta.BetaMessageParam[]> {
+}): Promise<ChatMessage[]> {
   if (planQuestion.test(question)) return runDemoPlanTurn(onEvent);
 
   onEvent({

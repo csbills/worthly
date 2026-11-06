@@ -1,7 +1,5 @@
 import "server-only";
 
-import type Anthropic from "@anthropic-ai/sdk";
-
 import { getBudgetsOverview } from "@/actions/budgets";
 import { getCategorySpending } from "@/actions/categories";
 import { getCreditCards } from "@/actions/credit-cards";
@@ -10,15 +8,22 @@ import {
   getFinancialPlan,
   simulateFinancialPlan,
 } from "@/actions/financial-plan";
+import { createGoalProposal, scheduleGoals } from "@/actions/goal-proposals";
 import { listGoals } from "@/actions/goals";
 import { getInvestments } from "@/actions/investments";
 import { getConnectedAccounts } from "@/actions/pluggy";
 import { getSubscriptions } from "@/actions/subscriptions";
 import { getTransactions } from "@/actions/transactions";
 import {
+  type ChatPart,
+  INVALID_TOOL_INPUT,
+  type ToolSpec,
+} from "@/lib/assistant/providers/contract";
+import {
   assistantPeriodKeys,
   compactToolResult,
   parseEmptyToolInput,
+  parseGoalProposalInput,
   parseMonthToolInput,
   parseSimulationToolInput,
   parseTransactionsToolInput,
@@ -28,19 +33,28 @@ import type { FinancialPlan } from "@/lib/financial-plan";
 import { defaultTransactionFilters } from "@/lib/transaction-filters";
 import { summarizeTransactions } from "@/lib/transaction-summary";
 
+/** Definição no formato JSON Schema, igual para todos os providers. */
+type ToolDescriptor = {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+  /** Mantido por compatibilidade; o adaptador da Anthropic já liga o streaming. */
+  eager_input_streaming?: boolean;
+};
+
 type ToolDefinition<T> = {
-  tool: Anthropic.Beta.BetaTool;
+  tool: ToolDescriptor;
   /** Rótulo curto mostrado enquanto a ferramenta roda ("Lendo transações…"). */
   label: string;
   parse: (input: unknown) => ToolInputResult<T>;
-  run: (input: T) => Promise<unknown>;
+  run: (input: T, call: AssistantToolCall) => Promise<unknown>;
 };
 
 function defineTool<T>(definition: ToolDefinition<T>) {
   return definition as ToolDefinition<unknown>;
 }
 
-const emptySchema: Anthropic.Beta.BetaTool.InputSchema = {
+const emptySchema: Record<string, unknown> = {
   type: "object",
   properties: {},
   additionalProperties: false,
@@ -59,6 +73,51 @@ function planForModel(plan: FinancialPlan) {
     },
   };
 }
+
+const goalsSchema: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    goals: {
+      type: "array",
+      description: "De 1 a 8 metas.",
+      items: {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            description: "Nome curto (ex.: Carro, Reforma da cozinha).",
+          },
+          emoji: {
+            type: "string",
+            description: "Um emoji que represente a meta.",
+          },
+          target_amount: {
+            type: "number",
+            description:
+              "Valor total em reais. Só use valores ditos pelo usuário ou confirmados por ele.",
+          },
+          saved_amount: {
+            type: "number",
+            description: "Quanto já está guardado para esta meta (padrão 0).",
+          },
+          target_month: {
+            type: "string",
+            description: "Mês-limite no formato YYYY-MM, depois do mês atual.",
+          },
+          priority: {
+            type: "integer",
+            description:
+              "1 = mais importante. Use a ordem que o usuário indicar.",
+          },
+        },
+        required: ["name", "target_amount", "target_month"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["goals"],
+  additionalProperties: false,
+};
 
 const registry: ToolDefinition<unknown>[] = [
   defineTool({
@@ -331,6 +390,35 @@ const registry: ToolDefinition<unknown>[] = [
       return { base: planForModel(base), simulated: planForModel(simulated) };
     },
   }),
+  defineTool({
+    label: "Organizando as metas",
+    tool: {
+      name: "plan_goals",
+      description:
+        "Calcula, sem salvar nada, como encaixar metas com data na sobra mensal da casa (junto com as metas com data que já existem e mantendo a reserva de emergência). Devolve, para cada meta, o mês em que fica pronta e se cabe no prazo, as fases mês a mês, quanto falta por mês se não couber, economias sugeridas nos gastos de escolha e novas datas quando nem as economias bastam. Use para explorar opções antes de propor. Os números da resposta vêm deste cálculo: não refaça as contas.",
+      input_schema: goalsSchema,
+    },
+    parse: (input) => parseGoalProposalInput(input, new Date()),
+    run: async ({ goals }) => (await scheduleGoals(goals)).schedule,
+  }),
+  defineTool({
+    label: "Preparando as metas para você confirmar",
+    tool: {
+      name: "propose_goals",
+      description:
+        "Propõe criar metas: faz o mesmo cálculo de plan_goals e mostra ao usuário um cartão com o plano e os botões para criar as metas (e, se houver economias sugeridas, orçamentos para elas). Nada é criado até o usuário confirmar no cartão. Use quando o usuário pedir para organizar ou criar metas e os valores e datas estiverem definidos. Depois de chamar, diga que o cartão está logo abaixo — nunca que as metas já foram criadas.",
+      input_schema: goalsSchema,
+    },
+    parse: (input) => parseGoalProposalInput(input, new Date()),
+    run: async ({ goals }) => {
+      const proposal = await createGoalProposal(goals);
+      return {
+        proposalId: proposal.id,
+        status: "aguardando confirmação do usuário",
+        schedule: proposal.schedule,
+      };
+    },
+  }),
 ];
 
 /** Ferramentas extras registradas por outros módulos (orçamentos, metas…). */
@@ -340,8 +428,12 @@ export function registerAssistantTool<T>(definition: ToolDefinition<T>) {
   }
 }
 
-export function getAssistantTools(): Anthropic.Beta.BetaTool[] {
-  return registry.map((entry) => entry.tool);
+export function getAssistantTools(): ToolSpec[] {
+  return registry.map((entry) => ({
+    name: entry.tool.name,
+    description: entry.tool.description,
+    inputSchema: entry.tool.input_schema,
+  }));
 }
 
 export function getAssistantToolLabel(name: string) {
@@ -350,48 +442,53 @@ export function getAssistantToolLabel(name: string) {
   );
 }
 
+export type AssistantToolCall = { id: string; name: string; input: unknown };
+
+type ToolResultPart = Extract<ChatPart, { type: "tool_result" }>;
+
+function errorResult(call: AssistantToolCall, content: string): ToolResultPart {
+  return { type: "tool_result", toolCallId: call.id, isError: true, content };
+}
+
 /**
- * Roda uma ferramenta pedida pelo modelo. Entrada inválida ou erro viram um
- * tool_result com is_error, para o modelo corrigir e tentar de novo.
+ * Roda uma ferramenta pedida pelo modelo. Entrada inválida (inclusive JSON
+ * quebrado) ou erro viram um resultado com isError, para o modelo corrigir e
+ * tentar de novo — nunca uma exceção.
  */
 export async function runAssistantTool(
-  block: Anthropic.Beta.BetaToolUseBlock,
-): Promise<Anthropic.Beta.BetaToolResultBlockParam> {
-  const entry = registry.find((item) => item.tool.name === block.name);
+  call: AssistantToolCall,
+): Promise<ToolResultPart> {
+  const entry = registry.find((item) => item.tool.name === call.name);
 
-  if (!entry) {
-    return {
-      type: "tool_result",
-      tool_use_id: block.id,
-      is_error: true,
-      content: `Ferramenta desconhecida: ${block.name}`,
-    };
+  if (!entry) return errorResult(call, `Ferramenta desconhecida: ${call.name}`);
+
+  if (
+    call.input &&
+    typeof call.input === "object" &&
+    INVALID_TOOL_INPUT in (call.input as Record<string, unknown>)
+  ) {
+    return errorResult(
+      call,
+      JSON.stringify({
+        INVALID_JSON: "A entrada não era um JSON válido. Envie de novo.",
+      }),
+    );
   }
 
-  const parsed = entry.parse(block.input);
+  const parsed = entry.parse(call.input);
 
   if (!parsed.ok) {
-    return {
-      type: "tool_result",
-      tool_use_id: block.id,
-      is_error: true,
-      content: JSON.stringify({ INVALID_INPUT: parsed.error }),
-    };
+    return errorResult(call, JSON.stringify({ INVALID_INPUT: parsed.error }));
   }
 
   try {
-    const result = await entry.run(parsed.value);
+    const result = await entry.run(parsed.value, call);
     return {
       type: "tool_result",
-      tool_use_id: block.id,
+      toolCallId: call.id,
       content: JSON.stringify(compactToolResult(result)),
     };
   } catch {
-    return {
-      type: "tool_result",
-      tool_use_id: block.id,
-      is_error: true,
-      content: "Não foi possível ler esses dados agora.",
-    };
+    return errorResult(call, "Não foi possível ler esses dados agora.");
   }
 }

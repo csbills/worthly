@@ -1,6 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
-
+import { getProposals } from "@/actions/goal-proposals";
 import { runDemoAssistantTurn } from "@/lib/assistant/demo";
+import type { ChatMessage } from "@/lib/assistant/providers/contract";
 import {
   type AssistantEvent,
   describeAssistantError,
@@ -10,9 +10,10 @@ import {
   appendConversationMessages,
   createConversation,
   findConversation,
-  getAnthropicApiKey,
+  getAssistantProvider,
   loadConversationHistory,
 } from "@/lib/assistant/store";
+import { toTranscript } from "@/lib/assistant/transcript";
 import { verifySession } from "@/lib/auth/dal";
 import { isDemoMode } from "@/lib/demo/pluggy-demo-client";
 
@@ -40,12 +41,12 @@ export async function POST(request: Request) {
     return Response.json({ error: "Escreva uma pergunta." }, { status: 400 });
   }
 
-  const apiKey = await getAnthropicApiKey();
-  const demo = !apiKey && isDemoMode();
+  const provider = await getAssistantProvider();
+  const demo = !provider && isDemoMode();
 
-  if (!apiKey && !demo) {
+  if (!provider && !demo) {
     return Response.json(
-      { error: "Configure a chave da Anthropic para conversar com o Tito." },
+      { error: "Configure o modelo do Tito para conversar com ele." },
       { status: 409 },
     );
   }
@@ -61,9 +62,9 @@ export async function POST(request: Request) {
       typeof body?.agentId === "string" ? body.agentId : null,
     ));
   const history = existing ? await loadConversationHistory(existing.id) : [];
-  const userMessage: Anthropic.Beta.BetaMessageParam = {
+  const userMessage: ChatMessage = {
     role: "user",
-    content: question,
+    parts: [{ type: "text", text: question }],
   };
 
   // A pergunta fica salva mesmo se a resposta falhar no meio.
@@ -81,20 +82,46 @@ export async function POST(request: Request) {
         title: conversation.title,
       });
 
+      // Propostas viram cartões assim que a ferramenta termina.
+      const published: Promise<void>[] = [];
+      const publishProposal = (name: string, content: string) => {
+        if (name !== "propose_goals") return;
+        try {
+          const { proposalId } = JSON.parse(content) as { proposalId?: string };
+          if (!proposalId) return;
+          published.push(
+            getProposals([proposalId]).then(([proposal]) => {
+              if (proposal) send({ type: "proposal", proposal });
+            }),
+          );
+        } catch {
+          // Resultado sem proposta: nada a mostrar.
+        }
+      };
+
       try {
-        const added = apiKey
+        const added = provider
           ? await runAssistantTurn({
-              client: new Anthropic({ apiKey }),
+              provider,
               history: [...history, userMessage],
               onEvent: send,
               extraSystem: conversation.agent?.instructions ?? null,
+              onToolResult: publishProposal,
             })
           : await runDemoAssistantTurn({ onEvent: send, question });
 
+        await Promise.allSettled(published);
         await appendConversationMessages(conversation.id, added);
+        const answer = toTranscript([...history, userMessage, ...added]).at(-1);
+        if (answer?.role === "assistant") {
+          send({ type: "checked", unverified: answer.unverified });
+        }
         send({ type: "done" });
       } catch (error) {
-        send({ type: "error", message: describeAssistantError(error) });
+        send({
+          type: "error",
+          message: describeAssistantError(error, provider?.label),
+        });
       } finally {
         controller.close();
       }

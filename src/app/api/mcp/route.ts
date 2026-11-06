@@ -1,5 +1,3 @@
-import type Anthropic from "@anthropic-ai/sdk";
-
 import { getAssistantTools, runAssistantTool } from "@/lib/assistant/tools";
 import { runAsServiceUser } from "@/lib/auth/service-context";
 import { handleMcpMessage, type McpHandlers } from "@/lib/mcp/protocol";
@@ -15,21 +13,13 @@ const handlers: McpHandlers = {
   listTools: () =>
     getAssistantTools().map((tool) => ({
       name: tool.name,
-      description: tool.description ?? "",
-      inputSchema: tool.input_schema as Record<string, unknown>,
+      description: tool.description,
+      inputSchema: tool.inputSchema,
     })),
   callTool: async (name, input) => {
-    const result = await runAssistantTool({
-      type: "tool_use",
-      id: "mcp",
-      name,
-      input,
-    } as Anthropic.Beta.BetaToolUseBlock);
+    const result = await runAssistantTool({ id: "mcp", name, input });
 
-    return {
-      text: typeof result.content === "string" ? result.content : "",
-      isError: Boolean(result.is_error),
-    };
+    return { text: result.content, isError: Boolean(result.isError) };
   },
 };
 

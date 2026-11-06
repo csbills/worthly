@@ -5,13 +5,21 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import type { TranscriptEntryView } from "@/actions/assistant";
+import { ProposalCard } from "@/components/assistant/proposal-card";
 import { RichText } from "@/components/assistant/rich-text";
 import { Tito } from "@/components/mascot/tito";
 import type { AssistantEvent } from "@/lib/assistant/run";
-import type { TranscriptEntry } from "@/lib/assistant/transcript";
 import { cn } from "@/lib/utils";
 
-type ChatEntry = TranscriptEntry & { pending?: boolean };
+type ChatEntry = TranscriptEntryView & { pending?: boolean };
+
+const blankEntry = {
+  tools: [],
+  proposalIds: [],
+  unverified: [],
+  proposals: [],
+};
 
 function UserBubble({ text }: { text: string }) {
   return (
@@ -52,10 +60,20 @@ function AssistantBubble({
         {entry.text ? (
           <div className="surface rounded-3xl rounded-tl-lg px-4 py-3 text-sm leading-6 text-foreground/90">
             <RichText text={entry.text} />
+            {entry.unverified.length > 0 ? (
+              <p className="mt-2 border-t pt-2 text-xs leading-5 text-muted-foreground">
+                <span aria-hidden="true">⚠️ </span>
+                Não conferido nos seus dados: {entry.unverified.join(", ")}.
+                Trate como estimativa do Tito.
+              </p>
+            ) : null}
           </div>
         ) : thinking && !status ? (
           <p className="pt-2 text-sm text-muted-foreground">Pensando…</p>
         ) : null}
+        {entry.proposals.map((proposal) => (
+          <ProposalCard key={proposal.id} proposal={proposal} />
+        ))}
       </div>
     </div>
   );
@@ -70,7 +88,7 @@ export function AssistantChat({
   agent = null,
 }: {
   conversationId: string | null;
-  initialEntries: TranscriptEntry[];
+  initialEntries: TranscriptEntryView[];
   suggestions: readonly string[];
   demo: boolean;
   /** Pergunta vinda de um atalho (?q=), enviada assim que a tela abre. */
@@ -119,8 +137,8 @@ export function AssistantChat({
     setStatus(null);
     setEntries((current) => [
       ...current,
-      { role: "user", text, tools: [] },
-      { role: "assistant", text: "", tools: [], pending: true },
+      { role: "user", text, ...blankEntry },
+      { role: "assistant", text: "", ...blankEntry, pending: true },
     ]);
 
     let newConversationId: string | null = null;
@@ -174,6 +192,13 @@ export function AssistantChat({
               text: entry.text ? `${entry.text}\n\n` : "",
               tools: [...entry.tools, event.name],
             }));
+          } else if (event.type === "proposal") {
+            updateLast((entry) => ({
+              ...entry,
+              proposals: [...entry.proposals, event.proposal],
+            }));
+          } else if (event.type === "checked") {
+            updateLast((entry) => ({ ...entry, unverified: event.unverified }));
           } else if (event.type === "error") {
             setError(event.message);
           }
@@ -188,7 +213,10 @@ export function AssistantChat({
         pending: false,
       }));
       setEntries((current) =>
-        current.filter((entry) => entry.role === "user" || entry.text),
+        current.filter(
+          (entry) =>
+            entry.role === "user" || entry.text || entry.proposals.length > 0,
+        ),
       );
       setSending(false);
       setStatus(null);

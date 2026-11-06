@@ -1,81 +1,93 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/assistant/tools", () => ({
   getAssistantTools: () => [
-    { name: "get_overview", input_schema: { type: "object" } },
+    { name: "get_overview", description: "Panorama", inputSchema: {} },
   ],
   getAssistantToolLabel: () => "Olhando o panorama do mês",
-  runAssistantTool: vi.fn(async (block: { id: string }) => ({
+  runAssistantTool: vi.fn(async (call: { id: string }) => ({
     type: "tool_result",
-    tool_use_id: block.id,
+    toolCallId: call.id,
     content: '{"saldo":10}',
   })),
 }));
 
+import {
+  type AssistantProvider,
+  AssistantProviderError,
+  type ProviderTurn,
+} from "./providers/contract";
 import { type AssistantEvent, runAssistantTurn } from "./run";
 
-function fakeStream(message: Record<string, unknown>, deltas: string[] = []) {
-  return {
-    on: (event: string, handler: (delta: string) => void) => {
-      if (event === "text") for (const delta of deltas) handler(delta);
+function fakeProvider(
+  turns: (ProviderTurn | Error)[],
+  deltas: string[][] = [],
+) {
+  const streamTurn = vi.fn(
+    async (request: Parameters<AssistantProvider["streamTurn"]>[0]) => {
+      const index = streamTurn.mock.calls.length - 1;
+      for (const delta of deltas[index] ?? []) request.onText(delta);
+      const next = turns[index];
+      if (!next) throw new Error("no more turns");
+      if (next instanceof Error) throw next;
+      return next;
     },
-    finalMessage: async () => message,
+  );
+  const provider: AssistantProvider = {
+    id: "fake",
+    label: "Fake",
+    model: "fake-1",
+    streamTurn,
+    validate: async () => {},
   };
+  return { provider, streamTurn };
 }
 
-function fakeClient(responses: ReturnType<typeof fakeStream>[]) {
-  const stream = vi.fn((_params: unknown) => {
-    const next = responses.shift();
-    if (!next) throw new Error("no more responses");
-    return next;
-  });
-  return {
-    client: { beta: { messages: { stream } } } as unknown as Anthropic,
-    stream,
-  };
-}
+const toolTurn: ProviderTurn = {
+  stopReason: "tool_use",
+  message: {
+    role: "assistant",
+    parts: [{ type: "tool_call", id: "tu_1", name: "get_overview", input: {} }],
+  },
+};
+const answer: ProviderTurn = {
+  stopReason: "end",
+  message: {
+    role: "assistant",
+    parts: [{ type: "text", text: "Seu saldo é R$ 10,00." }],
+  },
+};
 
 describe("runAssistantTurn", () => {
-  it("runs requested tools and returns the new messages in order", async () => {
-    const toolUse = {
-      type: "tool_use",
-      id: "tu_1",
-      name: "get_overview",
-      input: {},
-    };
-    const { client, stream } = fakeClient([
-      fakeStream({ stop_reason: "tool_use", content: [toolUse] }),
-      fakeStream(
-        {
-          stop_reason: "end_turn",
-          content: [{ type: "text", text: "Seu saldo é R$ 10,00." }],
-        },
-        ["Seu saldo ", "é R$ 10,00."],
-      ),
-    ]);
+  it("runs requested tools through any provider and returns the new messages", async () => {
+    const { provider, streamTurn } = fakeProvider(
+      [toolTurn, answer],
+      [[], ["Seu saldo ", "é R$ 10,00."]],
+    );
     const events: AssistantEvent[] = [];
+    const results: string[] = [];
 
     const added = await runAssistantTurn({
-      client,
-      history: [{ role: "user", content: "Qual meu saldo?" }],
+      provider,
+      history: [
+        { role: "user", parts: [{ type: "text", text: "Qual meu saldo?" }] },
+      ],
       onEvent: (event) => events.push(event),
+      onToolResult: (name, content) => results.push(`${name}:${content}`),
       now: new Date("2026-11-05T12:00:00Z"),
+      extraSystem: "Seja breve.",
     });
 
     expect(added).toEqual([
-      { role: "assistant", content: [toolUse] },
+      toolTurn.message,
       {
         role: "user",
-        content: [
-          { type: "tool_result", tool_use_id: "tu_1", content: '{"saldo":10}' },
+        parts: [
+          { type: "tool_result", toolCallId: "tu_1", content: '{"saldo":10}' },
         ],
       },
-      {
-        role: "assistant",
-        content: [{ type: "text", text: "Seu saldo é R$ 10,00." }],
-      },
+      answer.message,
     ]);
     expect(events).toEqual([
       {
@@ -86,53 +98,40 @@ describe("runAssistantTurn", () => {
       { type: "text", text: "Seu saldo " },
       { type: "text", text: "é R$ 10,00." },
     ]);
+    expect(results).toEqual(['get_overview:{"saldo":10}']);
 
-    const request = stream.mock.calls[1]?.[0] as unknown as Record<
-      string,
-      unknown
-    >;
-    expect(request).toMatchObject({
-      model: "claude-opus-5-5",
-      fallbacks: "default",
-      betas: ["server-side-fallback-2026-07-01"],
-      output_config: { effort: "medium" },
-    });
-    expect((request.messages as unknown[]).length).toBe(3);
+    const request = streamTurn.mock.calls[1]?.[0];
+    expect(request?.messages).toHaveLength(3);
+    expect(request?.system[1]).toContain("Seja breve.");
+    expect(request?.tools.map((tool) => tool.name)).toEqual(["get_overview"]);
   });
 
-  it("stops on a refusal without keeping the refused turn", async () => {
-    const { client } = fakeClient([
-      fakeStream({ stop_reason: "refusal", content: [] }),
+  it("retries invalid output, then stops on a refusal", async () => {
+    const { provider, streamTurn } = fakeProvider([
+      new AssistantProviderError("invalid_output", "bad json"),
+      { stopReason: "refusal", message: { role: "assistant", parts: [] } },
     ]);
     const events: AssistantEvent[] = [];
 
     await expect(
       runAssistantTurn({
-        client,
-        history: [{ role: "user", content: "?" }],
+        provider,
+        history: [{ role: "user", parts: [{ type: "text", text: "?" }] }],
         onEvent: (event) => events.push(event),
       }),
     ).resolves.toEqual([]);
+    expect(streamTurn).toHaveBeenCalledTimes(2);
     expect(events[0]).toMatchObject({ type: "error" });
   });
 
-  it("rethrows API errors", async () => {
-    const error = new Anthropic.APIError(500, undefined, "boom", undefined);
-    const client = {
-      beta: {
-        messages: {
-          stream: () => ({
-            on: () => {},
-            finalMessage: async () => Promise.reject(error),
-          }),
-        },
-      },
-    } as unknown as Anthropic;
+  it("rethrows provider errors other than invalid output", async () => {
+    const error = new AssistantProviderError("auth", "nope");
+    const { provider } = fakeProvider([error]);
 
     await expect(
       runAssistantTurn({
-        client,
-        history: [{ role: "user", content: "?" }],
+        provider,
+        history: [{ role: "user", parts: [{ type: "text", text: "?" }] }],
         onEvent: () => {},
       }),
     ).rejects.toBe(error);

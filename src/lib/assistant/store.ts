@@ -1,18 +1,72 @@
 import "server-only";
 
-import type Anthropic from "@anthropic-ai/sdk";
-
+import {
+  decodeStoredMessage,
+  encodeStoredMessage,
+} from "@/lib/assistant/history";
+import { createAssistantProvider } from "@/lib/assistant/providers";
+import type {
+  AssistantProvider,
+  ChatMessage,
+} from "@/lib/assistant/providers/contract";
+import {
+  type AssistantProviderSettings,
+  isAssistantProviderId,
+} from "@/lib/assistant/providers/options";
 import { conversationTitle } from "@/lib/assistant/transcript";
 import { prisma } from "@/lib/prisma";
 
-/** Chave salva no app; sem ela, a variável ANTHROPIC_API_KEY do servidor. */
-export async function getAnthropicApiKey(): Promise<string | null> {
+/**
+ * Configuração do modelo do Tito: o que foi salvo no app ou, sem isso, as
+ * variáveis do servidor (ASSISTANT_PROVIDER, ANTHROPIC_API_KEY,
+ * DEEPSEEK_API_KEY, ASSISTANT_API_KEY, ASSISTANT_BASE_URL, ASSISTANT_MODEL).
+ */
+export async function getAssistantProviderSettings(): Promise<
+  AssistantProviderSettings & { savedInApp: boolean }
+> {
   const settings = await prisma.appSettings.findUnique({
     where: { id: "default" },
-    select: { anthropicApiKey: true },
+    select: {
+      anthropicApiKey: true,
+      assistantProvider: true,
+      assistantApiKey: true,
+      assistantBaseUrl: true,
+      assistantModel: true,
+    },
   });
+  const env = process.env;
+  const provider = isAssistantProviderId(settings?.assistantProvider)
+    ? settings.assistantProvider
+    : isAssistantProviderId(env.ASSISTANT_PROVIDER)
+      ? env.ASSISTANT_PROVIDER
+      : "anthropic";
 
-  return settings?.anthropicApiKey || process.env.ANTHROPIC_API_KEY || null;
+  if (provider === "anthropic") {
+    return {
+      provider,
+      apiKey: settings?.anthropicApiKey || env.ANTHROPIC_API_KEY || null,
+      baseUrl: null,
+      model: settings?.assistantModel || env.ASSISTANT_MODEL || null,
+      savedInApp: Boolean(settings?.anthropicApiKey),
+    };
+  }
+
+  return {
+    provider,
+    apiKey:
+      settings?.assistantApiKey ||
+      (provider === "deepseek" ? env.DEEPSEEK_API_KEY : undefined) ||
+      env.ASSISTANT_API_KEY ||
+      null,
+    baseUrl: settings?.assistantBaseUrl || env.ASSISTANT_BASE_URL || null,
+    model: settings?.assistantModel || env.ASSISTANT_MODEL || null,
+    savedInApp: Boolean(settings?.assistantApiKey),
+  };
+}
+
+/** O provider pronto para uso, ou null se o Tito não estiver configurado. */
+export async function getAssistantProvider(): Promise<AssistantProvider | null> {
+  return createAssistantProvider(await getAssistantProviderSettings());
 }
 
 const conversationSelect = {
@@ -49,7 +103,7 @@ export async function findConversation(id: string) {
 /** Acrescenta mensagens no fim, na ordem. Nunca reescreve as anteriores. */
 export async function appendConversationMessages(
   conversationId: string,
-  messages: readonly Anthropic.Beta.BetaMessageParam[],
+  messages: readonly ChatMessage[],
 ) {
   if (messages.length === 0) return;
 
@@ -61,7 +115,7 @@ export async function appendConversationMessages(
         data: {
           conversationId,
           role: message.role,
-          content: JSON.stringify(message.content),
+          content: encodeStoredMessage(message),
           createdAt: new Date(base + index),
         },
       }),
@@ -75,17 +129,14 @@ export async function appendConversationMessages(
 
 export async function loadConversationHistory(
   conversationId: string,
-): Promise<Anthropic.Beta.BetaMessageParam[]> {
+): Promise<ChatMessage[]> {
   const rows = await prisma.assistantMessage.findMany({
     where: { conversationId },
     orderBy: { createdAt: "asc" },
     select: { role: true, content: true },
   });
 
-  return rows.map((row) => ({
-    role: row.role === "assistant" ? "assistant" : "user",
-    content: JSON.parse(row.content),
-  }));
+  return rows.map((row) => decodeStoredMessage(row.role, row.content));
 }
 
 export async function listConversations(limit = 30) {

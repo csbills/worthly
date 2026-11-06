@@ -1,117 +1,114 @@
 import "server-only";
 
-import Anthropic from "@anthropic-ai/sdk";
-
 import {
   assistantContextBlock,
   assistantSystemPrompt,
 } from "@/lib/assistant/prompt";
 import {
+  type AssistantProvider,
+  AssistantProviderError,
+  type ChatMessage,
+  toolCalls,
+} from "@/lib/assistant/providers/contract";
+import {
   getAssistantToolLabel,
   getAssistantTools,
   runAssistantTool,
 } from "@/lib/assistant/tools";
-
-export const ASSISTANT_MODEL = "claude-opus-5-5";
+import type { ProposalView } from "@/lib/proposals";
 
 const MAX_TOOL_ROUNDS = 8;
-const MAX_JSON_RETRIES = 2;
+const MAX_INVALID_OUTPUT_RETRIES = 2;
 
 export type AssistantEvent =
   | { type: "conversation"; id: string; title: string }
   | { type: "text"; text: string }
   | { type: "tool"; name: string; label: string }
+  | { type: "proposal"; proposal: ProposalView }
+  /** Valores do texto final que não aparecem nos dados da conversa. */
+  | { type: "checked"; unverified: string[] }
   | { type: "done" }
   | { type: "error"; message: string };
 
-export function describeAssistantError(error: unknown) {
-  if (error instanceof Anthropic.AuthenticationError) {
-    return "A chave da API da Anthropic foi recusada. Confira em Assistente → Configurar.";
-  }
-  if (error instanceof Anthropic.RateLimitError) {
-    return "Muitas perguntas seguidas. Espere um pouquinho e tente de novo.";
-  }
-  if (error instanceof Anthropic.APIConnectionError) {
-    return "Não consegui falar com a Anthropic. Verifique a conexão do servidor.";
-  }
-  if (error instanceof Anthropic.APIError) {
-    return "A Anthropic não conseguiu responder agora. Tente de novo em instantes.";
+export function describeAssistantError(
+  error: unknown,
+  providerLabel = "o modelo",
+) {
+  if (error instanceof AssistantProviderError) {
+    switch (error.kind) {
+      case "auth":
+        return `A chave de ${providerLabel} foi recusada. Confira na tela do Tito.`;
+      case "rate_limit":
+        return "Muitas perguntas seguidas. Espere um pouquinho e tente de novo.";
+      case "connection":
+        return `Não consegui falar com ${providerLabel}. Verifique a conexão do servidor.`;
+      case "invalid_output":
+        return "A resposta veio truncada. Tente de novo.";
+      default:
+        return `${providerLabel} não conseguiu responder agora. Tente de novo em instantes.`;
+    }
   }
   return "Algo deu errado ao responder. Tente de novo.";
 }
 
 /**
- * Um turno do assistente: chama o modelo em streaming, roda as ferramentas
- * pedidas e repete até ele terminar. Devolve as mensagens novas (respostas e
- * resultados de ferramentas) para serem acrescentadas ao histórico, sempre
- * no fim e sem editar nada antigo.
+ * Um turno do assistente, igual para qualquer provider: chama o modelo em
+ * streaming, roda as ferramentas pedidas e repete até ele terminar. Devolve
+ * as mensagens novas para acrescentar ao histórico — sempre no fim, sem
+ * editar nada antigo.
  */
 export async function runAssistantTurn({
-  client,
+  provider,
   history,
   onEvent,
   now = new Date(),
   extraSystem,
+  onToolResult,
 }: {
-  client: Anthropic;
+  provider: AssistantProvider;
   /** Histórico completo, terminando na mensagem nova do usuário. */
-  history: Anthropic.Beta.BetaMessageParam[];
+  history: ChatMessage[];
   onEvent: (event: AssistantEvent) => void;
   now?: Date;
   /** Instruções de um agente personalizado, depois do prompt principal. */
   extraSystem?: string | null;
-}): Promise<Anthropic.Beta.BetaMessageParam[]> {
-  const added: Anthropic.Beta.BetaMessageParam[] = [];
+  /** Para quem quer reagir a resultados (ex.: publicar propostas). */
+  onToolResult?: (name: string, content: string) => void;
+}): Promise<ChatMessage[]> {
+  const added: ChatMessage[] = [];
   const tools = getAssistantTools();
-  const system: Anthropic.Beta.BetaTextBlockParam[] = [
-    { type: "text", text: assistantSystemPrompt },
-    ...(extraSystem
-      ? [
-          {
-            type: "text" as const,
-            text: `Instruções deste agente:\n${extraSystem}`,
-          },
-        ]
-      : []),
-    { type: "text", text: assistantContextBlock(now) },
+  const system = [
+    assistantSystemPrompt,
+    ...(extraSystem ? [`Instruções deste agente:\n${extraSystem}`] : []),
+    assistantContextBlock(now),
   ];
-  let jsonRetries = 0;
+  let retries = 0;
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
-    const stream = client.beta.messages.stream({
-      model: ASSISTANT_MODEL,
-      max_tokens: 64000,
-      output_config: { effort: "medium" },
-      // Se o modelo principal recusar, a API tenta de novo num modelo de
-      // reserva escolhido pela categoria da recusa, na mesma chamada.
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      cache_control: { type: "ephemeral" },
-      system,
-      tools,
-      messages: [...history, ...added],
-    });
-
-    stream.on("text", (delta) => onEvent({ type: "text", text: delta }));
-
-    let message: Anthropic.Beta.BetaMessage;
+    let turn: Awaited<ReturnType<AssistantProvider["streamTurn"]>>;
     try {
-      message = await stream.finalMessage();
-      jsonRetries = 0;
+      turn = await provider.streamTurn({
+        system,
+        messages: [...history, ...added],
+        tools,
+        onText: (delta) => onEvent({ type: "text", text: delta }),
+      });
+      retries = 0;
     } catch (error) {
-      // Só o JSON de entrada de ferramenta quebrado é repetido; erros da API sobem.
+      // Só saída inválida (JSON quebrado) é repetida; o resto sobe.
       if (
-        error instanceof Anthropic.APIError ||
-        jsonRetries >= MAX_JSON_RETRIES
+        error instanceof AssistantProviderError &&
+        error.kind === "invalid_output" &&
+        retries < MAX_INVALID_OUTPUT_RETRIES
       ) {
-        throw error;
+        retries += 1;
+        round -= 1;
+        continue;
       }
-      jsonRetries += 1;
-      round -= 1;
-      continue;
+      throw error;
     }
 
-    if (message.stop_reason === "refusal") {
+    if (turn.stopReason === "refusal") {
       onEvent({
         type: "error",
         message:
@@ -120,31 +117,32 @@ export async function runAssistantTurn({
       return added;
     }
 
-    const toolUses = message.content.filter(
-      (block): block is Anthropic.Beta.BetaToolUseBlock =>
-        block.type === "tool_use",
-    );
+    const calls = toolCalls(turn.message);
 
-    if (message.stop_reason === "max_tokens" && toolUses.length > 0) {
-      throw new Error("tool input truncated by max_tokens");
+    // Entrada de ferramenta cortada no limite de tokens: não roda.
+    if (turn.stopReason === "max_tokens" && calls.length > 0) {
+      throw new AssistantProviderError("invalid_output", "Entrada truncada.");
     }
 
-    added.push({ role: "assistant", content: message.content });
+    added.push(turn.message);
 
-    if (message.stop_reason === "pause_turn") continue;
-    if (toolUses.length === 0) return added;
+    if (turn.stopReason === "pause") continue;
+    if (calls.length === 0) return added;
 
-    for (const block of toolUses) {
+    for (const call of calls) {
       onEvent({
         type: "tool",
-        name: block.name,
-        label: getAssistantToolLabel(block.name),
+        name: call.name,
+        label: getAssistantToolLabel(call.name),
       });
     }
     const results = await Promise.all(
-      toolUses.map((block) => runAssistantTool(block)),
+      calls.map((call) => runAssistantTool(call)),
     );
-    added.push({ role: "user", content: results });
+    results.forEach((result, index) => {
+      if (!result.isError) onToolResult?.(calls[index].name, result.content);
+    });
+    added.push({ role: "user", parts: results });
   }
 
   onEvent({

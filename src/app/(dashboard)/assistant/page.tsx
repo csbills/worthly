@@ -5,7 +5,7 @@ import {
   deleteConversation,
   getAssistantState,
   getConversationTranscript,
-  removeAnthropicApiKey,
+  removeAssistantKey,
 } from "@/actions/assistant";
 import {
   type AssistantAgentView,
@@ -46,31 +46,27 @@ function AssistantSetup() {
       </div>
       <h2 className="mt-4 text-lg font-medium">Conheça o Tito</h2>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        O Tito responde perguntas sobre o seu dinheiro usando um modelo da
-        Anthropic. Ele só é ativado com uma chave sua, guardada neste servidor.
+        O Tito responde perguntas sobre o seu dinheiro usando o modelo de
+        linguagem que você escolher — Claude, DeepSeek ou outro compatível com a
+        API da OpenAI. A chave fica só neste servidor.
       </p>
       <ul className="mt-4 space-y-1.5 text-left text-xs leading-5 text-muted-foreground">
         <li>
           • Ao perguntar, os dados necessários para a resposta (transações,
-          saldos, categorias) são enviados à Anthropic.
+          saldos, categorias) são enviados ao provider escolhido.
         </li>
         <li>• Nada é enviado enquanto você não conversa com ele.</li>
-        <li>• Ele só lê: não movimenta dinheiro nem altera nada nos bancos.</li>
+        <li>
+          • Ele só lê. Para criar metas, mostra um cartão e só cria quando você
+          confirma.
+        </li>
       </ul>
       <div className="mt-6">
         <AssistantKeyForm />
       </div>
       <p className="mt-4 text-xs text-muted-foreground">
-        Crie uma chave em{" "}
-        <a
-          href="https://platform.claude.com/settings/keys"
-          target="_blank"
-          rel="noreferrer"
-          className="underline underline-offset-2"
-        >
-          platform.claude.com
-        </a>
-        . Também vale definir ANTHROPIC_API_KEY no servidor.
+        Também dá para configurar pelo servidor: ASSISTANT_PROVIDER e
+        ANTHROPIC_API_KEY, DEEPSEEK_API_KEY ou ASSISTANT_API_KEY.
       </p>
     </section>
   );
@@ -281,16 +277,32 @@ export default async function AssistantPage({
                 </p>
               )}
             </div>
-            {state.keySavedInApp ? (
-              <form action={removeAnthropicApiKey} className="px-1">
-                <button
-                  type="submit"
-                  className="text-xs text-muted-foreground underline-offset-2 hover:underline"
-                >
-                  Remover a chave da Anthropic
-                </button>
-              </form>
-            ) : null}
+            <details className="surface p-3 text-sm">
+              <summary className="cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">
+                Modelo: {state.providerLabel}
+                {state.model ? ` · ${state.model}` : ""}
+              </summary>
+              <div className="mt-3">
+                <AssistantKeyForm
+                  current={{
+                    provider: state.provider,
+                    model: state.model,
+                    baseUrl: state.baseUrl,
+                    keySaved: state.keySavedInApp,
+                  }}
+                />
+              </div>
+              {state.keySavedInApp ? (
+                <form action={removeAssistantKey} className="mt-3">
+                  <button
+                    type="submit"
+                    className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                  >
+                    Remover a chave salva
+                  </button>
+                </form>
+              ) : null}
+            </details>
           </aside>
         </div>
       ) : (

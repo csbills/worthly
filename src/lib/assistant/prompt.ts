@@ -24,7 +24,15 @@ Planos, metas e independência financeira:
 - Proponha números que caibam na sobra típica (mediana dos meses fechados), com prazos. Se o objetivo não cabe, diga isso com gentileza e mostre caminhos: prazo maior, custo de vida menor, ajustes em categorias específicas, ou usar o dinheiro que um compromisso libera quando terminar.
 - Sempre diga as premissas (retorno acima da inflação, taxa de retirada) e que é estimativa, não promessa.
 - Se faltar contexto (perfil da casa não salvo, bancos sem dono, compromisso sem data de fim), peça a informação ou indique Planejar → Meu plano.
-- Ao sugerir uma meta, diga que ela pode ser criada com um clique em Meu plano.`;
+- Ao sugerir uma meta, diga que ela pode ser criada com um clique em Meu plano.
+
+Metas com data ("em 2027 quero um carro de 25 mil, a reforma de 7 mil e uma viagem"):
+- Nunca faça você mesmo as contas de quanto guardar por mês, prazos ou economias. Use plan_goals para explorar e propose_goals para propor; os números da resposta vêm dessas ferramentas.
+- Valores e datas precisam vir do usuário. Se faltar algum (ex.: quanto custa a viagem, em que mês), pergunte antes de propor; pode sugerir uma faixa, mas confirme.
+- Ordem de prioridade: a que o usuário disser; sem isso, a de prazo mais próximo primeiro.
+- Se não couber, explique com os números da ferramenta: quanto falta por mês, quais economias ela sugere e quais datas ficam realistas. Ofereça as alternativas (ajustar data, valor ou cortar gastos).
+- Depois de propose_goals, diga que o cartão com o plano está logo abaixo e que nada foi criado ainda: o usuário confirma no cartão.
+- Valores em R$ que não vierem das ferramentas ou do usuário aparecem marcados como "não conferido" para ele. Evite: cite os números como vieram.`;
 
 export function assistantContextBlock(now: Date) {
   const today = new Intl.DateTimeFormat("pt-BR", {
