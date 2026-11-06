@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import {
+  assignConnectionOwner,
+  createHouseholdMember,
+  getHousehold,
+} from "@/actions/household";
 import { getOnboardingState } from "@/actions/onboarding";
 import { type ConnectedAccount, getConnectedAccounts } from "@/actions/pluggy";
 import {
@@ -8,7 +13,7 @@ import {
   CredentialsPanel,
   PluggyConnectionForm,
 } from "@/components/onboarding/pluggy-forms";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
@@ -17,7 +22,10 @@ import {
   Notice,
   PageHeader,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { selectTriggerVariants } from "@/components/ui/select-variants";
 import { getBankDisplayName, getBankLogoPath } from "@/lib/bank-assets";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -83,9 +91,10 @@ function AccountRow({ account }: { account: ConnectedAccount }) {
 }
 
 export default async function AccountsPage() {
-  const [{ accounts, error }, onboarding] = await Promise.all([
+  const [{ accounts, error }, onboarding, household] = await Promise.all([
     getConnectedAccounts(),
     getOnboardingState(),
+    getHousehold(),
   ]);
   const bankAccounts = accounts.filter((account) => account.type === "BANK");
   const creditAccounts = accounts.filter(
@@ -153,6 +162,77 @@ export default async function AccountsPage() {
         </section>
 
         <div className="flex min-w-0 flex-col gap-4">
+          {household.connections.length > 0 ? (
+            <Card className="gap-4">
+              <div>
+                <h2 className="text-sm font-medium">De quem é cada banco</h2>
+                <CardDescription className="mt-0.5">
+                  Conectou as contas da sua esposa, marido ou de outra pessoa da
+                  casa? Diga de quem é cada uma e o plano separa renda e gastos
+                  por pessoa.
+                </CardDescription>
+              </div>
+              {household.members.length > 0 ? (
+                <ul className="space-y-2">
+                  {household.connections.map((connection) => (
+                    <li key={connection.itemId}>
+                      <form
+                        action={assignConnectionOwner}
+                        className="flex items-center gap-2"
+                      >
+                        <input
+                          type="hidden"
+                          name="itemId"
+                          value={connection.itemId}
+                        />
+                        <span className="min-w-0 flex-1 truncate text-sm">
+                          {connection.connectorName ?? "Banco"}
+                        </span>
+                        <select
+                          name="memberId"
+                          defaultValue={connection.memberId ?? ""}
+                          aria-label={`Dono de ${connection.connectorName ?? "banco"}`}
+                          className={cn(
+                            selectTriggerVariants({ size: "sm" }),
+                            "w-36 appearance-auto",
+                          )}
+                        >
+                          <option value="">Sem dono</option>
+                          {household.members.map((member) => (
+                            <option key={member.id} value={member.id}>
+                              {member.name}
+                            </option>
+                          ))}
+                        </select>
+                        <Button type="submit" size="sm" variant="outline">
+                          Salvar
+                        </Button>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <form
+                action={createHouseholdMember}
+                className="flex items-center gap-2"
+              >
+                <Input
+                  name="name"
+                  required
+                  maxLength={40}
+                  placeholder={
+                    household.members.length ? "Mais alguém?" : "Seu nome"
+                  }
+                  aria-label="Nome da pessoa"
+                  className="h-8"
+                />
+                <Button type="submit" size="sm" variant="outline">
+                  Adicionar pessoa
+                </Button>
+              </form>
+            </Card>
+          ) : null}
+
           <Card className="gap-4">
             <CardHeader>
               <div>
