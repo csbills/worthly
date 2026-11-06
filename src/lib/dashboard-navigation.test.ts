@@ -28,10 +28,17 @@ describe("dashboard navigation", () => {
     }
   });
 
+  it("keeps the tab bar small enough for a phone, with the assistant in it", () => {
+    expect(dashboardNavigationItems.length).toBeLessThanOrEqual(6);
+    expect(dashboardNavigationItems.map((item) => item.href)).toContain(
+      "/assistant",
+    );
+  });
+
   it("matches nested routes but keeps the overview exact", () => {
     expect(isDashboardNavigationItemActive("/", "/")).toBe(true);
     expect(isDashboardNavigationItemActive("/", "/accounts")).toBe(false);
-    expect(isDashboardNavigationItemActive("/accounts", "/accounts/x")).toBe(
+    expect(isDashboardNavigationItemActive("/assistant", "/assistant/x")).toBe(
       true,
     );
   });

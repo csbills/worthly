@@ -4,7 +4,7 @@ export const dashboardNavigationItems = [
   { href: "/credit-cards", label: "Cartões", icon: "credit-cards" },
   { href: "/investments", label: "Investimentos", icon: "investments" },
   { href: "/categories", label: "Categorias", icon: "categories" },
-  { href: "/accounts", label: "Conexões", icon: "accounts" },
+  { href: "/assistant", label: "Tito", icon: "assistant" },
 ] as const;
 
 export type DashboardNavigationItem = (typeof dashboardNavigationItems)[number];

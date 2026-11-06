@@ -5,13 +5,13 @@ import {
   BriefcaseDollarIcon,
   ChartBarIncreasingIcon,
   CreditCardIcon,
-  Plug01Icon,
   TagsIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { Tito } from "@/components/mascot/tito";
 import {
   dashboardNavigationItems,
   isDashboardNavigationItemActive,
@@ -24,7 +24,6 @@ const navigationIcons = {
   "credit-cards": CreditCardIcon,
   investments: BriefcaseDollarIcon,
   categories: TagsIcon,
-  accounts: Plug01Icon,
 } as const;
 
 /**
@@ -62,12 +61,25 @@ export function DashboardTabBar() {
                   : "text-white/45 hover:bg-white/8 hover:text-white/80",
               )}
             >
-              <HugeiconsIcon
-                icon={navigationIcons[item.icon]}
-                aria-hidden="true"
-                className="size-[18px] shrink-0"
-                strokeWidth={1.8}
-              />
+              {item.icon === "assistant" ? (
+                // O Tito enrolado é o ícone do assistente.
+                <Tito
+                  mood="ball"
+                  animated={false}
+                  className={cn(
+                    "-m-0.5 size-[22px] transition-[filter,opacity]",
+                    !active &&
+                      "opacity-70 grayscale group-hover/tab:opacity-100 group-hover/tab:grayscale-0",
+                  )}
+                />
+              ) : (
+                <HugeiconsIcon
+                  icon={navigationIcons[item.icon]}
+                  aria-hidden="true"
+                  className="size-[18px] shrink-0"
+                  strokeWidth={1.8}
+                />
+              )}
               {active ? (
                 <span className="hidden sm:inline">{item.label}</span>
               ) : (
