@@ -173,3 +173,26 @@ model AssistantMessage {
 
   @@index([conversationId, createdAt])
 }
+
+/// Limite mensal de gastos para um grupo de categorias (a raiz do dicionário,
+/// ex.: "11000000" Alimentação). Vale para todos os meses até ser alterado.
+model Budget {
+  id              String   @id @default(cuid())
+  categoryGroupId String   @unique
+  amount          Float
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// Uma meta de economia: quanto juntar, até quando e quanto já foi guardado.
+model Goal {
+  id           String    @id @default(cuid())
+  name         String
+  emoji        String    @default("🎯")
+  targetAmount Float
+  savedAmount  Float     @default(0)
+  targetDate   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  completedAt  DateTime?
+}
