@@ -29,6 +29,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
     message?: unknown;
     conversationId?: unknown;
+    agentId?: unknown;
   } | null;
   const question =
     typeof body?.message === "string"
@@ -53,7 +54,12 @@ export async function POST(request: Request) {
     typeof body?.conversationId === "string"
       ? await findConversation(body.conversationId)
       : null;
-  const conversation = existing ?? (await createConversation(question));
+  const conversation =
+    existing ??
+    (await createConversation(
+      question,
+      typeof body?.agentId === "string" ? body.agentId : null,
+    ));
   const history = existing ? await loadConversationHistory(existing.id) : [];
   const userMessage: Anthropic.Beta.BetaMessageParam = {
     role: "user",
@@ -81,6 +87,7 @@ export async function POST(request: Request) {
               client: new Anthropic({ apiKey }),
               history: [...history, userMessage],
               onEvent: send,
+              extraSystem: conversation.agent?.instructions ?? null,
             })
           : await runDemoAssistantTurn({ onEvent: send });
 

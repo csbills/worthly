@@ -15,17 +15,34 @@ export async function getAnthropicApiKey(): Promise<string | null> {
   return settings?.anthropicApiKey || process.env.ANTHROPIC_API_KEY || null;
 }
 
-export async function createConversation(question: string) {
+const conversationSelect = {
+  id: true,
+  title: true,
+  agent: { select: { id: true, name: true, instructions: true } },
+} as const;
+
+/** Nova conversa, opcionalmente presa a um agente (que precisa existir). */
+export async function createConversation(
+  question: string,
+  agentId: string | null = null,
+) {
+  const agent = agentId
+    ? await prisma.assistantAgent.findUnique({
+        where: { id: agentId },
+        select: { id: true },
+      })
+    : null;
+
   return prisma.assistantConversation.create({
-    data: { title: conversationTitle(question) },
-    select: { id: true, title: true },
+    data: { title: conversationTitle(question), agentId: agent?.id ?? null },
+    select: conversationSelect,
   });
 }
 
 export async function findConversation(id: string) {
   return prisma.assistantConversation.findUnique({
     where: { id },
-    select: { id: true, title: true },
+    select: conversationSelect,
   });
 }
 

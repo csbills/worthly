@@ -67,6 +67,7 @@ export function AssistantChat({
   suggestions,
   demo,
   initialQuestion = null,
+  agent = null,
 }: {
   conversationId: string | null;
   initialEntries: TranscriptEntry[];
@@ -74,6 +75,8 @@ export function AssistantChat({
   demo: boolean;
   /** Pergunta vinda de um atalho (?q=), enviada assim que a tela abre. */
   initialQuestion?: string | null;
+  /** Especialista escolhido para uma conversa nova. */
+  agent?: { id: string; name: string; emoji: string } | null;
 }) {
   const router = useRouter();
   const [entries, setEntries] = useState<ChatEntry[]>(initialEntries);
@@ -126,7 +129,11 @@ export function AssistantChat({
       const response = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, conversationId }),
+        body: JSON.stringify({
+          message: text,
+          conversationId,
+          agentId: conversationId ? null : (agent?.id ?? null),
+        }),
       });
 
       if (!response.ok || !response.body) {
@@ -201,7 +208,11 @@ export function AssistantChat({
         <div className="flex flex-1 flex-col items-center justify-center gap-4 py-4 pb-8 text-center">
           <Tito mood="wave" size="lg" />
           <div>
-            <p className="text-lg font-medium">Oi! Eu sou o Tito.</p>
+            <p className="text-lg font-medium">
+              {agent
+                ? `${agent.emoji} Tito, ${agent.name.toLocaleLowerCase("pt-BR")}`
+                : "Oi! Eu sou o Tito."}
+            </p>
             <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
               Pergunte qualquer coisa sobre o seu dinheiro. Eu leio suas contas,
               cartões e investimentos e respondo com os números reais.

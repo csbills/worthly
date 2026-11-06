@@ -54,12 +54,21 @@ export async function getAssistantState(): Promise<AssistantState> {
 
 export async function getConversationTranscript(
   conversationId: string,
-): Promise<{ id: string; title: string; entries: TranscriptEntry[] } | null> {
+): Promise<{
+  id: string;
+  title: string;
+  agent: { id: string; name: string; emoji: string } | null;
+  entries: TranscriptEntry[];
+} | null> {
   await verifySession();
 
   const conversation = await prisma.assistantConversation.findUnique({
     where: { id: conversationId },
-    select: { id: true, title: true },
+    select: {
+      id: true,
+      title: true,
+      agent: { select: { id: true, name: true, emoji: true } },
+    },
   });
 
   if (!conversation) return null;

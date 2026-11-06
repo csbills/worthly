@@ -7,11 +7,22 @@ import {
   getConversationTranscript,
   removeAnthropicApiKey,
 } from "@/actions/assistant";
+import {
+  type AssistantAgentView,
+  createAssistantAgent,
+  deleteAssistantAgent,
+  listAssistantAgents,
+} from "@/actions/assistant-agents";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
 import { AssistantKeyForm } from "@/components/assistant/assistant-key-form";
 import { Tito } from "@/components/mascot/tito";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  assistantAgentTemplates,
+  MAX_AGENT_INSTRUCTIONS,
+} from "@/lib/assistant/agent-templates";
 import { assistantSuggestions } from "@/lib/assistant/prompt";
 import { cn } from "@/lib/utils";
 
@@ -65,24 +76,132 @@ function AssistantSetup() {
   );
 }
 
+function AgentsSection({
+  agents,
+  activeAgentId,
+}: {
+  agents: AssistantAgentView[];
+  activeAgentId: string | null;
+}) {
+  const available = assistantAgentTemplates.filter(
+    (template) => !agents.some((agent) => agent.name === template.name),
+  );
+
+  return (
+    <section className="surface overflow-hidden">
+      <div className="border-b px-5 py-4 md:px-6">
+        <h2 className="text-base font-medium">Especialistas</h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Um Tito com foco fixo — numa meta, numa categoria, num hábito. As
+          instruções dele valem a conversa inteira.
+        </p>
+      </div>
+      {agents.length > 0 ? (
+        <ul className="divide-y">
+          {agents.map((agent) => (
+            <li
+              key={agent.id}
+              className="flex items-center justify-between gap-3 px-5 py-3 md:px-6"
+            >
+              <Link
+                href={`/assistant?agent=${agent.id}`}
+                className={cn(
+                  "min-w-0 flex-1 text-sm underline-offset-2 hover:underline",
+                  agent.id === activeAgentId && "font-medium",
+                )}
+              >
+                <span aria-hidden="true">{agent.emoji} </span>
+                {agent.name}
+                <span className="line-clamp-1 text-xs text-muted-foreground">
+                  {agent.instructions}
+                </span>
+              </Link>
+              <form action={deleteAssistantAgent}>
+                <input type="hidden" name="agentId" value={agent.id} />
+                <Button type="submit" size="sm" variant="ghost">
+                  Apagar
+                </Button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {available.length > 0 ? (
+        <div className="flex flex-wrap gap-2 border-t px-5 py-4 md:px-6">
+          {available.map((template) => (
+            <form key={template.key} action={createAssistantAgent}>
+              <input type="hidden" name="template" value={template.key} />
+              <button
+                type="submit"
+                className="rounded-full border px-3 py-1.5 text-xs transition-colors hover:bg-muted"
+              >
+                + {template.emoji} {template.name}
+              </button>
+            </form>
+          ))}
+        </div>
+      ) : null}
+      <details className="border-t px-5 py-4 md:px-6">
+        <summary className="cursor-pointer list-none text-sm font-medium">
+          + Criar um especialista
+        </summary>
+        <form action={createAssistantAgent} className="mt-3 space-y-3">
+          <div className="flex gap-2">
+            <Input
+              name="emoji"
+              defaultValue="🤖"
+              aria-label="Emoji"
+              className="w-14 text-center"
+            />
+            <Input
+              name="name"
+              required
+              maxLength={40}
+              placeholder="Planejador da viagem"
+              aria-label="Nome"
+            />
+          </div>
+          <textarea
+            name="instructions"
+            required
+            rows={4}
+            maxLength={MAX_AGENT_INSTRUCTIONS}
+            placeholder="Ex.: Me ajude a juntar R$ 15 mil para Lisboa até julho. Toda vez, confira a meta Viagem e diga de onde dá para cortar."
+            aria-label="Instruções"
+            className="w-full resize-none rounded-xl border border-input bg-card px-3 py-2 text-sm outline-none placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/25 dark:bg-input/30"
+          />
+          <Button type="submit">Criar especialista</Button>
+        </form>
+      </details>
+    </section>
+  );
+}
+
 export default async function AssistantPage({
   searchParams,
 }: {
-  searchParams: Promise<{ c?: string | string[]; q?: string | string[] }>;
+  searchParams: Promise<{
+    c?: string | string[];
+    q?: string | string[];
+    agent?: string | string[];
+  }>;
 }) {
-  const { c, q } = await searchParams;
+  const { c, q, agent: agentParam } = await searchParams;
   const initialQuestion = typeof q === "string" ? q.slice(0, 500) : null;
   const conversationId = typeof c === "string" ? c : null;
-  const [state, transcript] = await Promise.all([
+  const [state, transcript, agents] = await Promise.all([
     getAssistantState(),
     conversationId ? getConversationTranscript(conversationId) : null,
+    listAssistantAgents(),
   ]);
+  const agent =
+    transcript?.agent ?? agents.find((item) => item.id === agentParam) ?? null;
   const ready = state.configured || state.demo;
 
   return (
     <>
       <PageHeader
-        eyebrow="Assistente"
+        eyebrow={agent ? `${agent.emoji} ${agent.name}` : "Assistente"}
         title={transcript?.title ?? "Converse com o Tito"}
         description={
           transcript
@@ -104,15 +223,16 @@ export default async function AssistantPage({
       {ready ? (
         <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
           <AssistantChat
-            key={transcript?.id ?? "new"}
+            key={transcript?.id ?? `new-${agent?.id ?? ""}`}
             conversationId={transcript?.id ?? null}
             initialEntries={transcript?.entries ?? []}
             suggestions={assistantSuggestions}
             demo={state.demo}
             initialQuestion={transcript ? null : initialQuestion}
+            agent={agent}
           />
 
-          <aside className="hidden space-y-4 lg:block">
+          <aside className="space-y-4">
             <div className="surface p-2">
               <p className="px-3 pt-2 pb-1 text-xs text-muted-foreground">
                 Conversas
@@ -147,7 +267,7 @@ export default async function AssistantPage({
                         <button
                           type="submit"
                           aria-label={`Apagar a conversa ${conversation.title}`}
-                          className="rounded-lg px-2 py-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover/conv:opacity-100 hover:text-destructive-foreground focus-visible:opacity-100"
+                          className="rounded-lg px-2 py-1 text-xs text-muted-foreground transition-opacity hover:text-destructive-foreground focus-visible:opacity-100 lg:opacity-0 lg:group-hover/conv:opacity-100"
                         >
                           Apagar
                         </button>
@@ -176,6 +296,10 @@ export default async function AssistantPage({
       ) : (
         <AssistantSetup />
       )}
+
+      {ready ? (
+        <AgentsSection agents={agents} activeAgentId={agent?.id ?? null} />
+      ) : null}
     </>
   );
 }
