@@ -226,14 +226,15 @@ export function buildFinancialPlan({
   const hints = obligations.flatMap((item) => {
     if (item.interestRate === null || !item.balance) return [];
     const threshold = profile.expectedRealReturn + ASSUMED_INFLATION + 2;
+    const rate = item.interestRate.toLocaleString("pt-BR");
     return [
       {
         id: item.id,
         name: item.name,
         text:
           item.interestRate > threshold
-            ? `Juros de ${item.interestRate}% ao ano passam do que um investimento conservador costuma render. Amortizar (de preferência reduzindo o prazo) tende a valer mais que investir a mesma sobra.`
-            : `Juros de ${item.interestRate}% ao ano estão perto do que investimentos conservadores rendem. Manter a parcela e investir a sobra costuma ser equivalente — e deixa o dinheiro disponível.`,
+            ? `Juros de ${rate}% ao ano passam do que um investimento conservador costuma render. Amortizar (de preferência reduzindo o prazo) tende a valer mais que investir a mesma sobra.`
+            : `Juros de ${rate}% ao ano estão perto do que investimentos conservadores rendem. Manter a parcela e investir a sobra costuma ser equivalente — e deixa o dinheiro disponível.`,
       },
     ];
   });
