@@ -840,3 +840,40 @@ export function getTransactionCategory(
       transactionCategoryGroupIcons[otherCategoryId],
   };
 }
+
+export type TransactionCategoryOptionGroup = {
+  id: string;
+  label: string;
+  icon: string;
+  options: { id: string; label: string }[];
+};
+
+/** Categorias agrupadas pela raiz, para o seletor de recategorização. */
+export function listTransactionCategoryOptions(): TransactionCategoryOptionGroup[] {
+  const groups = new Map<string, TransactionCategoryOptionGroup>();
+
+  for (const entry of categoryEntries) {
+    const root = getRootCategory(entry);
+    let group = groups.get(root.id);
+
+    if (!group) {
+      group = {
+        id: root.id,
+        label: root.label,
+        icon:
+          transactionCategoryGroupIcons[root.id] ??
+          transactionCategoryGroupIcons[otherCategoryId],
+        options: [],
+      };
+      groups.set(root.id, group);
+    }
+
+    group.options.push({ id: entry.id, label: entry.label });
+  }
+
+  return [...groups.values()];
+}
+
+export function isKnownTransactionCategoryId(categoryId: string) {
+  return categoriesById.has(categoryId);
+}
