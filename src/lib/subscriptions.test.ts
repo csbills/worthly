@@ -85,6 +85,8 @@ describe("subscription detection", () => {
           }),
           debit("2026-09-10", "Mercado Bom", 80),
           debit("2026-10-10", "Mercado Bom", 420),
+          debit("2026-09-15", "Loja TV 3/10", 400, { installment: true }),
+          debit("2026-10-15", "Loja TV 4/10", 400, { installment: true }),
           debit("2026-03-01", "Academia Velha", 99),
           debit("2026-04-01", "Academia Velha", 99),
         ],

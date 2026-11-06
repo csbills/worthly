@@ -46,6 +46,8 @@ export type CurrentMonthTransaction = Pick<
   note: string | null;
   /** Ignorada pelo usuário: fica de fora dos totais. */
   ignored: boolean;
+  /** Parcela de uma compra no cartão (2x ou mais). */
+  installment: boolean;
   bankName: string;
   bankLogoPath: string | null;
   accountName: string;
@@ -239,6 +241,7 @@ function serializeTransaction(
     categoryId: category.id.startsWith("unknown:") ? null : category.id,
     note: getTransactionNote(transaction.id, adjustments),
     ignored,
+    installment: (transaction.creditCardMetadata?.totalInstallments ?? 0) > 1,
     type: transaction.type,
     amount: transaction.amount,
     balance: transaction.balance,

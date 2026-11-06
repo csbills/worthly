@@ -12,6 +12,8 @@ export type RecurringInputTransaction = {
   categoryLabel: string;
   excludeFromSummary: boolean;
   currencyCode: string;
+  /** Parcelas de compras repetem todo mês, mas não são assinaturas. */
+  installment?: boolean;
 };
 
 export type SubscriptionCadence = "weekly" | "monthly" | "yearly";
@@ -111,6 +113,7 @@ export function detectSubscriptions(
     if (
       transaction.type !== "DEBIT" ||
       transaction.excludeFromSummary ||
+      transaction.installment ||
       !Number.isFinite(transaction.amount)
     ) {
       continue;
