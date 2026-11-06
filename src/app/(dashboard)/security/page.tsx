@@ -1,12 +1,16 @@
 import { FingerPrintIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 
+import { getMcpStatus, revokeMcpToken } from "@/actions/mcp";
 import { listPasskeys, type PasskeyListItem } from "@/actions/passkeys";
 import {
   AddPasskeyButton,
   DeletePasskeyButton,
 } from "@/components/auth/passkeys";
+import { McpTokenPanel } from "@/components/mcp-token-panel";
+import { Button } from "@/components/ui/button";
 import { Badge, Card, CardDescription, PageHeader } from "@/components/ui/card";
 import { LOCK_AFTER_MS } from "@/lib/auth/app-lock";
 
@@ -49,8 +53,19 @@ function PasskeyRow({ passkey }: { passkey: PasskeyListItem }) {
 }
 
 export default async function SecurityPage() {
-  const passkeys = await listPasskeys();
+  const [passkeys, mcp, requestHeaders] = await Promise.all([
+    listPasskeys(),
+    getMcpStatus(),
+    headers(),
+  ]);
   const hasPasskeys = passkeys.length > 0;
+  const host =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const protocol =
+    requestHeaders.get("x-forwarded-proto") ??
+    (host?.startsWith("localhost") ? "http" : "https");
+  const origin =
+    process.env.APP_URL?.replace(/\/$/, "") || `${protocol}://${host}`;
 
   return (
     <>
@@ -98,6 +113,33 @@ export default async function SecurityPage() {
               ? `Depois de ${lockMinutes} minutos em segundo plano, o Worthly pede Face ID ou biometria para abrir de novo. Num aparelho sem chave de acesso, dá para desbloquear com a senha.`
               : `Cadastre uma chave de acesso para ativar: depois de ${lockMinutes} minutos em segundo plano, o Worthly vai pedir Face ID ou biometria para abrir de novo.`}
           </CardDescription>
+        </Card>
+
+        <Card className="gap-3 xl:col-span-2">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-medium">
+              Conectar ao Claude e a outros apps (MCP)
+            </h2>
+            <Badge tone={mcp.enabled ? "success" : "neutral"}>
+              {mcp.enabled ? "Ativado" : "Desativado"}
+            </Badge>
+          </div>
+          <CardDescription>
+            Use os seus dados do Worthly no Claude Desktop, no Claude Code ou em
+            qualquer cliente MCP. O acesso é só de leitura — as mesmas consultas
+            do Tito — e vale enquanto o token existir.
+            {mcp.createdAt
+              ? ` Token atual criado em ${dateFormat.format(new Date(mcp.createdAt))}.`
+              : ""}
+          </CardDescription>
+          <McpTokenPanel endpoint={`${origin}/api/mcp`} enabled={mcp.enabled} />
+          {mcp.enabled ? (
+            <form action={revokeMcpToken}>
+              <Button type="submit" variant="destructive" size="sm">
+                Desligar o acesso MCP
+              </Button>
+            </form>
+          ) : null}
         </Card>
       </div>
     </>
