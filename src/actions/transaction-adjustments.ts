@@ -115,3 +115,12 @@ export async function deleteCategoryRule(
 
   return { ok: true };
 }
+
+/** Versão para <form action>: o id vem no campo "ruleId". */
+export async function removeCategoryRule(formData: FormData) {
+  const id = formData.get("ruleId");
+
+  if (typeof id === "string" && id) {
+    await deleteCategoryRule(id);
+  }
+}

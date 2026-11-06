@@ -12,7 +12,13 @@ import {
   type CategorySpendingItem,
   getCategorySpending,
 } from "@/actions/categories";
+import {
+  type CategoryRuleView,
+  listCategoryRules,
+  removeCategoryRule,
+} from "@/actions/transaction-adjustments";
 import { CategorySpendingChart } from "@/components/category-spending-chart";
+import { TitoMessage } from "@/components/mascot/tito";
 import { Notice, PageHeader } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -178,7 +184,10 @@ export default async function CategoriesPage({
   const requestedMonth = Array.isArray(params.month)
     ? params.month[0]
     : params.month;
-  const result = await getCategorySpending(requestedMonth);
+  const [result, rules] = await Promise.all([
+    getCategorySpending(requestedMonth),
+    listCategoryRules(),
+  ]);
 
   return (
     <>
@@ -268,22 +277,70 @@ export default async function CategoriesPage({
             ))}
           </div>
         ) : (
-          <div className="p-10 text-center">
-            <p className="font-medium">Nenhum gasto categorizado neste mês</p>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Assim que houver saídas sincronizadas, elas aparecerão agrupadas
-              aqui. Investimentos e transferências para a mesma pessoa ficam
-              fora desta análise.
-            </p>
-            <a
-              href="/transactions"
-              className="mt-5 inline-flex h-9 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
-            >
-              Ver transações
-            </a>
-          </div>
+          <TitoMessage
+            mood="ball"
+            title="Nenhum gasto categorizado neste mês"
+            action={
+              <a
+                href="/transactions"
+                className="inline-flex h-9 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+              >
+                Ver transações
+              </a>
+            }
+          >
+            Assim que houver saídas sincronizadas, elas aparecerão agrupadas
+            aqui. Investimentos e transferências para a mesma pessoa ficam fora
+            desta análise.
+          </TitoMessage>
         )}
       </section>
+
+      <CategoryRules rules={rules} />
     </>
+  );
+}
+
+function CategoryRules({ rules }: { rules: CategoryRuleView[] }) {
+  return (
+    <section className="overflow-hidden surface">
+      <div className="border-b px-5 py-4 md:px-6">
+        <h2 className="text-sm text-muted-foreground">Regras automáticas</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Crie uma regra ao recategorizar uma transação, marcando “Aplicar às
+          transações parecidas”.
+        </p>
+      </div>
+      {rules.length > 0 ? (
+        <ul className="divide-y">
+          {rules.map((rule) => (
+            <li
+              key={rule.id}
+              className="flex items-center justify-between gap-3 px-5 py-3 md:px-6"
+            >
+              <p className="min-w-0 text-sm">
+                Contém <span className="font-medium">“{rule.pattern}”</span>
+                <span className="text-muted-foreground"> → </span>
+                <span aria-hidden="true">{rule.categoryIcon} </span>
+                {rule.categoryLabel}
+              </p>
+              <form action={removeCategoryRule}>
+                <input type="hidden" name="ruleId" value={rule.id} />
+                <button
+                  type="submit"
+                  className="rounded-full px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-destructive-foreground"
+                >
+                  Remover
+                </button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="px-5 py-6 text-sm text-muted-foreground md:px-6">
+          Nenhuma regra ainda.
+        </p>
+      )}
+    </section>
   );
 }

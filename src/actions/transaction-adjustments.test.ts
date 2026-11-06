@@ -24,6 +24,7 @@ vi.mock("@/lib/prisma", () => ({
 import {
   deleteCategoryRule,
   listCategoryRules,
+  removeCategoryRule,
   saveTransactionAdjustment,
 } from "./transaction-adjustments";
 
@@ -129,5 +130,13 @@ describe("transaction adjustment actions", () => {
 
     await deleteCategoryRule("r1");
     expect(mocks.deleteRule).toHaveBeenCalledWith({ where: { id: "r1" } });
+  });
+  it("removes a rule from a form submission", async () => {
+    const formData = new FormData();
+    formData.set("ruleId", "r9");
+
+    await removeCategoryRule(formData);
+
+    expect(mocks.deleteRule).toHaveBeenCalledWith({ where: { id: "r9" } });
   });
 });
