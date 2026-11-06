@@ -3,7 +3,7 @@ export const dashboardNavigationItems = [
   { href: "/transactions", label: "Transações", icon: "transactions" },
   { href: "/credit-cards", label: "Cartões", icon: "credit-cards" },
   { href: "/investments", label: "Investimentos", icon: "investments" },
-  { href: "/categories", label: "Categorias", icon: "categories" },
+  { href: "/planning", label: "Planejar", icon: "planning" },
   { href: "/assistant", label: "Tito", icon: "assistant" },
 ] as const;
 
@@ -17,5 +17,9 @@ export function isDashboardNavigationItemActive(
     return pathname === "/";
   }
 
-  return pathname === href || pathname.startsWith(`${href}/`);
+  const matches = (base: string) =>
+    pathname === base || pathname.startsWith(`${base}/`);
+
+  // Categorias saiu da barra e mora dentro de Planejar.
+  return matches(href) || (href === "/planning" && matches("/categories"));
 }

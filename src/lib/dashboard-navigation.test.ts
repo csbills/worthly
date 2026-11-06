@@ -42,4 +42,12 @@ describe("dashboard navigation", () => {
       true,
     );
   });
+  it("keeps Planejar active on the categories page", () => {
+    expect(isDashboardNavigationItemActive("/planning", "/categories")).toBe(
+      true,
+    );
+    expect(isDashboardNavigationItemActive("/planning", "/transactions")).toBe(
+      false,
+    );
+  });
 });

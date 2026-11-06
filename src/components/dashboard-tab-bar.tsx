@@ -5,7 +5,7 @@ import {
   BriefcaseDollarIcon,
   ChartBarIncreasingIcon,
   CreditCardIcon,
-  TagsIcon,
+  Target02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
@@ -23,7 +23,7 @@ const navigationIcons = {
   transactions: ArrowLeftRightIcon,
   "credit-cards": CreditCardIcon,
   investments: BriefcaseDollarIcon,
-  categories: TagsIcon,
+  planning: Target02Icon,
 } as const;
 
 /**
