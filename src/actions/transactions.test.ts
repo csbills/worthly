@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getConnectedAccounts: vi.fn(),
   fetchAllTransactions: vi.fn(),
   fetchItem: vi.fn(),
+  loadTransactionAdjustments: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -17,6 +18,14 @@ vi.mock("@/lib/pluggy", () => ({
   }),
 }));
 
+vi.mock("@/lib/transaction-adjustments-store", () => ({
+  loadTransactionAdjustments: mocks.loadTransactionAdjustments,
+}));
+
+import {
+  createTransactionAdjustments,
+  emptyTransactionAdjustments,
+} from "@/lib/transaction-adjustments";
 import { getCurrentMonthTransactions } from "./transactions";
 
 describe("Current month transaction action", () => {
@@ -24,6 +33,9 @@ describe("Current month transaction action", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-29T15:00:00-03:00"));
     vi.clearAllMocks();
+    mocks.loadTransactionAdjustments.mockResolvedValue(
+      emptyTransactionAdjustments,
+    );
   });
 
   afterEach(() => {
@@ -107,6 +119,9 @@ describe("Current month transaction action", () => {
           balance: 1100.5,
           currencyCode: "BRL",
           category: null,
+          categoryId: null,
+          note: null,
+          ignored: false,
           categoryLabel: "Sem categoria",
           categoryIcon: "📦",
           excludeFromSummary: false,
@@ -126,6 +141,9 @@ describe("Current month transaction action", () => {
           balance: 1150.5,
           currencyCode: "BRL",
           category: "Supermercado",
+          categoryId: "10000000",
+          note: null,
+          ignored: false,
           categoryLabel: "Supermercado",
           categoryIcon: "🛒",
           excludeFromSummary: false,
@@ -428,5 +446,92 @@ describe("Current month transaction action", () => {
       ]),
     );
     expect(mocks.fetchItem).toHaveBeenCalledTimes(1);
+  });
+  it("applies the user's category, rules, notes and ignored flags", async () => {
+    mocks.getConnectedAccounts.mockResolvedValue({
+      itemCount: 1,
+      error: null,
+      accounts: [
+        {
+          id: "account-a",
+          itemId: "item-a",
+          type: "BANK",
+          subtype: "CHECKING_ACCOUNT",
+          number: "0001/1234",
+          balance: 1000,
+          name: "Nubank",
+          marketingName: null,
+          currencyCode: "BRL",
+        },
+      ],
+    });
+    mocks.fetchItem.mockResolvedValue({ connector: { name: "Nubank" } });
+    const base = {
+      accountId: "account-a",
+      date: new Date("2026-08-10T12:00:00.000Z"),
+      descriptionRaw: null,
+      type: "DEBIT",
+      balance: 900,
+      currencyCode: "BRL",
+      status: "POSTED",
+    };
+    mocks.fetchAllTransactions.mockResolvedValue([
+      {
+        ...base,
+        id: "manual",
+        description: "Loja X",
+        amount: 10,
+        category: "Groceries",
+        categoryId: "10000000",
+      },
+      {
+        ...base,
+        id: "by-rule",
+        description: "PADARIA SAO JOAO",
+        amount: 20,
+        category: null,
+      },
+      {
+        ...base,
+        id: "skipped",
+        description: "Reembolso amigo",
+        amount: 30,
+        category: null,
+      },
+    ]);
+    mocks.loadTransactionAdjustments.mockResolvedValue(
+      createTransactionAdjustments({
+        overrides: [
+          {
+            transactionId: "manual",
+            categoryId: "21000000",
+            note: "Show",
+            ignored: false,
+          },
+          {
+            transactionId: "skipped",
+            categoryId: null,
+            note: null,
+            ignored: true,
+          },
+        ],
+        rules: [{ id: "r1", pattern: "padaria", categoryId: "11000000" }],
+      }),
+    );
+
+    const result = await getCurrentMonthTransactions();
+    const byId = new Map(result.transactions.map((t) => [t.id, t]));
+
+    expect(byId.get("manual")).toMatchObject({
+      categoryId: "21000000",
+      categoryLabel: "Lazer",
+      note: "Show",
+      excludeFromSummary: false,
+    });
+    expect(byId.get("by-rule")).toMatchObject({ categoryId: "11000000" });
+    expect(byId.get("skipped")).toMatchObject({
+      ignored: true,
+      excludeFromSummary: true,
+    });
   });
 });

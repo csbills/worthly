@@ -4,7 +4,14 @@ import type { PluggyClient, Transaction } from "pluggy-sdk";
 import { type ConnectedAccount, getConnectedAccounts } from "@/actions/pluggy";
 import { verifySession } from "@/lib/auth/dal";
 import { getPluggyClient } from "@/lib/pluggy";
+import { loadTransactionAdjustments } from "@/lib/transaction-adjustments-store";
 import { getBankDisplayName, getBankLogoPath } from "../lib/bank-assets";
+import {
+  getAdjustedCategoryId,
+  getTransactionNote,
+  isIgnoredTransaction,
+  type TransactionAdjustments,
+} from "../lib/transaction-adjustments";
 import { getTransactionCategory } from "../lib/transaction-category-dictionary";
 import {
   defaultTransactionFilters,
@@ -34,6 +41,11 @@ export type CurrentMonthTransaction = Pick<
 > & {
   date: string;
   description: string;
+  /** Categoria final, depois dos ajustes e regras do usuário. */
+  categoryId: string | null;
+  note: string | null;
+  /** Ignorada pelo usuário: fica de fora dos totais. */
+  ignored: boolean;
   bankName: string;
   bankLogoPath: string | null;
   accountName: string;
@@ -201,20 +213,32 @@ function serializeTransaction(
   bank: AccountBankDetails,
   internalTransferIds: ReadonlySet<string>,
   connectedAccountNumbers: ReadonlySet<string>,
+  adjustments: TransactionAdjustments,
 ): CurrentMonthTransaction {
-  const category = getTransactionCategory(
-    transaction.categoryId ?? null,
-    transaction.category ?? null,
+  const description =
+    transaction.description?.trim() ||
+    transaction.descriptionRaw?.trim() ||
+    "Transação sem descrição";
+  const adjustedCategoryId = getAdjustedCategoryId(
+    { id: transaction.id, description, categoryId: transaction.categoryId },
+    adjustments,
   );
+  const category = getTransactionCategory(
+    adjustedCategoryId,
+    adjustedCategoryId === (transaction.categoryId ?? null)
+      ? (transaction.category ?? null)
+      : null,
+  );
+  const ignored = isIgnoredTransaction(transaction.id, adjustments);
 
   return {
     id: transaction.id,
     accountId: transaction.accountId,
     date: transaction.date.toISOString(),
-    description:
-      transaction.description?.trim() ||
-      transaction.descriptionRaw?.trim() ||
-      "Transação sem descrição",
+    description,
+    categoryId: category.id.startsWith("unknown:") ? null : category.id,
+    note: getTransactionNote(transaction.id, adjustments),
+    ignored,
     type: transaction.type,
     amount: transaction.amount,
     balance: transaction.balance,
@@ -222,11 +246,13 @@ function serializeTransaction(
     category: transaction.category,
     categoryLabel: category.label,
     categoryIcon: category.icon,
-    excludeFromSummary: isExcludedFromFinancialReporting(
-      withReportingAccountContext(transaction, account),
-      internalTransferIds,
-      connectedAccountNumbers,
-    ),
+    excludeFromSummary:
+      ignored ||
+      isExcludedFromFinancialReporting(
+        withReportingAccountContext(transaction, account),
+        internalTransferIds,
+        connectedAccountNumbers,
+      ),
     status: transaction.status,
     bankName: bank.name,
     bankLogoPath: bank.logoPath,
@@ -295,7 +321,10 @@ export async function getTransactions(
   }
 
   try {
-    const client = await getPluggyClient();
+    const [client, adjustments] = await Promise.all([
+      getPluggyClient(),
+      loadTransactionAdjustments(),
+    ]);
     const connectedAccountNumbers = getConnectedAccountNumbers(
       accountResult.accounts,
     );
@@ -363,6 +392,7 @@ export async function getTransactions(
           bank,
           internalTransferIds,
           connectedAccountNumbers,
+          adjustments,
         ),
     );
     const transactions = filterAndSortTransactions(
