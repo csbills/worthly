@@ -8,13 +8,26 @@ datasource db {
 }
 
 model PluggyItem {
-  id                String   @id @default(cuid())
-  itemId            String   @unique
+  id                String           @id @default(cuid())
+  itemId            String           @unique
   connectorName     String?
   connectorImageUrl String?
   status            String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  /// De quem é este banco (você, sua esposa…). Opcional.
+  memberId          String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  member            HouseholdMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+}
+
+/// Uma pessoa da casa cujas contas entram no Worthly. Serve para separar
+/// renda e gastos por pessoa; o login continua sendo um só.
+model HouseholdMember {
+  id        String       @id @default(cuid())
+  name      String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  items     PluggyItem[]
 }
 
 /// Singleton row (id "default") with the instance configuration collected by
