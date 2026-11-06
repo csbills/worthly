@@ -68,9 +68,10 @@ function AssistantSetup() {
 export default async function AssistantPage({
   searchParams,
 }: {
-  searchParams: Promise<{ c?: string | string[] }>;
+  searchParams: Promise<{ c?: string | string[]; q?: string | string[] }>;
 }) {
-  const { c } = await searchParams;
+  const { c, q } = await searchParams;
+  const initialQuestion = typeof q === "string" ? q.slice(0, 500) : null;
   const conversationId = typeof c === "string" ? c : null;
   const [state, transcript] = await Promise.all([
     getAssistantState(),
@@ -108,6 +109,7 @@ export default async function AssistantPage({
             initialEntries={transcript?.entries ?? []}
             suggestions={assistantSuggestions}
             demo={state.demo}
+            initialQuestion={transcript ? null : initialQuestion}
           />
 
           <aside className="hidden space-y-4 lg:block">

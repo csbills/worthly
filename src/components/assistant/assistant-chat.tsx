@@ -66,11 +66,14 @@ export function AssistantChat({
   initialEntries,
   suggestions,
   demo,
+  initialQuestion = null,
 }: {
   conversationId: string | null;
   initialEntries: TranscriptEntry[];
   suggestions: readonly string[];
   demo: boolean;
+  /** Pergunta vinda de um atalho (?q=), enviada assim que a tela abre. */
+  initialQuestion?: string | null;
 }) {
   const router = useRouter();
   const [entries, setEntries] = useState<ChatEntry[]>(initialEntries);
@@ -81,11 +84,19 @@ export function AssistantChat({
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const askedInitial = useRef(false);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: rola a cada mudança
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [entries, status]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: envia uma vez só, ao abrir
+  useEffect(() => {
+    if (askedInitial.current || !initialQuestion || entries.length > 0) return;
+    askedInitial.current = true;
+    send(initialQuestion);
+  }, []);
 
   function updateLast(update: (entry: ChatEntry) => ChatEntry) {
     setEntries((current) => {
