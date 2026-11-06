@@ -220,9 +220,13 @@ function NewBudgetForm({ budgeted }: { budgeted: Set<string> }) {
           ))}
         </select>
       </label>
-      <label className="w-32 space-y-1 text-xs text-muted-foreground">
+      <label
+        htmlFor="new-budget-amount"
+        className="w-32 space-y-1 text-xs text-muted-foreground"
+      >
         Limite por mês
         <Input
+          id="new-budget-amount"
           name="amount"
           inputMode="decimal"
           placeholder="500,00"
@@ -336,7 +340,10 @@ function NewGoalForm({ open }: { open: boolean }) {
         + Nova meta
       </summary>
       <form action={createGoal} className="mt-3 grid gap-3 sm:grid-cols-2">
-        <label className="space-y-1 text-xs text-muted-foreground sm:col-span-2">
+        <label
+          htmlFor="new-goal-name"
+          className="space-y-1 text-xs text-muted-foreground sm:col-span-2"
+        >
           Nome
           <div className="flex gap-2">
             <Input
@@ -346,6 +353,7 @@ function NewGoalForm({ open }: { open: boolean }) {
               className="w-14 text-center"
             />
             <Input
+              id="new-goal-name"
               name="name"
               required
               maxLength={60}
@@ -353,22 +361,37 @@ function NewGoalForm({ open }: { open: boolean }) {
             />
           </div>
         </label>
-        <label className="space-y-1 text-xs text-muted-foreground">
+        <label
+          htmlFor="new-goal-target"
+          className="space-y-1 text-xs text-muted-foreground"
+        >
           Quanto juntar
           <Input
+            id="new-goal-target"
             name="targetAmount"
             inputMode="decimal"
             required
             placeholder="10.000,00"
           />
         </label>
-        <label className="space-y-1 text-xs text-muted-foreground">
+        <label
+          htmlFor="new-goal-saved"
+          className="space-y-1 text-xs text-muted-foreground"
+        >
           Já guardado
-          <Input name="savedAmount" inputMode="decimal" placeholder="0,00" />
+          <Input
+            id="new-goal-saved"
+            name="savedAmount"
+            inputMode="decimal"
+            placeholder="0,00"
+          />
         </label>
-        <label className="space-y-1 text-xs text-muted-foreground">
+        <label
+          htmlFor="new-goal-date"
+          className="space-y-1 text-xs text-muted-foreground"
+        >
           Até quando (opcional)
-          <Input name="targetDate" type="month" />
+          <Input id="new-goal-date" name="targetDate" type="month" />
         </label>
         <div className="flex items-end">
           <Button type="submit" className="w-full">
