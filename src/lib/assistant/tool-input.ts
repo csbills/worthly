@@ -227,3 +227,124 @@ export function parseSimulationToolInput(
     },
   };
 }
+
+export type GoalProposalToolInput = {
+  goals: {
+    name: string;
+    emoji: string;
+    targetAmount: number;
+    savedAmount: number;
+    targetMonth: string;
+    priority: number;
+  }[];
+};
+
+const MAX_PROPOSED_GOALS = 8;
+const MAX_GOAL_AMOUNT = 50_000_000;
+
+/**
+ * Metas propostas pelo modelo. Tudo que não passa aqui volta como erro para
+ * ele corrigir: nome vazio, valor absurdo, mês no passado, metas repetidas.
+ */
+export function parseGoalProposalInput(
+  input: unknown,
+  now: Date,
+): ToolInputResult<GoalProposalToolInput> {
+  if (!isRecord(input) || !Array.isArray(input.goals)) {
+    return { ok: false, error: "goals must be an array" };
+  }
+  if (input.goals.length === 0 || input.goals.length > MAX_PROPOSED_GOALS) {
+    return {
+      ok: false,
+      error: `send between 1 and ${MAX_PROPOSED_GOALS} goals`,
+    };
+  }
+
+  const currentMonth = now.getUTCFullYear() * 12 + now.getUTCMonth();
+  const goals: GoalProposalToolInput["goals"] = [];
+  const names = new Set<string>();
+
+  for (const [index, raw] of input.goals.entries()) {
+    if (!isRecord(raw))
+      return { ok: false, error: `goals[${index}] must be an object` };
+
+    const name =
+      typeof raw.name === "string" ? raw.name.trim().slice(0, 60) : "";
+    const target = raw.target_amount;
+    const saved = raw.saved_amount ?? 0;
+    const month = typeof raw.target_month === "string" ? raw.target_month : "";
+    const priority = raw.priority ?? index + 1;
+    const emoji =
+      typeof raw.emoji === "string" && raw.emoji.trim()
+        ? [...raw.emoji.trim()].slice(0, 2).join("")
+        : "🎯";
+
+    if (!name) return { ok: false, error: `goals[${index}].name is required` };
+    const key = name.toLocaleLowerCase("pt-BR");
+    if (names.has(key))
+      return { ok: false, error: `duplicate goal name: ${name}` };
+    names.add(key);
+
+    if (
+      typeof target !== "number" ||
+      !Number.isFinite(target) ||
+      target <= 0 ||
+      target > MAX_GOAL_AMOUNT
+    ) {
+      return {
+        ok: false,
+        error: `goals[${index}].target_amount must be a positive number of reais`,
+      };
+    }
+    if (
+      typeof saved !== "number" ||
+      !Number.isFinite(saved) ||
+      saved < 0 ||
+      saved > target
+    ) {
+      return {
+        ok: false,
+        error: `goals[${index}].saved_amount must be between 0 and target_amount`,
+      };
+    }
+    if (!monthKey.test(month)) {
+      return {
+        ok: false,
+        error: `goals[${index}].target_month must be YYYY-MM`,
+      };
+    }
+    const [year, monthNumber] = month.split("-").map(Number);
+    const monthIndexValue = year * 12 + monthNumber - 1;
+    if (
+      monthIndexValue <= currentMonth ||
+      monthIndexValue > currentMonth + 12 * 40
+    ) {
+      return {
+        ok: false,
+        error: `goals[${index}].target_month must be after the current month and within 40 years`,
+      };
+    }
+    if (
+      typeof priority !== "number" ||
+      !Number.isInteger(priority) ||
+      priority < 1 ||
+      priority > 10
+    ) {
+      return {
+        ok: false,
+        error: `goals[${index}].priority must be an integer from 1 to 10`,
+      };
+    }
+
+    goals.push({
+      name,
+      emoji,
+      targetAmount: Math.round(target * 100) / 100,
+      savedAmount: Math.round(saved * 100) / 100,
+      targetMonth: month,
+      priority,
+    });
+  }
+
+  return { ok: true, value: { goals } };
+}

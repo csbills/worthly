@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   compactToolResult,
   parseEmptyToolInput,
+  parseGoalProposalInput,
   parseMonthToolInput,
   parseSimulationToolInput,
   parseTransactionsToolInput,
@@ -116,5 +117,83 @@ describe("assistant tool input", () => {
     expect(parseSimulationToolInput({ target_age: 20 })).toMatchObject({
       ok: false,
     });
+  });
+  it("validates goal proposals strictly", () => {
+    const now = new Date("2026-11-06T12:00:00Z");
+
+    expect(
+      parseGoalProposalInput(
+        {
+          goals: [
+            {
+              name: " Carro ",
+              target_amount: 25000,
+              target_month: "2027-10",
+              priority: 2,
+              emoji: "🚗",
+            },
+            { name: "Cozinha", target_amount: 7000, target_month: "2027-03" },
+          ],
+        },
+        now,
+      ),
+    ).toEqual({
+      ok: true,
+      value: {
+        goals: [
+          {
+            name: "Carro",
+            emoji: "🚗",
+            targetAmount: 25000,
+            savedAmount: 0,
+            targetMonth: "2027-10",
+            priority: 2,
+          },
+          {
+            name: "Cozinha",
+            emoji: "🎯",
+            targetAmount: 7000,
+            savedAmount: 0,
+            targetMonth: "2027-03",
+            priority: 2,
+          },
+        ],
+      },
+    });
+
+    const bad = (goals: unknown) => parseGoalProposalInput({ goals }, now).ok;
+    expect(bad([])).toBe(false);
+    expect(bad([{ name: "", target_amount: 1, target_month: "2027-01" }])).toBe(
+      false,
+    );
+    expect(
+      bad([{ name: "X", target_amount: -5, target_month: "2027-01" }]),
+    ).toBe(false);
+    expect(
+      bad([{ name: "X", target_amount: "25 mil", target_month: "2027-01" }]),
+    ).toBe(false);
+    expect(
+      bad([{ name: "X", target_amount: 10, target_month: "2026-11" }]),
+    ).toBe(false);
+    expect(
+      bad([{ name: "X", target_amount: 10, target_month: "2027-1" }]),
+    ).toBe(false);
+    expect(
+      bad([
+        {
+          name: "X",
+          target_amount: 10,
+          saved_amount: 20,
+          target_month: "2027-01",
+        },
+      ]),
+    ).toBe(false);
+    expect(
+      bad([
+        { name: "X", target_amount: 10, target_month: "2027-01" },
+        { name: "x", target_amount: 10, target_month: "2027-02" },
+      ]),
+    ).toBe(false);
+    expect(parseGoalProposalInput({ goals: "carro" }, now).ok).toBe(false);
   });
 });

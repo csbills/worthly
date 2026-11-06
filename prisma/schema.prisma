@@ -285,3 +285,22 @@ model Obligation {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+/// Uma ação que o Tito propôs (ex.: criar metas) e que só vale depois que o
+/// usuário confirma. Guarda a entrada já validada e o cálculo do motor no
+/// momento da proposta, para o cartão nunca depender do texto do modelo.
+model AssistantProposal {
+  id         String    @id @default(cuid())
+  /// "goals"
+  kind       String
+  /// pending | applied | dismissed
+  status     String    @default("pending")
+  /// GoalProposalPayload em JSON (metas e orçamentos validados).
+  payload    String
+  /// GoalSchedule em JSON, calculado pelo motor.
+  schedule   String
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([status, createdAt])
+}
