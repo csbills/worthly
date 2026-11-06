@@ -172,7 +172,7 @@ describe("buildFinancialPlan", () => {
     expect(cuts.monthsToGoal as number).toBeLessThan(
       freed.monthsToGoal as number,
     );
-    expect(cuts.label).toContain("R$ 460");
+    expect(cuts.label).toMatch(/R\$\s460/);
     expect(plan.cuts.map((cut) => cut.suggested)).toEqual([210, 140, 110]);
     expect(current.points.length).toBeGreaterThan(5);
   });
