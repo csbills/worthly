@@ -118,3 +118,30 @@ model Passkey {
 
   @@index([userId])
 }
+
+/// Ajustes do usuário sobre uma transação lida da Pluggy (pelo id dela). A
+/// Pluggy continua sendo a fonte dos lançamentos; aqui fica só o que é seu:
+/// a categoria escolhida, uma nota e se ela entra nos relatórios.
+model TransactionOverride {
+  transactionId String   @id
+  /// Id do dicionário de categorias da Pluggy (ex.: "11010000").
+  categoryId    String?
+  note          String?
+  /// Fora dos totais, gráficos e orçamentos (ex.: reembolso, transferência).
+  ignored       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+/// "Sempre que a descrição contiver X, use a categoria Y." Vale para
+/// lançamentos antigos e novos; um ajuste manual da transação tem prioridade.
+model CategoryRule {
+  id         String   @id @default(cuid())
+  /// Trecho procurado na descrição, sem diferenciar maiúsculas e acentos.
+  pattern    String
+  categoryId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([createdAt])
+}
