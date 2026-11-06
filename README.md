@@ -41,6 +41,7 @@ Contas, cartões, faturas e investimentos de todos os seus bancos, lidos via Ope
 |  |  |
 | --- | --- |
 | 💬 **Tito, o assistente** | Pergunte em português sobre o seu dinheiro e receba respostas com os números reais das suas contas. Especialistas com foco fixo (assinaturas, mercado, metas) e avisos proativos na visão geral. |
+| 🧭 **Plano da casa** | Junta as contas de todo mundo da casa, acha o mês típico, os compromissos e quando eles acabam, e monta o caminho até a reserva e a independência financeira — do tamanho da sua vida, não de uma média da internet. |
 | 🎯 **Planejar** | Orçamentos mensais por categoria com projeção do mês, assinaturas e contas recorrentes detectadas sozinhas, e metas de economia. |
 | ✏️ **Do seu jeito** | Recategorize, anote e ignore transações, e crie regras que valem para as parecidas. |
 | 🔌 **MCP** | Use os seus dados no Claude Desktop, no Claude Code ou em qualquer cliente MCP, com um token só de leitura. |
@@ -182,6 +183,19 @@ O Tito é um tatu-bola que lê as suas finanças e responde perguntas como "quan
 - Nada é enviado à Anthropic enquanto você não conversa. Ao perguntar, vão apenas os dados que a resposta precisa.
 - Em **Especialistas**, crie um Tito com instruções fixas (ou use os prontos: caçador de assinaturas, guardião do mercado, treinador de metas).
 - No modo demo sem chave, o Tito responde com um resumo pronto, sem IA, só para mostrar a conversa.
+
+### Plano da casa
+
+Em **Planejar → Meu plano**, o Worthly monta um plano a partir do que a casa vive de verdade:
+
+- **Casa inteira:** conecte os bancos de cada pessoa (por exemplo, você e sua esposa) e diga de quem é cada um em **Conexões**. Transferências entre vocês não contam como gasto.
+- **Raio-X:** renda e gasto do mês típico (mediana dos últimos 6 meses fechados), essenciais e de escolha, por pessoa, e sinais de dívida cara.
+- **Perfil:** quem vive da renda, quantas rendas existem, dependentes, estabilidade, idade e objetivo. Isso muda o tamanho da reserva e o ritmo do plano.
+- **Compromissos:** financiamentos, aluguel, escola, com data da última parcela. Quando um termina, o plano já conta com o dinheiro que volta.
+- **Passos e cenários:** fechar o mês no azul, sair de juros caros, reserva, investir. Mostra quando a independência chega no ritmo de hoje, reinvestindo o que os compromissos liberam e com ajustes realistas, e se a idade que você quer cabe na sua sobra.
+- **Metas sugeridas** com um clique, e o Tito conversa sobre o plano e simula "e se guardarmos R$ 500 a mais?".
+
+As projeções são estimativas em reais de hoje, com retorno acima da inflação configurável (padrão 4% a.a.) e retirada de 4% ao ano. Não são recomendação de investimento.
 
 ### Servidor MCP
 
