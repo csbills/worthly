@@ -2,11 +2,14 @@ import "server-only";
 
 import type Anthropic from "@anthropic-ai/sdk";
 
+import { getBudgetsOverview } from "@/actions/budgets";
 import { getCategorySpending } from "@/actions/categories";
 import { getCreditCards } from "@/actions/credit-cards";
 import { getDashboardOverview } from "@/actions/dashboard";
+import { listGoals } from "@/actions/goals";
 import { getInvestments } from "@/actions/investments";
 import { getConnectedAccounts } from "@/actions/pluggy";
+import { getSubscriptions } from "@/actions/subscriptions";
 import { getTransactions } from "@/actions/transactions";
 import {
   assistantPeriodKeys,
@@ -208,6 +211,42 @@ const registry: ToolDefinition<unknown>[] = [
     },
     parse: parseEmptyToolInput,
     run: async () => getInvestments(),
+  }),
+  defineTool({
+    label: "Conferindo os orçamentos",
+    tool: {
+      name: "get_budgets",
+      description:
+        "Orçamentos mensais por grupo de categoria: limite, gasto do mês, quanto falta, projeção de fechamento no ritmo atual e situação (ok, warning, over). Traz também sugestões de limite para grupos sem orçamento, pela média dos três meses anteriores.",
+      eager_input_streaming: true,
+      input_schema: emptySchema,
+    },
+    parse: parseEmptyToolInput,
+    run: async () => getBudgetsOverview(),
+  }),
+  defineTool({
+    label: "Procurando assinaturas",
+    tool: {
+      name: "get_subscriptions",
+      description:
+        "Assinaturas e contas recorrentes detectadas no último ano (semanais, mensais e anuais), com último valor, custo mensal equivalente, próxima cobrança prevista, aumentos de preço (priceChange) e as que começaram há pouco (isNew). Parcelas de compras não entram.",
+      eager_input_streaming: true,
+      input_schema: emptySchema,
+    },
+    parse: parseEmptyToolInput,
+    run: async () => getSubscriptions(),
+  }),
+  defineTool({
+    label: "Olhando as metas",
+    tool: {
+      name: "get_goals",
+      description:
+        "Metas de economia do usuário: valor-alvo, quanto já foi guardado, progresso, data-alvo e quanto guardar por mês para chegar lá.",
+      eager_input_streaming: true,
+      input_schema: emptySchema,
+    },
+    parse: parseEmptyToolInput,
+    run: async () => listGoals(),
   }),
 ];
 
