@@ -26,7 +26,7 @@ function fakeStream(message: Record<string, unknown>, deltas: string[] = []) {
 }
 
 function fakeClient(responses: ReturnType<typeof fakeStream>[]) {
-  const stream = vi.fn(() => {
+  const stream = vi.fn((_params: unknown) => {
     const next = responses.shift();
     if (!next) throw new Error("no more responses");
     return next;
