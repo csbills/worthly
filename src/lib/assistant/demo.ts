@@ -65,6 +65,7 @@ export async function runDemoAssistantTurn({
     "Estou no **modo demo**, então respondo com um resumo pronto, sem IA. Configure uma chave da Anthropic para conversar de verdade. 🙂",
     "",
     `Este mês você gastou **${formatCurrency(total)}**. As maiores categorias:`,
+    "",
     ...groups.map(
       (group) => `- ${group.label}: ${formatCurrency(group.amount)}`,
     ),
