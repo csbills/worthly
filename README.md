@@ -40,6 +40,10 @@ Contas, cartões, faturas e investimentos de todos os seus bancos, lidos via Ope
 
 |  |  |
 | --- | --- |
+| 🦔 **Tito, o assistente** | Pergunte em português sobre o seu dinheiro e receba respostas com os números reais das suas contas. Especialistas com foco fixo (assinaturas, mercado, metas) e avisos proativos na visão geral. |
+| 🎯 **Planejar** | Orçamentos mensais por categoria com projeção do mês, assinaturas e contas recorrentes detectadas sozinhas, e metas de economia. |
+| ✏️ **Do seu jeito** | Recategorize, anote e ignore transações, e crie regras que valem para as parecidas. |
+| 🔌 **MCP** | Use os seus dados no Claude Desktop, no Claude Code ou em qualquer cliente MCP, com um token só de leitura. |
 | 📊 **Painel completo** | Patrimônio líquido, fluxo de caixa, ritmo de gastos do mês e evolução ao longo do tempo. |
 | 💳 **Cartões e faturas** | Faturas, limite usado e disponível, e parcelamentos acompanhados de perto. |
 | 🧾 **Transações** | Lista com busca, filtros e categorias, pensada para funcionar bem no celular. |
@@ -47,7 +51,7 @@ Contas, cartões, faturas e investimentos de todos os seus bancos, lidos via Ope
 | 🔐 **Face ID e biometria** | Login sem senha com passkeys e bloqueio do app quando ele fica em segundo plano. |
 | 📱 **Instala como app** | PWA no iPhone, Android e desktop, sem passar por loja. |
 | 🛡️ **Somente leitura** | O Worthly só consulta saldos e lançamentos. Nenhum dinheiro é movimentado. |
-| 🏠 **Seus dados, sua instância** | Credenciais e banco de dados ficam no servidor que você controla. Nada passa por terceiros além do seu banco e da Pluggy. |
+| 🏠 **Seus dados, sua instância** | Credenciais e banco de dados ficam no servidor que você controla. Nada passa por terceiros além do seu banco e da Pluggy — e da Anthropic, só quando você conversa com o Tito. |
 
 ## 📸 Telas
 
@@ -170,6 +174,19 @@ Em **Segurança** (menu do avatar), ative uma chave de acesso (passkey/WebAuthn)
 > [!IMPORTANT]
 > As chaves ficam presas ao domínio da instância. Em produção, defina `APP_URL` e não troque de domínio depois. O navegador só oferece chaves de acesso em HTTPS ou em `localhost`.
 
+### Tito, o assistente
+
+O Tito é um tatu-bola que lê as suas finanças e responde perguntas como "quanto gastei com delivery este mês?" ou "o que mudou em relação ao mês passado?". Ele usa um modelo da Anthropic (`claude-opus-5-5`) com ferramentas só de leitura: transações, categorias, contas, faturas, investimentos, orçamentos, assinaturas e metas.
+
+- Ative em **Tito → Conheça o Tito**, colando uma chave da API da Anthropic (ou defina `ANTHROPIC_API_KEY` no servidor). A chave fica só no servidor.
+- Nada é enviado à Anthropic enquanto você não conversa. Ao perguntar, vão apenas os dados que a resposta precisa.
+- Em **Especialistas**, crie um Tito com instruções fixas (ou use os prontos: caçador de assinaturas, guardião do mercado, treinador de metas).
+- No modo demo sem chave, o Tito responde com um resumo pronto, sem IA, só para mostrar a conversa.
+
+### Servidor MCP
+
+Em **Segurança → Conectar ao Claude e a outros apps (MCP)**, gere um token. O endereço é `https://sua-instancia/api/mcp` (HTTP, JSON-RPC) e o token vai no cabeçalho `Authorization: Bearer`. A tela já mostra o comando do Claude Code. O acesso é só de leitura, e gerar um token novo invalida o anterior.
+
 ### Instale como app
 
 O Worthly é um PWA. No Android/Chrome, use **Instalar app** no menu do avatar. No iPhone, **Compartilhar → Adicionar à Tela de Início**. Os dados financeiros nunca ficam em cache no aparelho: offline, o app mostra apenas um aviso.
@@ -205,6 +222,7 @@ Abra [http://localhost:3100](http://localhost:3100) e entre com `demo@worthly.te
 | --- | --- | --- |
 | `DATABASE_URL` | Não | Caminho do SQLite. Padrão: `file:./prisma/dev.db`. Em produção, aponte para um volume persistente. |
 | `WORTHLY_DEMO` | Não | Com `1`, usa dados fictícios no lugar da Pluggy. O `npm run demo` já define. |
+| `ANTHROPIC_API_KEY` | Não | Chave da API da Anthropic para o Tito. Alternativa a colar a chave na tela do assistente. |
 | `APP_URL` | Em produção | URL pública da instância (ex.: `https://financas.exemplo.com`). Define o domínio das chaves de acesso. Localmente, o host da requisição é usado. |
 
 As credenciais da Pluggy são configuradas no onboarding, ficam só no banco do servidor e nunca vão para o navegador.
