@@ -153,11 +153,26 @@ model CategoryRule {
 model AssistantConversation {
   id        String             @id @default(cuid())
   title     String
+  /// Agente usado na conversa; as instruções dele valem em todos os turnos.
+  agentId   String?
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
   messages  AssistantMessage[]
+  agent     AssistantAgent?    @relation(fields: [agentId], references: [id], onDelete: SetNull)
 
   @@index([updatedAt])
+}
+
+/// Um "Tito especialista": instruções fixas para um foco (uma meta, uma
+/// categoria, um hábito) que entram em toda conversa iniciada com ele.
+model AssistantAgent {
+  id            String                  @id @default(cuid())
+  name          String
+  emoji         String                  @default("🤖")
+  instructions  String
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  conversations AssistantConversation[]
 }
 
 /// Uma mensagem da API, guardada exatamente como foi enviada ou recebida
